@@ -828,6 +828,11 @@ input, select, textarea {
   animation: pulse 2s infinite;
 }
 
+.roadmap-node.unlocked .node-icon-status {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.3);
+}
+
 .node-card {
   flex: 1;
   background: var(--bg-surface);
@@ -846,6 +851,10 @@ input, select, textarea {
 .roadmap-node.in-progress .node-card {
   border-left: 4px solid var(--color-purple);
   box-shadow: var(--shadow-md);
+}
+
+.roadmap-node.unlocked .node-card {
+  border-left: 4px solid #3b82f6;
 }
 
 /* Interactive Quiz Engine */

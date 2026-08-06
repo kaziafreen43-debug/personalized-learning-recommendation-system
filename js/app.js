@@ -733,13 +733,38 @@
     const roadmaps = (state.data && state.data.roadmaps) ? state.data.roadmaps : {};
     
     const targetSubject = subjects.find(s => s.id === activeSub);
-    const roadmap = roadmaps[activeSub] || {
+    const rawRoadmap = roadmaps[activeSub] || {
       title: `${targetSubject ? targetSubject.name : 'Subject'} Learning Pathway`,
       nodes: [
         { id: 'node-1', title: '1. Foundational Core & Theory', status: 'completed', desc: 'Core principles, fundamental definitions & concepts', icon: 'book-open', resourceId: 'res-1' },
         { id: 'node-2', title: '2. Applied Practice & Problem Solving', status: 'in-progress', desc: 'Hands-on practice exercises & interactive labs', icon: 'play', resourceId: 'res-5' },
         { id: 'node-3', title: '3. Advanced Mastery & Projects', status: 'locked', desc: 'Advanced techniques, capstone project & optimization', icon: 'award', resourceId: 'res-2' }
       ]
+    };
+
+    const completedResourceIds = (state.currentUser && state.currentUser.completedResourceIds) || [];
+    
+    // Calculate dynamic node statuses based on completedResourceIds
+    let firstIncompleteFound = false;
+    const calculatedNodes = (rawRoadmap.nodes || []).map((node) => {
+      let status = 'unlocked';
+      const isCompleted = completedResourceIds.includes(node.resourceId);
+      if (isCompleted) {
+        status = 'completed';
+      } else {
+        if (!firstIncompleteFound) {
+          status = 'in-progress';
+          firstIncompleteFound = true;
+        } else {
+          status = 'unlocked';
+        }
+      }
+      return { ...node, status };
+    });
+
+    const roadmap = {
+      ...rawRoadmap,
+      nodes: calculatedNodes
     };
 
     return `
@@ -763,7 +788,7 @@
           ${(roadmap.nodes || []).map(node => `
             <div class="roadmap-node ${node.status}">
               <div class="node-icon-status">
-                ${node.status === 'completed' ? renderIcon('check') : (node.status === 'in-progress' ? renderIcon('play') : renderIcon('lock'))}
+                ${node.status === 'completed' ? renderIcon('check') : (node.status === 'in-progress' ? renderIcon('play') : renderIcon('unlock'))}
               </div>
               <div class="node-card">
                 <div>

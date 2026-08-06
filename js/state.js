@@ -84,6 +84,21 @@ window.AppState = {
       if (!this.currentUser.completedResourceIds) this.currentUser.completedResourceIds = [];
       if (!this.currentUser.bookmarkedResourceIds) this.currentUser.bookmarkedResourceIds = [];
       if (!this.currentUser.careerGoal) this.currentUser.careerGoal = 'AI & Machine Learning Engineer';
+
+      // Sync completed resources from the roadmap node initial statuses
+      if (this.data && this.data.roadmaps) {
+        Object.values(this.data.roadmaps).forEach(rm => {
+          if (rm && rm.nodes) {
+            rm.nodes.forEach(node => {
+              if (node.status === 'completed' && node.resourceId) {
+                if (!this.currentUser.completedResourceIds.includes(node.resourceId)) {
+                  this.currentUser.completedResourceIds.push(node.resourceId);
+                }
+              }
+            });
+          }
+        });
+      }
     }
     if (this.data && this.data.defaultUsers) {
       this.data.defaultUsers.forEach(u => {

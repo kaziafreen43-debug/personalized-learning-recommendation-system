@@ -218,7 +218,7 @@ window.INITIAL_DATA = {
       duration: '55 mins',
       rating: 4.99,
       tags: ['transformers', 'attention', 'llm'],
-      contentUrl: 'https://www.youtube.com/embed/5vcj8kSwBCY',
+      contentUrl: 'https://www.youtube.com/embed/wjZofJX0v4M',
       description: 'Step 4 Video: Self-Attention mechanism, Scaled Dot-Product Attention, BERT, GPT, and modern Large Language Models.',
       summary: 'Deep architectural walkthrough of Transformer encoders and decoders.'
     },
@@ -250,7 +250,7 @@ window.INITIAL_DATA = {
       duration: '40 mins',
       rating: 4.94,
       tags: ['dsa', 'big-o', 'data-structures'],
-      contentUrl: 'https://www.youtube.com/embed/8hly31xKLI0',
+      contentUrl: 'https://www.youtube.com/embed/RBSGKlAvoiM',
       description: 'Step 2 Video: Arrays, Linked Lists, Stacks, Queues, Binary Trees, Big-O time complexity analysis, and QuickSort.',
       summary: 'Analyze algorithm performance and learn memory-efficient data structures.'
     },
@@ -280,7 +280,7 @@ window.INITIAL_DATA = {
       duration: '50 mins',
       rating: 4.97,
       tags: ['system-design', 'microservices', 'devops'],
-      contentUrl: 'https://www.youtube.com/embed/SqsC34ghxCM',
+      contentUrl: 'https://www.youtube.com/embed/F2FmTdLtb_4',
       description: 'Step 4 Video: Distributed system architecture, load balancing, horizontal scaling, caching strategies, and Docker containers.',
       summary: 'Architect high-concurrency systems handling millions of daily requests.'
     },
@@ -389,7 +389,7 @@ window.INITIAL_DATA = {
       duration: '45 mins',
       rating: 4.98,
       tags: ['physics', 'quantum', 'schrodinger'],
-      contentUrl: 'https://www.youtube.com/embed/Qe453-yYjbg',
+      contentUrl: 'https://www.youtube.com/embed/p9pPjASnnxw',
       description: 'Step 3 Video: Wave-particle duality, double-slit interference, Planck energy quantization, and Schrödinger wave equation.',
       summary: 'Deep dive into quantum mechanical wave packet collapse.'
     },
@@ -453,7 +453,7 @@ window.INITIAL_DATA = {
       duration: '25 mins',
       rating: 4.88,
       tags: ['chemistry', 'atomic-structure', 'periodic-table'],
-      contentUrl: 'https://www.youtube.com/embed/P3RXtoYCF4U',
+      contentUrl: 'https://www.youtube.com/embed/Gy9HR65DpYQ',
       description: 'Step 1 Video: Bohr atomic radius, electron orbital filling, electronegativity trends, and ionic vs covalent bonding.',
       summary: 'Explore periodic table trends and atomic structures.'
     },
@@ -468,7 +468,7 @@ window.INITIAL_DATA = {
       duration: '35 mins',
       rating: 4.92,
       tags: ['chemistry', 'organic', 'sn2-reaction'],
-      contentUrl: 'https://www.youtube.com/embed/ndSpJq7q4G8',
+      contentUrl: 'https://www.youtube.com/embed/B_ketdzJtY8',
       description: 'Step 2 Video: Alcohols, aldehydes, carboxylic acids, SN1 vs SN2 nucleophilic substitution, and arrow-pushing mechanisms.',
       summary: 'Master organic chemistry synthesis and reaction steps.'
     },
