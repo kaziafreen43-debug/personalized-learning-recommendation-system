@@ -38,10 +38,26 @@ window.AppState = {
       this.saveData();
     }
 
-    // Force sync complete courses, resources, roadmaps & quizzes for ALL subjects
+    // Sync complete courses, resources, roadmaps & quizzes for ALL subjects without wiping dynamic additions
     if (window.INITIAL_DATA) {
-      if (window.INITIAL_DATA.courses) this.data.courses = window.INITIAL_DATA.courses;
-      if (window.INITIAL_DATA.resources) this.data.resources = window.INITIAL_DATA.resources;
+      if (!this.data.courses) {
+        this.data.courses = window.INITIAL_DATA.courses;
+      } else {
+        window.INITIAL_DATA.courses.forEach(c => {
+          if (!this.data.courses.some(dc => dc.id === c.id)) {
+            this.data.courses.push(c);
+          }
+        });
+      }
+      if (!this.data.resources) {
+        this.data.resources = window.INITIAL_DATA.resources;
+      } else {
+        window.INITIAL_DATA.resources.forEach(r => {
+          if (!this.data.resources.some(dr => dr.id === r.id)) {
+            this.data.resources.push(r);
+          }
+        });
+      }
       if (window.INITIAL_DATA.roadmaps) this.data.roadmaps = window.INITIAL_DATA.roadmaps;
       if (window.INITIAL_DATA.quizzes) this.data.quizzes = window.INITIAL_DATA.quizzes;
     }
@@ -107,12 +123,20 @@ window.AppState = {
         }
       });
     }
+    // Initialize Firestore dynamic sync
+    if (window.FirebaseDB) {
+      window.FirebaseDB.init();
+      window.FirebaseDB.syncAppState(this);
+    }
   },
 
   saveData: function() {
     try {
       localStorage.setItem('plr_app_data', JSON.stringify(this.data));
     } catch(e) {}
+    if (window.FirebaseDB && this.currentUser) {
+      window.FirebaseDB.saveUser(this.currentUser);
+    }
     this.notify();
   },
 
@@ -138,10 +162,37 @@ window.AppState = {
     this.setTheme(nextTheme);
   },
 
-  loginUser: function(email) {
+  loginUser: function(email, password = '') {
+    if (email === 'admin@gmail.com') {
+      if (password !== 'Pass@123') {
+        alert('Invalid admin credentials. Please try again.');
+        return false;
+      }
+    }
     let user = this.data.defaultUsers.find(u => u.email === email);
     if (!user) {
-      user = this.data.defaultUsers[0];
+      if (email === 'admin@gmail.com') {
+        user = {
+          id: 'u-admin',
+          name: 'Admin Instructor',
+          email: 'admin@gmail.com',
+          role: 'admin',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+          gradeClass: 'Administrator',
+          preferredStyle: 'reading',
+          interests: ['ds', 'cs', 'math'],
+          enrolledCourseIds: [],
+          completedResourceIds: [],
+          bookmarkedResourceIds: [],
+          dailyGoalMinutes: 60,
+          todayStudiedMinutes: 0,
+          streakDays: 1,
+          recentActivity: []
+        };
+        this.data.defaultUsers.push(user);
+      } else {
+        user = this.data.defaultUsers[0];
+      }
     }
     this.currentUser = user;
     this.isAuthenticated = true;
@@ -150,7 +201,15 @@ window.AppState = {
       localStorage.setItem('plr_user_id', user.id);
     } catch(e) {}
     this.closeModal();
-    this.setView('dashboard');
+    if (window.FirebaseDB) {
+      window.FirebaseDB.syncAppState(this);
+    }
+    if (user.role === 'admin') {
+      this.setView('admin');
+    } else {
+      this.setView('dashboard');
+    }
+    return true;
   },
 
   logoutUser: function() {
@@ -170,7 +229,14 @@ window.AppState = {
         localStorage.setItem('plr_is_auth', 'true');
         localStorage.setItem('plr_user_id', userId);
       } catch(e) {}
-      this.notify();
+      if (window.FirebaseDB) {
+        window.FirebaseDB.syncAppState(this);
+      }
+      if (user.role === 'admin') {
+        this.setView('admin');
+      } else {
+        this.setView('dashboard');
+      }
     }
   },
 
@@ -326,17 +392,155 @@ window.AppState = {
   },
 
   addResource: function(resourceObj) {
-    resourceObj.id = 'res-' + Date.now();
+    resourceObj.id = resourceObj.id || 'res-' + Date.now();
     resourceObj.rating = 5.0;
     resourceObj.reviewsCount = 1;
     if (!this.data.resources) this.data.resources = [];
     this.data.resources.unshift(resourceObj);
     this.saveData();
+    if (window.FirebaseDB) {
+      window.FirebaseDB.saveResource(resourceObj);
+    }
   },
 
   deleteResource: function(resourceId) {
     if (!this.data.resources) return;
     this.data.resources = this.data.resources.filter(r => r.id !== resourceId);
     this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.isInitialized) {
+      window.FirebaseDB.db.collection('resources').doc(resourceId).delete()
+        .then(() => console.log("Resource deleted from Firestore"))
+        .catch(e => console.error("Error deleting resource from Firestore:", e));
+    }
+  },
+
+  addSubject: function(subjectObj) {
+    if (!this.data.subjects) this.data.subjects = [];
+    this.data.subjects.push(subjectObj);
+    this.saveData();
+    if (window.FirebaseDB) {
+      window.FirebaseDB.saveSubject(subjectObj);
+    }
+  },
+
+  addCourse: function(courseObj) {
+    courseObj.id = 'course-' + Date.now();
+    courseObj.rating = 5.0;
+    courseObj.enrolledCount = 0;
+    courseObj.matchScore = 95;
+    if (!courseObj.categories) {
+      courseObj.categories = {
+        Beginner: { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId}-beginner` },
+        Intermediate: { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId}-intermediate` },
+        Advanced: { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId}-advanced` }
+      };
+    }
+    if (!this.data.courses) this.data.courses = [];
+    this.data.courses.unshift(courseObj);
+    this.saveData();
+    if (window.FirebaseDB) {
+      window.FirebaseDB.saveCourse(courseObj);
+    }
+  },
+
+  addVideoToCourse: function(courseId, tier, title, description, contentUrl, duration) {
+    const course = this.data.courses.find(c => c.id === courseId);
+    if (!course) return;
+    const resId = 'res-vid-' + Date.now();
+    const resource = {
+      id: resId,
+      title: title,
+      format: 'video',
+      duration: duration || '15 mins',
+      contentUrl: contentUrl,
+      summary: description,
+      description: description,
+      subjectId: course.subjectId,
+      level: tier,
+      vark: ['visual', 'auditory'],
+      rating: 5.0,
+      reviewsCount: 1,
+      suitableClass: course.suitableClass || 'Grade 11-12'
+    };
+
+    if (!this.data.resources) this.data.resources = [];
+    this.data.resources.unshift(resource);
+
+    if (!course.categories) course.categories = {};
+    if (!course.categories[tier]) {
+      course.categories[tier] = {
+        title: `${tier} Category`,
+        materials: [],
+        quizId: `quiz-${course.subjectId}-${tier.toLowerCase()}`
+      };
+    }
+    if (!course.categories[tier].materials) {
+      course.categories[tier].materials = [];
+    }
+    course.categories[tier].materials.push({
+      id: resId,
+      title: '🎥 ' + title,
+      format: 'video',
+      duration: duration || '15 mins'
+    });
+
+    this.saveData();
+    if (window.FirebaseDB) {
+      window.FirebaseDB.saveResource(resource);
+      window.FirebaseDB.saveCourse(course);
+    }
+  },
+
+  addAssignment: function(courseId, title, description, points) {
+    const assignment = {
+      id: 'assign-' + Date.now(),
+      courseId: courseId,
+      title: title,
+      description: description,
+      points: Number(points) || 100,
+      createdAt: new Date().toISOString()
+    };
+    if (!this.data.assignments) this.data.assignments = [];
+    this.data.assignments.unshift(assignment);
+    this.saveData();
+    if (window.FirebaseDB) {
+      window.FirebaseDB.saveAssignment(assignment);
+    }
+  },
+
+  submitAssignment: function(assignmentId, courseId, submissionText, submissionLink) {
+    if (!this.currentUser) return;
+    const submission = {
+      userId: this.currentUser.id,
+      userName: this.currentUser.name,
+      assignmentId: assignmentId,
+      courseId: courseId,
+      submissionText: submissionText || '',
+      submissionLink: submissionLink || '',
+      submittedAt: new Date().toISOString(),
+      status: 'submitted'
+    };
+    if (!this.data.submissions) this.data.submissions = [];
+    
+    const existingIndex = this.data.submissions.findIndex(s => s.assignmentId === assignmentId && s.userId === this.currentUser.id);
+    if (existingIndex >= 0) {
+      this.data.submissions[existingIndex] = submission;
+    } else {
+      this.data.submissions.push(submission);
+    }
+
+    if (!this.currentUser.recentActivity) this.currentUser.recentActivity = [];
+    const assign = (this.data.assignments || []).find(a => a.id === assignmentId);
+    this.currentUser.recentActivity.unshift({
+      title: `Submitted Assignment: ${assign ? assign.title : 'Course Work'}`,
+      time: 'Just now',
+      icon: 'file-text'
+    });
+
+    this.saveData();
+    if (window.FirebaseDB) {
+      window.FirebaseDB.saveSubmission(submission);
+      window.FirebaseDB.saveUser(this.currentUser);
+    }
   }
 };

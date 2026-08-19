@@ -21,6 +21,16 @@
       if (window.AppState) window.AppState.init();
     }
 
+    // Save search input focus and cursor details
+    const activeEl = document.activeElement;
+    const isSearchFocused = activeEl && activeEl.tagName === 'INPUT' && activeEl.placeholder && activeEl.placeholder.includes('Search');
+    let selectionStart = 0;
+    let selectionEnd = 0;
+    if (isSearchFocused) {
+      selectionStart = activeEl.selectionStart;
+      selectionEnd = activeEl.selectionEnd;
+    }
+
     clearCharts();
 
     const state = window.AppState;
@@ -123,7 +133,7 @@
             <div style="display:flex; align-items:center; gap:16px;">
               <div class="nav-search">
                 ${renderIcon('search')}
-                <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; AppState.notify();">
+                <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; if (AppState.currentView !== 'catalog') { AppState.setView('catalog'); } else { AppState.notify(); }">
               </div>
             </div>
 
@@ -132,9 +142,11 @@
                 ${state.theme === 'light' ? renderIcon('moon') : renderIcon('sun')}
               </button>
 
-              <button class="role-switcher-btn" onclick="AppState.setUser('${user && user.role === 'student' ? 'u-admin' : 'u-1'}')">
-                ${renderIcon('user-check')} Switch to ${user && user.role === 'student' ? 'Admin' : 'Student'}
-              </button>
+              ${user && user.role === 'admin' ? `
+                <button class="role-switcher-btn" onclick="AppState.setUser('u-1')">
+                  ${renderIcon('user-check')} Switch to Student
+                </button>
+              ` : ''}
 
               <button onclick="AppState.logoutUser()" class="icon-btn" title="Log Out" style="color:var(--color-rose);">
                 ${renderIcon('log-out')}
@@ -154,6 +166,17 @@
 
     if (window.lucide) {
       try { window.lucide.createIcons(); } catch(e) {}
+    }
+
+    // Restore focus and selection
+    if (isSearchFocused) {
+      const searchInput = document.querySelector('.nav-search input');
+      if (searchInput) {
+        searchInput.focus();
+        try {
+          searchInput.setSelectionRange(selectionStart, selectionEnd);
+        } catch (e) {}
+      }
     }
 
     attachCharts();
@@ -654,6 +677,9 @@
     const course = courses.find(c => c.id === courseId) || courses[0] || { title: 'AI Masterclass' };
     const userSkill = (state.currentUser && state.currentUser.skillLevel) || 'Intermediate';
 
+    const courseAssignments = (state.data && state.data.assignments) ? state.data.assignments.filter(a => a.courseId === course.id) : [];
+    const submissions = (state.data && state.data.submissions) ? state.data.submissions : [];
+
     if (!activeCourseCategory) activeCourseCategory = userSkill;
 
     const categories = course.categories || {
@@ -722,6 +748,57 @@
             ${renderIcon('award')} Take ${qCount}-Question Quiz
           </button>
         </div>
+      </div>
+
+      <!-- Assignments Section -->
+      <div class="widget-card" style="margin-bottom:28px;">
+        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:14px; color:var(--color-indigo); display:flex; align-items:center; gap:8px;">
+          ${renderIcon('file-text')} Course Assignments & Projects
+        </h3>
+        
+        ${courseAssignments.length === 0 ? `
+          <p style="font-size:0.88rem; color:var(--text-muted); text-align:center; padding:12px;">No assignments created for this course yet.</p>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            ${courseAssignments.map(a => {
+              const sub = submissions.find(s => s.assignmentId === a.id && s.userId === (state.currentUser ? state.currentUser.id : ''));
+              return `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap; gap:14px;">
+                  <div style="flex:1; min-width:250px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                      <span style="font-weight:700; font-size:1.05rem;">${a.title}</span>
+                      <span style="font-size:0.75rem; background:rgba(99, 102, 241, 0.12); color:var(--color-indigo); padding:2px 8px; border-radius:var(--radius-full); font-weight:700;">
+                        ${a.points} Points
+                      </span>
+                      ${sub ? `
+                        <span style="font-size:0.75rem; background:rgba(16, 185, 129, 0.12); color:var(--color-emerald); padding:2px 8px; border-radius:var(--radius-full); font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                          ${renderIcon('check')} Submitted
+                        </span>
+                      ` : `
+                        <span style="font-size:0.75rem; background:rgba(100, 116, 139, 0.12); color:var(--text-muted); padding:2px 8px; border-radius:var(--radius-full); font-weight:700;">
+                          Pending
+                        </span>
+                      `}
+                    </div>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0; line-height:1.4;">
+                      ${a.description}
+                    </p>
+                    ${sub ? `
+                      <div style="margin-top:10px; font-size:0.8rem; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:var(--text-main);">
+                        <strong>Your submission:</strong> ${sub.submissionText}
+                        ${sub.submissionLink ? `<br><strong>Link:</strong> <a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline;">${sub.submissionLink}</a>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                  
+                  <button class="btn-launch-resource" style="padding:8px 20px; font-size:0.85rem; background:var(--primary-gradient); color:#fff; border-radius:var(--radius-full); display:flex; align-items:center; gap:6px;" onclick="AppState.openModal('submit-assignment', '${a.id}')">
+                    ${sub ? renderIcon('edit') + ' Resubmit' : renderIcon('upload-cloud') + ' Submit Project'}
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
       </div>
     `;
   }
@@ -1093,15 +1170,556 @@
     `;
   }
 
+  window.activeAdminTab = 'courses';
+
+  window.handleCreateSubjectSubmit = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const subId = form.subId.value.trim().toLowerCase();
+    const name = form.name.value.trim();
+    const icon = form.icon.value.trim() || 'book';
+    const color = form.color.value.trim() || '#8b5cf6';
+    const description = form.description.value.trim();
+
+    if (!subId || !name || !description) {
+      alert("Please fill in Subject ID, Name, and Description.");
+      return;
+    }
+
+    const state = window.AppState;
+    const existing = state.data.subjects ? state.data.subjects.find(s => s.id === subId) : null;
+    if (existing) {
+      alert(`Subject with ID "${subId}" already exists!`);
+      return;
+    }
+
+    const newSubject = {
+      id: subId,
+      name: name,
+      icon: icon,
+      color: color,
+      description: description
+    };
+
+    window.AppState.addSubject(newSubject);
+    alert(`Subject "${name}" successfully created and saved dynamically!`);
+    form.reset();
+    AppState.notify();
+  };
+
+  window.handleCreateCourseSubmit = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const courseObj = {
+      title: form.title.value.trim(),
+      subjectId: form.subjectId.value,
+      instructor: form.instructor.value.trim() || 'AI Faculty',
+      prerequisites: form.prerequisites.value.trim() || 'None',
+      duration: form.duration.value ? `${form.duration.value} Weeks` : '8 Weeks',
+      description: form.description.value.trim(),
+      bannerImage: form.bannerImage.value.trim() || 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800'
+    };
+    if (!courseObj.title || !courseObj.description) {
+      alert("Please enter a course title and description.");
+      return;
+    }
+    if (!courseObj.subjectId || courseObj.subjectId === 'ADD_NEW_SUBJECT') {
+      alert("Please select a valid subject for the course.");
+      return;
+    }
+    window.AppState.addCourse(courseObj);
+    alert("Course successfully created and saved dynamically to Firebase!");
+    form.reset();
+  };
+
+  window.handleRegisterVideoSubmit = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const courseId = form.courseId.value;
+    const tier = form.tier.value;
+    const title = form.title.value.trim();
+    const contentUrl = form.contentUrl.value.trim();
+    const duration = form.duration.value.trim() || '15 mins';
+    const description = form.description.value.trim();
+
+    if (!courseId || !title || !contentUrl) {
+      alert("Please fill in Course, Title, and Video URL.");
+      return;
+    }
+    window.AppState.addVideoToCourse(courseId, tier, title, description, contentUrl, duration);
+    alert("Video material successfully added to course and synced with Firebase!");
+    form.reset();
+  };
+
+  window.handleCreateAssignmentSubmit = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const courseId = form.courseId.value;
+    const title = form.title.value.trim();
+    const description = form.description.value.trim();
+    const points = form.points.value || 100;
+
+    if (!courseId || !title || !description) {
+      alert("Please fill in Course, Title, and Instructions.");
+      return;
+    }
+    window.AppState.addAssignment(courseId, title, description, points);
+    alert("Assignment successfully created and saved dynamically to Firebase!");
+    form.reset();
+  };
+
   function renderAdmin() {
     const state = window.AppState;
     const resources = (state.data && state.data.resources) ? state.data.resources : [];
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
+    const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+    const assignments = (state.data && state.data.assignments) ? state.data.assignments : [];
+
+    let activeTabContent = '';
+
+    if (window.activeAdminTab === 'courses') {
+      activeTabContent = `
+        <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; align-items:start;">
+          <!-- Create Course Form -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('plus-circle')} Create New Course
+            </h2>
+            <form onsubmit="window.handleCreateCourseSubmit(event)">
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Course Title</label>
+                  <input type="text" name="title" required placeholder="e.g. Advanced Deep Learning" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Subject</label>
+                  <select name="subjectId" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="if(this.value === 'ADD_NEW_SUBJECT') { window.activeAdminTab = 'subjects'; AppState.notify(); }">
+                    <option value="" disabled selected>Select Subject</option>
+                    ${subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                    <option value="ADD_NEW_SUBJECT" style="color:var(--color-purple); font-weight:700;">+ Add New Subject...</option>
+                  </select>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Instructor</label>
+                    <input type="text" name="instructor" placeholder="e.g. Dr. Alan Turing" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  </div>
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Duration (Weeks)</label>
+                    <input type="number" name="duration" min="1" required placeholder="e.g. 10" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Banner Image URL (Optional)</label>
+                  <input type="text" name="bannerImage" placeholder="https://images.unsplash..." style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Prerequisites</label>
+                  <input type="text" name="prerequisites" placeholder="e.g. Python Programming" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Description / Syllabus Summary</label>
+                  <textarea name="description" required placeholder="Provide syllabus guidelines..." style="width:100%; height:90px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
+                  Create Course
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- Existing Courses -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px;">Course Directory</h2>
+            <div style="overflow-x:auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Subject</th>
+                    <th>Duration</th>
+                    <th>Instructor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${courses.map(c => `
+                    <tr>
+                      <td><strong>${c.title}</strong></td>
+                      <td>${(c.subjectId || '').toUpperCase()}</td>
+                      <td>${c.duration}</td>
+                      <td>${c.instructor || 'AI Faculty'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (window.activeAdminTab === 'videos') {
+      activeTabContent = `
+        <div class="widget-card" style="max-width:650px; margin: 0 auto;">
+          <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+            ${renderIcon('video')} Add Video Lessons & Links
+          </h2>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">
+            Add embedded video resources to any course, cataloged by difficulty tier (Beginner, Intermediate, or Advanced).
+          </p>
+          <form onsubmit="window.handleRegisterVideoSubmit(event)">
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Select Course Target</label>
+                <select name="courseId" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Difficulty Category Tier</label>
+                <select name="tier" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  <option value="Beginner">Beginner (5 Questions Tier)</option>
+                  <option value="Intermediate" selected>Intermediate (10 Questions Tier)</option>
+                  <option value="Advanced">Advanced (15 Questions Tier)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Video Lesson Title</label>
+                <input type="text" name="title" required placeholder="e.g. Backpropagation Math Explained" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+              </div>
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Video URL (YouTube Embed Link)</label>
+                <input type="url" name="contentUrl" required placeholder="e.g. https://www.youtube.com/embed/aircAruvnKk" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Must be an embeddable iframe URL format.</div>
+              </div>
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Duration</label>
+                <input type="text" name="duration" placeholder="e.g. 25 mins" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+              </div>
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Video Description / Core Objective</label>
+                <textarea name="description" placeholder="A comprehensive overview of what this video lecture details..." style="width:100%; height:90px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;"></textarea>
+              </div>
+              <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
+                Add Video Material
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+    } else if (window.activeAdminTab === 'assignments') {
+      activeTabContent = `
+        <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; align-items:start;">
+          <!-- Create Assignment Form -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('file-text')} Create Course Assignment
+            </h2>
+            <form onsubmit="window.handleCreateAssignmentSubmit(event)">
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Course</label>
+                  <select name="courseId" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                    ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Assignment Title</label>
+                  <input type="text" name="title" required placeholder="e.g. Calculus Basics Problem Set" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Max Grade Points</label>
+                  <input type="number" name="points" value="100" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Instructions & Criteria</label>
+                  <textarea name="description" required placeholder="Provide clear task instructions, required materials, and how to submit..." style="width:100%; height:130px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
+                  Create Assignment
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- Existing Assignments Table -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px;">Active Assignments</h2>
+            <div style="overflow-x:auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Course Target</th>
+                    <th>Assignment Title</th>
+                    <th>Max Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${assignments.map(a => {
+                    const c = courses.find(item => item.id === a.courseId) || { title: 'Unknown Course' };
+                    return `
+                      <tr>
+                        <td>${c.title}</td>
+                        <td><strong>${a.title}</strong></td>
+                        <td>${a.points} pts</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                  ${assignments.length === 0 ? `
+                    <tr>
+                      <td colspan="3" style="text-align:center; color:var(--text-muted);">No assignments created yet.</td>
+                    </tr>
+                  ` : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (window.activeAdminTab === 'submissions') {
+      const students = state.data.defaultUsers ? state.data.defaultUsers.filter(u => u.role !== 'admin') : [];
+      const allSubmissions = state.data.submissions || [];
+      activeTabContent = `
+        <div style="display:flex; flex-direction:column; gap:28px;">
+          <!-- Registered Students Directory -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('users')} Registered Students Profile & Onboarding
+            </h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+              This list details all students registered dynamically via the onboarding questionnaire.
+            </p>
+            <div style="overflow-x:auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Grade / Class</th>
+                    <th>Preferred Style</th>
+                    <th>Goal Career</th>
+                    <th>Streak / Progress</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${students.map(s => `
+                    <tr>
+                      <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <img src="${s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--border-color);">
+                          <strong>${s.name}</strong>
+                        </div>
+                      </td>
+                      <td>${s.email || 'N/A'}</td>
+                      <td><span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color);">${s.gradeClass || 'N/A'}</span></td>
+                      <td><span class="tag-pill" style="background:rgba(99, 102, 241, 0.1); color:var(--color-indigo);">${(s.preferredStyle || 'visual').toUpperCase()}</span></td>
+                      <td>${s.careerGoal || 'N/A'}</td>
+                      <td>
+                        <span style="font-weight:700; color:var(--color-purple);">${s.streakDays || 0} 🔥</span> • 
+                        <span style="font-size:0.8rem; color:var(--text-muted);">${s.completedResourceIds ? s.completedResourceIds.length : 0} lessons done</span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                  ${students.length === 0 ? `
+                    <tr>
+                      <td colspan="6" style="text-align:center; color:var(--text-muted);">No student accounts found in Firestore.</td>
+                    </tr>
+                  ` : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Assignment Submissions Table -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('file-text')} Student Assignment Submissions
+            </h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+              All dynamic homework and project links submitted by students, synced via Firebase.
+            </p>
+            <div style="overflow-x:auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Course Target</th>
+                    <th>Assignment Name</th>
+                    <th>Text Submission</th>
+                    <th>Project Link</th>
+                    <th>Submitted At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${allSubmissions.map(sub => {
+                    const c = courses.find(item => item.id === sub.courseId) || { title: 'Unknown Course' };
+                    const a = assignments.find(item => item.id === sub.assignmentId) || { title: 'Unknown Assignment' };
+                    return `
+                      <tr>
+                        <td><strong>${sub.userName || 'Student'}</strong></td>
+                        <td>${c.title}</td>
+                        <td><strong>${a.title}</strong></td>
+                        <td>
+                          <div style="max-width:300px; max-height:80px; overflow-y:auto; font-size:0.85rem; line-height:1.4; white-space:pre-wrap; background:var(--bg-card); padding:6px; border-radius:4px; border:1px solid var(--border-color);">${sub.submissionText}</div>
+                        </td>
+                        <td>
+                          ${sub.submissionLink ? `<a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline; font-size:0.85rem; display:flex; align-items:center; gap:4px;">${renderIcon('external-link', 'small-icon')} View Link</a>` : '<span style="color:var(--text-subtle);">-</span>'}
+                        </td>
+                        <td>
+                          <span style="font-size:0.8rem; color:var(--text-muted);">${new Date(sub.submittedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                  ${allSubmissions.length === 0 ? `
+                    <tr>
+                      <td colspan="6" style="text-align:center; color:var(--text-muted);">No assignment submissions found.</td>
+                    </tr>
+                  ` : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (window.activeAdminTab === 'resources') {
+      // original resources tab
+      activeTabContent = `
+        <div class="widget-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2 style="font-size:1.2rem; font-weight:800;">Resource Catalog Management</h2>
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:6px 16px; font-size:0.85rem;" onclick="AppState.openModal('add-resource')">
+              ${renderIcon('plus')} Add New Resource
+            </button>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Subject</th>
+                  <th>Format</th>
+                  <th>Level</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${resources.map(res => `
+                  <tr>
+                    <td><strong>${res.title}</strong></td>
+                    <td>${(res.subjectId || '').toUpperCase()}</td>
+                    <td><span class="tag-pill">${res.format}</span></td>
+                    <td>${res.level}</td>
+                    <td>
+                      <button style="color:var(--color-rose);" onclick="AppState.deleteResource('${res.id}')">
+                        ${renderIcon('trash-2')}
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else if (window.activeAdminTab === 'subjects') {
+      activeTabContent = `
+        <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; align-items:start;">
+          <!-- Create Subject Form -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('plus-circle')} Add New Subject
+            </h2>
+            <form onsubmit="window.handleCreateSubjectSubmit(event)">
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Subject ID / Code</label>
+                  <input type="text" name="subId" required placeholder="e.g. history, chemistry, art" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  <span style="font-size:0.75rem; color:var(--text-subtle);">Unique short code in lowercase. Avoid spaces.</span>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Subject Name</label>
+                  <input type="text" name="name" required placeholder="e.g. History & World Culture" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Lucide Icon Name</label>
+                    <select name="icon" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      <option value="book" selected>Book</option>
+                      <option value="cpu">CPU (Tech/AI)</option>
+                      <option value="code">Code (Programming)</option>
+                      <option value="calculator">Calculator (Math)</option>
+                      <option value="zap">Zap (Physics)</option>
+                      <option value="dna">DNA (Biology)</option>
+                      <option value="flask-conical">Flask (Chemistry)</option>
+                      <option value="globe">Globe (Geography/History)</option>
+                      <option value="brain">Brain (Psychology)</option>
+                      <option value="award">Award</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Theme Color Accent</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                      <input type="color" name="color" value="#8b5cf6" style="padding:0; width:40px; height:40px; border:none; border-radius:4px; cursor:pointer; background:none;">
+                      <span style="font-size:0.75rem; color:var(--text-subtle);">Color Accent</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Description</label>
+                  <textarea name="description" required placeholder="Brief description of the subject..." style="width:100%; height:90px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
+                  Create Subject
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- Existing Subjects List -->
+          <div class="widget-card">
+            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px;">Registered Subjects</h2>
+            <div style="overflow-x:auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Icon & Name</th>
+                    <th>ID Code</th>
+                    <th>Color Accent</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${subjects.map(s => `
+                    <tr>
+                      <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span style="color:${s.color || 'var(--primary-500)'}; display:flex; align-items:center; justify-content:center;">
+                            ${renderIcon(s.icon || 'book')}
+                          </span>
+                          <strong>${s.name}</strong>
+                        </div>
+                      </td>
+                      <td><span class="tag-pill" style="background:var(--bg-page); border:1px solid var(--border-color);">${s.id}</span></td>
+                      <td>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${s.color || '#ccc'};"></span>
+                          <span style="font-family:monospace; font-size:0.8rem;">${s.color || '#ccc'}</span>
+                        </div>
+                      </td>
+                      <td style="font-size:0.85rem; color:var(--text-muted); line-height:1.4;">${s.description || ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      activeTabContent = '';
+    }
 
     return `
       <div class="page-header">
         <h1 class="page-title">${renderIcon('settings')} Admin Control Panel</h1>
-        <p class="page-subtitle">Manage users, course library, quizzes, and AI recommendation rules.</p>
+        <p class="page-subtitle">Manage courses, videos, assignments, and resource libraries dynamically with Firebase Firestore.</p>
       </div>
 
       <div class="stats-grid" style="margin-bottom:28px;">
@@ -1111,48 +1729,38 @@
         </div>
         <div class="stat-card purple">
           <div class="stat-value">${courses.length}</div>
-          <div class="stat-label">Published Full Courses</div>
+          <div class="stat-label">Published Courses</div>
         </div>
         <div class="stat-card emerald">
-          <div class="stat-value">95.4%</div>
-          <div class="stat-label">AI Match Accuracy</div>
+          <div class="stat-value">${assignments.length}</div>
+          <div class="stat-label">Created Assignments</div>
         </div>
       </div>
 
-      <div class="widget-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h2 style="font-size:1.2rem; font-weight:800;">Resource Catalog Management</h2>
-          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:6px 16px; font-size:0.85rem;" onclick="AppState.openModal('add-resource')">
-            ${renderIcon('plus')} Add New Resource
-          </button>
-        </div>
+      <!-- Tab Buttons -->
+      <div class="subject-tabs" style="margin-bottom:24px; border-bottom:1px solid var(--border-color); padding-bottom:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="tab-btn ${window.activeAdminTab === 'courses' ? 'active' : ''}" onclick="window.activeAdminTab='courses'; AppState.notify();">
+          ${renderIcon('graduation-cap')} Manage Courses
+        </button>
+        <button class="tab-btn ${window.activeAdminTab === 'videos' ? 'active' : ''}" onclick="window.activeAdminTab='videos'; AppState.notify();">
+          ${renderIcon('video')} Add Video Lessons
+        </button>
+        <button class="tab-btn ${window.activeAdminTab === 'assignments' ? 'active' : ''}" onclick="window.activeAdminTab='assignments'; AppState.notify();">
+          ${renderIcon('file-text')} Course Assignments
+        </button>
+        <button class="tab-btn ${window.activeAdminTab === 'submissions' ? 'active' : ''}" onclick="window.activeAdminTab='submissions'; AppState.notify();">
+          ${renderIcon('users')} Student Activity & Submissions
+        </button>
+        <button class="tab-btn ${window.activeAdminTab === 'resources' ? 'active' : ''}" onclick="window.activeAdminTab='resources'; AppState.notify();">
+          ${renderIcon('book-open')} Global Resources
+        </button>
+        <button class="tab-btn ${window.activeAdminTab === 'subjects' ? 'active' : ''}" onclick="window.activeAdminTab='subjects'; AppState.notify();">
+          ${renderIcon('book')} Manage Subjects
+        </button>
+      </div>
 
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Subject</th>
-              <th>Format</th>
-              <th>Level</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${resources.map(res => `
-              <tr>
-                <td><strong>${res.title}</strong></td>
-                <td>${(res.subjectId || '').toUpperCase()}</td>
-                <td><span class="tag-pill">${res.format}</span></td>
-                <td>${res.level}</td>
-                <td>
-                  <button style="color:var(--color-rose);" onclick="AppState.deleteResource('${res.id}')">
-                    ${renderIcon('trash-2')}
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+      <div>
+        ${activeTabContent}
       </div>
     `;
   }
@@ -1181,6 +1789,8 @@
       content = renderCertificateModalContent();
     } else if (state.activeModal === 'add-resource') {
       content = renderAddResourceModalContent();
+    } else if (state.activeModal === 'submit-assignment') {
+      content = renderSubmitAssignmentModalContent(state.modalData);
     }
 
     return `
@@ -1202,7 +1812,7 @@
         <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:8px; text-align:center;">Welcome Back</h2>
         <p style="color:var(--text-muted); text-align:center; margin-bottom:24px;">Log in to access your personalized learning recommendations.</p>
 
-        <form onsubmit="event.preventDefault(); AppState.loginUser(this.email.value);" autocomplete="on">
+        <form onsubmit="event.preventDefault(); AppState.loginUser(this.email.value, document.getElementById('loginPassword').value);" autocomplete="on">
           <div style="display:flex; flex-direction:column; gap:16px;">
             <div>
               <label style="font-size:0.85rem; font-weight:700; margin-bottom:4px; display:block;">Email Address</label>
@@ -1229,7 +1839,7 @@
             <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 12px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('alex@student.ai')">
               Demo Student
             </button>
-            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 12px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@learn.ai')">
+            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 12px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
               Demo Admin
             </button>
           </div>
@@ -1307,8 +1917,8 @@
 
   // Student Questionnaire Modal
   function renderQuestionnaireModalContent() {
-    const data = window.INITIAL_DATA || {};
     const state = window.AppState;
+    const data = state.data || window.INITIAL_DATA || {};
 
     // Check if name is passed via modalData, or if we have currentUser
     let defaultName = 'Afreen Kazi';
@@ -1724,16 +2334,19 @@
   }
 
   function renderAddResourceModalContent() {
+    const state = window.AppState;
+    const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+
     return `
       <div>
         <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:16px;">Add New Learning Resource</h2>
         <form onsubmit="event.preventDefault(); window.submitNewResource(this);">
           <div style="display:flex; flex-direction:column; gap:12px;">
             <input type="text" name="title" placeholder="Course Title" required style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-            <select name="subjectId" style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-              <option value="ds">Artificial Intelligence & Data Science</option>
-              <option value="cs">Computer Science</option>
-              <option value="math">Mathematics</option>
+            <select name="subjectId" required style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="if(this.value === 'ADD_NEW_SUBJECT') { AppState.closeModal(); window.activeAdminTab = 'subjects'; AppState.notify(); }">
+              <option value="" disabled selected>Select Subject</option>
+              ${subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+              <option value="ADD_NEW_SUBJECT" style="color:var(--color-purple); font-weight:700;">+ Add New Subject...</option>
             </select>
             <select name="format" style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
               <option value="video">Video</option>
@@ -1749,11 +2362,17 @@
       </div>
     `;
   }
-
+ 
   window.submitNewResource = function(form) {
+    const subjectId = form.subjectId.value;
+    if (!subjectId || subjectId === 'ADD_NEW_SUBJECT') {
+      alert("Please select a valid subject.");
+      return;
+    }
+
     const data = {
       title: form.title.value,
-      subjectId: form.subjectId.value,
+      subjectId: subjectId,
       format: form.format.value,
       level: 'Intermediate',
       duration: '30 mins',
@@ -1763,6 +2382,64 @@
     window.AppState.addResource(data);
     window.AppState.closeModal();
   };
+
+  window.handleSubmitAssignmentForm = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const assignmentId = form.assignmentId.value;
+    const courseId = form.courseId.value;
+    const text = form.submissionText.value.trim();
+    const link = form.submissionLink.value.trim();
+
+    window.AppState.submitAssignment(assignmentId, courseId, text, link);
+    alert("Assignment successfully submitted and sync'd to Firebase!");
+    window.AppState.closeModal();
+  };
+
+  function renderSubmitAssignmentModalContent(assignmentId) {
+    const state = window.AppState;
+    const assignment = (state.data && state.data.assignments) ? state.data.assignments.find(a => a.id === assignmentId) : null;
+    if (!assignment) return `<div>Error: Assignment not found.</div>`;
+
+    const existingSubmission = (state.data && state.data.submissions) ? state.data.submissions.find(s => s.assignmentId === assignmentId && s.userId === state.currentUser.id) : null;
+
+    return `
+      <div>
+        <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:var(--color-purple);">
+          ${renderIcon('file-text')} Submit Assignment
+        </h2>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+          Course assignment: <strong>${assignment.title}</strong>
+        </p>
+        
+        <div style="background:var(--bg-surface); border:1px solid var(--border-color); padding:12px; border-radius:var(--radius-md); font-size:0.85rem; margin-bottom:16px; max-height:120px; overflow-y:auto; line-height:1.5;">
+          <strong>Instructions:</strong><br>
+          ${assignment.description.replace(/\n/g, '<br>')}
+        </div>
+
+        <form onsubmit="window.handleSubmitAssignmentForm(event)">
+          <input type="hidden" name="assignmentId" value="${assignment.id}">
+          <input type="hidden" name="courseId" value="${assignment.courseId}">
+          
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div>
+              <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Write Your Submission Answer / Description</label>
+              <textarea name="submissionText" required placeholder="Write your answers, notes, or explanations here..." style="width:100%; height:110px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;">${existingSubmission ? existingSubmission.submissionText : ''}</textarea>
+            </div>
+            
+            <div>
+              <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Project Repository / Demo Link (Optional)</label>
+              <input type="url" name="submissionLink" value="${existingSubmission ? existingSubmission.submissionLink : ''}" placeholder="e.g. https://github.com/my-project" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+            </div>
+
+            <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
+              ${renderIcon('send')} ${existingSubmission ? 'Resubmit Assignment' : 'Submit Assignment'}
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+  }
 
   window.AppState.subscribe(() => {
     renderApp();

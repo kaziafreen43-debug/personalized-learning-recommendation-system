@@ -142,6 +142,22 @@ input, select, textarea {
   z-index: 100;
   padding: 20px 16px;
   transition: transform var(--transition-normal);
+  overflow-y: auto;
+}
+
+/* Custom sleek scrollbar for sidebar navigation */
+.sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-full);
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-purple);
 }
 
 .brand-logo {

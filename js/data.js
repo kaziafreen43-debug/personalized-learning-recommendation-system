@@ -963,6 +963,23 @@ window.INITIAL_DATA = {
       recentActivity: [
         { title: 'Enrolled in All 6 Subject Video Pathways', time: 'Just now', icon: 'graduation-cap' }
       ]
+    },
+    {
+      id: 'u-admin',
+      name: 'Admin Instructor',
+      email: 'admin@gmail.com',
+      role: 'admin',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+      gradeClass: 'Administrator',
+      preferredStyle: 'reading',
+      interests: ['ds', 'cs', 'math'],
+      enrolledCourseIds: [],
+      completedResourceIds: [],
+      bookmarkedResourceIds: [],
+      dailyGoalMinutes: 60,
+      todayStudiedMinutes: 0,
+      streakDays: 1,
+      recentActivity: []
     }
   ]
 };
