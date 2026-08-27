@@ -96,7 +96,14 @@ window.AppState = {
         'bio': 'course-bio-101',
         'chem': 'course-chem-101'
       };
-      this.currentUser.enrolledCourseIds = (this.currentUser.interests || []).map(id => interestToCourseMap[id]).filter(Boolean);
+      const enrolledIds = (this.currentUser.interests || []).map(id => interestToCourseMap[id]).filter(Boolean);
+      const dbCourses = (this.data && this.data.courses) ? this.data.courses : [];
+      dbCourses.forEach(c => {
+        if ((this.currentUser.interests || []).includes(c.subjectId) && !enrolledIds.includes(c.id)) {
+          enrolledIds.push(c.id);
+        }
+      });
+      this.currentUser.enrolledCourseIds = enrolledIds;
       if (!this.currentUser.completedResourceIds) this.currentUser.completedResourceIds = [];
       if (!this.currentUser.bookmarkedResourceIds) this.currentUser.bookmarkedResourceIds = [];
       if (!this.currentUser.careerGoal) this.currentUser.careerGoal = 'AI & Machine Learning Engineer';
@@ -292,8 +299,15 @@ window.AppState = {
       'bio': 'course-bio-101',
       'chem': 'course-chem-101'
     };
-    const selectedInterests = this.currentUser.interests;
-    this.currentUser.enrolledCourseIds = selectedInterests.map(id => interestToCourseMap[id]).filter(Boolean);
+    const selectedInterests = this.currentUser.interests || [];
+    const enrolledIds = selectedInterests.map(id => interestToCourseMap[id]).filter(Boolean);
+    const dbCourses = (this.data && this.data.courses) ? this.data.courses : [];
+    dbCourses.forEach(c => {
+      if (selectedInterests.includes(c.subjectId) && !enrolledIds.includes(c.id)) {
+        enrolledIds.push(c.id);
+      }
+    });
+    this.currentUser.enrolledCourseIds = enrolledIds;
 
     this.isAuthenticated = true;
     try {

@@ -1,10 +1,14 @@
 // Dynamic AI Recommendation Engine with Grade Class & Skill Alignment (Python Backend Bridge with Local Fallbacks)
 
 window.AIEngine = {
+  getApiBase: function() {
+    return window.location.port === '5000' ? '' : 'http://127.0.0.1:5000';
+  },
+
   calculateMatchScore: function(resource, user) {
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/recommendations', false); // synchronous HTTP request
+      xhr.open('POST', this.getApiBase() + '/api/recommendations', false); // synchronous HTTP request
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify({ resources: [resource], user: user, filterSubject: 'all', limit: 1 }));
       if (xhr.status === 200) {
@@ -22,7 +26,7 @@ window.AIEngine = {
   getRecommendations: function(resources, user, filterSubject = 'all', limit = 10) {
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/recommendations', false); // synchronous HTTP request
+      xhr.open('POST', this.getApiBase() + '/api/recommendations', false); // synchronous HTTP request
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify({ resources, user, filterSubject, limit }));
       if (xhr.status === 200) {
@@ -37,7 +41,7 @@ window.AIEngine = {
   recalibrateSkill: function(user, quiz, scorePercentage) {
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/recalibrate', false); // synchronous HTTP request
+      xhr.open('POST', this.getApiBase() + '/api/recalibrate', false); // synchronous HTTP request
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify({ user, quiz, scorePercentage }));
       if (xhr.status === 200) {

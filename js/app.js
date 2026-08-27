@@ -273,6 +273,28 @@
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
     const recommendations = window.AIEngine ? window.AIEngine.getRecommendations(resources, user, 'all', 6) : resources.slice(0, 6);
     const enrolledCourses = courses.filter(c => (user.enrolledCourseIds || []).includes(c.id));
+    const recommendedCourses = courses.filter(c => !(user.enrolledCourseIds || []).includes(c.id));
+    recommendedCourses.sort((a, b) => {
+      const aMatches = (user.interests || []).includes(a.subjectId) ? 1 : 0;
+      const bMatches = (user.interests || []).includes(b.subjectId) ? 1 : 0;
+      return bMatches - aMatches;
+    });
+    let recommendedCoursesHTML = '';
+    if (recommendedCourses.length > 0) {
+      recommendedCoursesHTML = `
+      <div style="margin-bottom:32px;">
+        <div class="section-header">
+          <h2 class="section-title">
+            ${renderIcon('sparkles')} Recommended Course Pathways
+          </h2>
+          <button class="section-link" onclick="AppState.setView('courses')">View All Courses ${renderIcon('arrow-right')}</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:24px; margin-bottom:20px;">
+          ${recommendedCourses.slice(0, 3).map(c => renderCourseCard(c, false)).join('')}
+        </div>
+      </div>
+      `;
+    }
     const recentActivity = user.recentActivity || [];
 
     return `
@@ -346,11 +368,14 @@
         </div>
       </div>
 
-      <!-- Enrolled & Recommended Courses Grid -->
+      <!-- Recommended Courses Section -->
+      ${recommendedCoursesHTML}
+
+      <!-- Recommended Study Material Section -->
       <div style="margin-bottom:32px;">
         <div class="section-header">
           <h2 class="section-title">
-            ${renderIcon('sparkles')} Recommended Courses & Study Material
+            ${renderIcon('book-open')} Recommended Study Materials
           </h2>
           <button class="section-link" onclick="AppState.setView('catalog')">View Full Catalog ${renderIcon('arrow-right')}</button>
         </div>
@@ -680,16 +705,16 @@
     const courseAssignments = (state.data && state.data.assignments) ? state.data.assignments.filter(a => a.courseId === course.id) : [];
     const submissions = (state.data && state.data.submissions) ? state.data.submissions : [];
 
-    if (!activeCourseCategory) activeCourseCategory = userSkill;
+    if (!window.activeCourseCategory) window.activeCourseCategory = userSkill;
+    const currentCategory = window.activeCourseCategory;
 
-    const categories = course.categories || {
-      Beginner: { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: 'quiz-ds-beginner' },
-      Intermediate: { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: 'quiz-ds-intermediate' },
-      Advanced: { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: 'quiz-ds-advanced' }
-    };
+    const categories = course.categories || {};
+    const beginnerData = categories.Beginner || { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-beginner` };
+    const intermediateData = categories.Intermediate || { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-intermediate` };
+    const advancedData = categories.Advanced || { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-advanced` };
 
-    const currentCatData = categories[activeCourseCategory] || categories['Intermediate'];
-    const qCount = activeCourseCategory === 'Beginner' ? 5 : (activeCourseCategory === 'Intermediate' ? 10 : 15);
+    const currentCatData = currentCategory === 'Beginner' ? beginnerData : (currentCategory === 'Advanced' ? advancedData : intermediateData);
+    const qCount = currentCategory === 'Beginner' ? 5 : (currentCategory === 'Intermediate' ? 10 : 15);
 
     return `
       <div style="margin-bottom:24px;">
@@ -711,13 +736,13 @@
       </div>
 
       <div class="subject-tabs" style="margin-bottom:24px;">
-        <button class="tab-btn ${activeCourseCategory === 'Beginner' ? 'active' : ''}" onclick="window.activeCourseCategory='Beginner'; AppState.notify();">
+        <button class="tab-btn ${currentCategory === 'Beginner' ? 'active' : ''}" onclick="window.activeCourseCategory='Beginner'; AppState.notify();">
           🟢 Beginner (5 Questions Quiz)
         </button>
-        <button class="tab-btn ${activeCourseCategory === 'Intermediate' ? 'active' : ''}" onclick="window.activeCourseCategory='Intermediate'; AppState.notify();">
+        <button class="tab-btn ${currentCategory === 'Intermediate' ? 'active' : ''}" onclick="window.activeCourseCategory='Intermediate'; AppState.notify();">
           🟡 Intermediate (10 Questions Quiz)
         </button>
-        <button class="tab-btn ${activeCourseCategory === 'Advanced' ? 'active' : ''}" onclick="window.activeCourseCategory='Advanced'; AppState.notify();">
+        <button class="tab-btn ${currentCategory === 'Advanced' ? 'active' : ''}" onclick="window.activeCourseCategory='Advanced'; AppState.notify();">
           🔴 Advanced (15 Questions Quiz)
         </button>
       </div>
@@ -741,7 +766,7 @@
 
         <div style="background:rgba(157, 23, 77, 0.08); border:1px dashed var(--color-purple); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
           <div>
-            <strong style="font-size:1rem; color:var(--color-purple);">${activeCourseCategory} Category Quiz (${qCount} Questions)</strong>
+            <strong style="font-size:1rem; color:var(--color-purple);">${currentCategory} Category Quiz (${qCount} Questions)</strong>
             <p style="font-size:0.85rem; color:var(--text-muted);">Solve this ${qCount}-question quiz to evaluate your category mastery and interest.</p>
           </div>
           <button class="btn-launch-resource" style="background:var(--gradient-purple-pink); padding:10px 20px; font-size:0.88rem;" onclick="AppState.openModal('quiz', '${currentCatData.quizId}')">
@@ -2197,7 +2222,40 @@
 
   function renderResourceViewerModalContent(resId) {
     const resources = (window.AppState.data && window.AppState.data.resources) ? window.AppState.data.resources : [];
-    const res = resources.find(r => r.id === resId) || resources[0] || { title: 'Study Material', format: 'article', summary: 'Description' };
+    const courses = (window.AppState.data && window.AppState.data.courses) ? window.AppState.data.courses : [];
+    let res = resources.find(r => r.id === resId);
+    
+    if (!res) {
+      // Find in courses
+      for (const course of courses) {
+        if (course.categories) {
+          for (const tier in course.categories) {
+            const cat = course.categories[tier];
+            if (cat && cat.materials) {
+              const foundMat = cat.materials.find(m => m.id === resId);
+              if (foundMat) {
+                res = {
+                  id: foundMat.id,
+                  title: foundMat.title,
+                  format: foundMat.format || 'video',
+                  duration: foundMat.duration,
+                  contentUrl: foundMat.contentUrl || 'https://www.youtube.com/embed/r-uOLxNrNk8',
+                  description: foundMat.description || foundMat.title,
+                  summary: foundMat.description || foundMat.title,
+                  subjectId: course.subjectId
+                };
+                break;
+              }
+            }
+          }
+        }
+        if (res) break;
+      }
+    }
+    
+    if (!res) {
+      res = resources[0] || { title: 'Study Material', format: 'article', summary: 'Description' };
+    }
 
     return `
       <div>

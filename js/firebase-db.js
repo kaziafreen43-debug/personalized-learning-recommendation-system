@@ -65,6 +65,9 @@ window.FirebaseDB = {
   // Load all data from Firestore and sync with AppState
   syncAppState: async function(appState) {
     if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.isInitialized) {
       // Setup empty assignments/submissions arrays if offline
       if (appState.data) {
         if (!appState.data.assignments) appState.data.assignments = [];
@@ -74,50 +77,113 @@ window.FirebaseDB = {
     }
 
     try {
-      // 1. Seed if empty
+      // 1. Seed if empty (independent block)
       if (window.INITIAL_DATA) {
-        await this.seedInitialDataIfEmpty(window.INITIAL_DATA);
+        try {
+          await this.seedInitialDataIfEmpty(window.INITIAL_DATA);
+        } catch (e) {
+          console.error("Error seeding initial data:", e);
+        }
       }
 
-      // 2. Fetch Courses
+    // 2. Fetch Courses (independent block)
+    try {
       const coursesSnap = await this.db.collection('courses').get();
       const courses = [];
       coursesSnap.forEach(doc => {
         courses.push(doc.data());
       });
       if (courses.length > 0) {
-        appState.data.courses = courses;
+        if (!appState.data.courses) {
+          appState.data.courses = [];
+        }
+        courses.forEach(c => {
+          const idx = appState.data.courses.findIndex(dc => dc.id === c.id);
+          if (idx >= 0) {
+            appState.data.courses[idx] = c;
+          } else {
+            appState.data.courses.push(c);
+          }
+        });
       }
+    } catch (e) {
+      console.error("Error fetching courses from Firestore:", e);
+    }
 
-      // 3. Fetch Resources
+    // 3. Fetch Resources (independent block)
+    try {
       const resourcesSnap = await this.db.collection('resources').get();
       const resources = [];
       resourcesSnap.forEach(doc => {
         resources.push(doc.data());
       });
       if (resources.length > 0) {
-        appState.data.resources = resources;
+        if (!appState.data.resources) {
+          appState.data.resources = [];
+        }
+        resources.forEach(r => {
+          const idx = appState.data.resources.findIndex(dr => dr.id === r.id);
+          if (idx >= 0) {
+            appState.data.resources[idx] = r;
+          } else {
+            appState.data.resources.push(r);
+          }
+        });
       }
+    } catch (e) {
+      console.error("Error fetching resources from Firestore:", e);
+    }
 
-      // 3.5 Fetch Subjects
+    // 3.5 Fetch Subjects (independent block)
+    try {
       const subjectsSnap = await this.db.collection('subjects').get();
       const subjects = [];
       subjectsSnap.forEach(doc => {
         subjects.push(doc.data());
       });
       if (subjects.length > 0) {
-        appState.data.subjects = subjects;
+        if (!appState.data.subjects) {
+          appState.data.subjects = [];
+        }
+        subjects.forEach(s => {
+          const idx = appState.data.subjects.findIndex(ds => ds.id === s.id);
+          if (idx >= 0) {
+            appState.data.subjects[idx] = s;
+          } else {
+            appState.data.subjects.push(s);
+          }
+        });
       }
+    } catch (e) {
+      console.error("Error fetching subjects from Firestore:", e);
+    }
 
-      // 4. Fetch Assignments
+    // 4. Fetch Assignments (independent block)
+    try {
       const assignmentsSnap = await this.db.collection('assignments').get();
       const assignments = [];
       assignmentsSnap.forEach(doc => {
         assignments.push(doc.data());
       });
-      appState.data.assignments = assignments;
+      if (assignments.length > 0) {
+        if (!appState.data.assignments) {
+          appState.data.assignments = [];
+        }
+        assignments.forEach(a => {
+          const idx = appState.data.assignments.findIndex(da => da.id === a.id);
+          if (idx >= 0) {
+            appState.data.assignments[idx] = a;
+          } else {
+            appState.data.assignments.push(a);
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching assignments from Firestore:", e);
+    }
 
-      // 5. Fetch all Users to sync dynamic register logins
+    // 5. Fetch all Users to sync dynamic register logins (independent block)
+    try {
       const usersSnap = await this.db.collection('users').get();
       const dbUsers = [];
       usersSnap.forEach(doc => {
@@ -137,10 +203,31 @@ window.FirebaseDB = {
           if (matchedUser) {
             Object.assign(appState.currentUser, matchedUser);
           }
+
+          // Auto-enroll the current user in any newly loaded courses matching their interests
+          if (appState.currentUser.interests && appState.data.courses) {
+            const currentEnrolled = appState.currentUser.enrolledCourseIds || [];
+            let updated = false;
+            appState.data.courses.forEach(c => {
+              if (appState.currentUser.interests.includes(c.subjectId) && !currentEnrolled.includes(c.id)) {
+                currentEnrolled.push(c.id);
+                updated = true;
+              }
+            });
+            if (updated) {
+              appState.currentUser.enrolledCourseIds = currentEnrolled;
+              // Save updated user enrollment to Firestore & local storage
+              appState.saveData();
+            }
+          }
         }
       }
+    } catch (e) {
+      console.error("Error fetching users from Firestore:", e);
+    }
 
-      // 6. Fetch Submissions (admin gets all, students get user-specific)
+    // 6. Fetch Submissions (admin gets all, students get user-specific) (independent block)
+    try {
       if (appState.currentUser) {
         let submissionsSnap;
         if (appState.currentUser.role === 'admin') {
@@ -156,9 +243,15 @@ window.FirebaseDB = {
         });
         appState.data.submissions = submissions;
       }
+    } catch (e) {
+      console.error("Error fetching submissions from Firestore:", e);
+    }
 
-      console.log("AppState dynamically synced with Firebase Firestore.", appState.data);
-      appState.notify();
+    console.log("AppState dynamically synced with Firebase Firestore.", appState.data);
+    try {
+      localStorage.setItem('plr_app_data', JSON.stringify(appState.data));
+    } catch (e) {}
+    appState.notify();
     } catch (e) {
       console.error("Error syncing AppState with Firestore:", e);
     }
@@ -166,6 +259,9 @@ window.FirebaseDB = {
 
   // Save/Update Course
   saveCourse: async function(course) {
+    if (!this.isInitialized) {
+      this.init();
+    }
     if (!this.isInitialized) return;
     try {
       await this.db.collection('courses').doc(course.id).set(course);
@@ -177,6 +273,9 @@ window.FirebaseDB = {
 
   // Save/Update Resource
   saveResource: async function(resource) {
+    if (!this.isInitialized) {
+      this.init();
+    }
     if (!this.isInitialized) return;
     try {
       await this.db.collection('resources').doc(resource.id).set(resource);
@@ -188,6 +287,9 @@ window.FirebaseDB = {
 
   // Save/Update Assignment
   saveAssignment: async function(assignment) {
+    if (!this.isInitialized) {
+      this.init();
+    }
     if (!this.isInitialized) return;
     try {
       await this.db.collection('assignments').doc(assignment.id).set(assignment);
@@ -199,6 +301,9 @@ window.FirebaseDB = {
 
   // Save Student Assignment Submission
   saveSubmission: async function(submission) {
+    if (!this.isInitialized) {
+      this.init();
+    }
     if (!this.isInitialized) return;
     try {
       const docId = `${submission.userId}_${submission.assignmentId}`;
@@ -211,6 +316,9 @@ window.FirebaseDB = {
 
   // Save User Profile State
   saveUser: async function(user) {
+    if (!this.isInitialized) {
+      this.init();
+    }
     if (!this.isInitialized) return;
     try {
       await this.db.collection('users').doc(user.id).set(user);
@@ -222,6 +330,9 @@ window.FirebaseDB = {
 
   // Save/Update Subject
   saveSubject: async function(subject) {
+    if (!this.isInitialized) {
+      this.init();
+    }
     if (!this.isInitialized) return;
     try {
       await this.db.collection('subjects').doc(subject.id).set(subject);
