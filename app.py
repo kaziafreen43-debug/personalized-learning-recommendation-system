@@ -47,6 +47,26 @@ def recalibrate_api():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@app.route('/api/chat', methods=['POST'])
+def chat_api():
+    try:
+        data = request.get_json() or {}
+        message = data.get('message', '')
+        history = data.get('history', [])
+        user = data.get('user', {})
+        current_course_id = data.get('currentCourseId', None)
+        
+        response = ai_engine.chat_with_ai(
+            message=message,
+            history=history,
+            user=user,
+            current_course_id=current_course_id
+        )
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
 # --------------------------------------------------------------------------
 # CORS & OPTIONS Preflight Configuration
 # --------------------------------------------------------------------------

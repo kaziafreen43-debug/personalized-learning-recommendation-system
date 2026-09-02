@@ -2552,13 +2552,25 @@
 
   window.AppState.subscribe(() => {
     renderApp();
+    if (window.AIChatbot && window.AIChatbot.render) {
+      window.AIChatbot.render();
+    }
   });
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(renderApp, 10);
+    setTimeout(() => {
+      renderApp();
+      if (window.AIChatbot && window.AIChatbot.render) {
+        window.AIChatbot.render();
+      }
+    }, 10);
   } else {
     document.addEventListener('DOMContentLoaded', () => {
       renderApp();
+      if (window.AIChatbot && window.AIChatbot.render) {
+        window.AIChatbot.render();
+      }
     });
   }
 })();
+
