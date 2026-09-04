@@ -349,23 +349,13 @@ window.AIChatbot = {
       : (user ? `${user.gradeClass || 'Grade 11'} • ${user.name || 'Afreen Kazi'}` : 'Online AI Tutor');
 
     const html = `
-      <!-- Floating Trigger Button in Bottom-Right Corner -->
+      <!-- Floating Trigger Button in Bottom-Right Corner (Matches 3.PNG - 5.PNG) -->
       <div class="ai-chatbot-fab-wrapper ${this.isOpen ? 'chat-open' : ''}">
-        ${!this.isOpen ? `
-          <div class="ai-fab-tooltip" onclick="AIChatbot.toggle()">
-            <span>✨ Ask AI Tutor Doubts</span>
-          </div>
-        ` : ''}
-        
-        <button class="ai-chatbot-fab" onclick="AIChatbot.toggle()" title="Open LearnAI Doubt & Course Assistant" aria-label="AI Tutor Chat">
+        <button class="ai-chatbot-fab" onclick="AIChatbot.toggle()" title="Ask LearnAI Tutor" aria-label="AI Tutor Chat">
           ${this.isOpen ? `
             <i data-lucide="x" class="fab-icon"></i>
           ` : `
-            <div class="fab-avatar-wrapper">
-              <i data-lucide="bot" class="fab-icon"></i>
-              <span class="fab-pulse-ring"></span>
-              <span class="fab-sparkle-badge">✨</span>
-            </div>
+            <i data-lucide="bot" class="fab-icon"></i>
           `}
         </button>
       </div>

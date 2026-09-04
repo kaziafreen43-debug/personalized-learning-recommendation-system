@@ -71,7 +71,7 @@ window.AppState = {
     document.documentElement.setAttribute('data-theme', this.theme);
 
     const savedAuth = localStorage.getItem('plr_is_auth');
-    this.isAuthenticated = savedAuth === 'true';
+    this.isAuthenticated = savedAuth !== 'false';
 
     const savedUserId = localStorage.getItem('plr_user_id');
     if (savedUserId && this.data.defaultUsers) {

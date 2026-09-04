@@ -41,82 +41,88 @@
       root.innerHTML = renderLandingPage();
     } else {
       root.innerHTML = `
-        <!-- Sidebar Navigation (Matches 1.PNG - 7.PNG) -->
+        <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
           <div class="brand-logo">
             <div class="brand-icon">
               ${renderIcon('sparkles')}
             </div>
-            <div class="brand-title">LearnAIPro</div>
-          </div>
-
-          <!-- Student Profile Card at Top of Sidebar -->
-          <div class="sidebar-profile-card">
-            <div class="sidebar-avatar-circle">
-              ${(user && user.name) ? user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : 'AK'}
-            </div>
-            <div class="sidebar-profile-info">
-              <div class="sidebar-profile-name">${(user && user.name) || 'Afreen Kazi'}</div>
-              <div class="sidebar-profile-sub">${(user && user.gradeClass) ? (user.gradeClass.includes('Student') ? user.gradeClass : `${user.gradeClass} Student`) : 'Grade 11 Student'}</div>
+            <div>
+              <div class="brand-title">LearnAI Pro</div>
+              <div style="font-size:0.7rem; color:var(--text-subtle); font-weight:600;">RECOMMENDATION ENGINE</div>
             </div>
           </div>
 
-          <!-- Navigation Menu Items -->
+          <div class="nav-section-label">Main Learning</div>
           <ul class="nav-menu">
             <li class="nav-item ${state.currentView === 'dashboard' ? 'active' : ''}">
               <button onclick="AppState.setView('dashboard')">
-                ${renderIcon('layout-dashboard')} Dashboard
+                ${renderIcon('layout-dashboard')} Student Dashboard
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'courses' ? 'active' : ''}">
               <button onclick="AppState.setView('courses')">
-                ${renderIcon('graduation-cap')} Courses
+                ${renderIcon('graduation-cap')} Enrolled Courses & Hub
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'roadmap' ? 'active' : ''}">
               <button onclick="AppState.setView('roadmap')">
-                ${renderIcon('git-branch')} Roadmaps
+                ${renderIcon('git-branch')} Learning Roadmap
+              </button>
+            </li>
+            <li class="nav-item ${state.currentView === 'catalog' ? 'active' : ''}">
+              <button onclick="AppState.setView('catalog')">
+                ${renderIcon('book-open')} Resource Catalog
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'quizzes' ? 'active' : ''}">
               <button onclick="AppState.setView('quizzes')">
-                ${renderIcon('help-circle')} Assessments
+                ${renderIcon('award')} Skill Quizzes
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'notes' ? 'active' : ''}">
               <button onclick="AppState.setView('notes')">
-                ${renderIcon('file-text')} Notes
+                ${renderIcon('file-text')} My Study Notes
+              </button>
+            </li>
+          </ul>
+
+          <div class="nav-section-label">Analytics & Rewards</div>
+          <ul class="nav-menu">
+            <li class="nav-item ${state.currentView === 'analytics' ? 'active' : ''}">
+              <button onclick="AppState.setView('analytics')">
+                ${renderIcon('bar-chart-3')} Performance & Interest
+              </button>
+            </li>
+            <li class="nav-item ${state.currentView === 'evaluation' ? 'active' : ''}">
+              <button onclick="AppState.setView('evaluation')">
+                ${renderIcon('trending-up')} Conceptual Evaluation
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'achievements' ? 'active' : ''}">
               <button onclick="AppState.setView('achievements')">
-                ${renderIcon('award')} Achievements
-              </button>
-            </li>
-            <li class="nav-item ${state.currentView === 'analytics' || state.currentView === 'evaluation' ? 'active' : ''}">
-              <button onclick="AppState.setView('analytics')">
-                ${renderIcon('trending-up')} Insights
+                ${renderIcon('shield-check')} Achievements & Certs
               </button>
             </li>
             ${user && user.role === 'admin' ? `
               <li class="nav-item ${state.currentView === 'admin' ? 'active' : ''}">
                 <button onclick="AppState.setView('admin')">
-                  ${renderIcon('settings')} Admin Dashboard
+                  ${renderIcon('settings')} Admin Control Panel
                 </button>
               </li>
             ` : ''}
           </ul>
 
-          <!-- Sidebar Bottom Actions -->
-          <div class="sidebar-footer">
-            <button class="btn-sidebar-ai-tutor" onclick="if(window.AIChatbot) window.AIChatbot.toggle();">
-              ${renderIcon('bot')} Ask AI Tutor
-            </button>
-            <button class="sidebar-footer-link" onclick="AppState.openModal('questionnaire')">
-              ${renderIcon('settings')} Settings
-            </button>
-            <button class="sidebar-footer-link" onclick="if(window.AIChatbot) window.AIChatbot.toggle();">
-              ${renderIcon('help-circle')} Help Center
+          <div class="sidebar-user-card" style="flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px; width:100%;">
+              <img src="${(user && user.avatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" class="user-avatar" alt="User">
+              <div class="user-info">
+                <div class="user-name">${(user && user.name) || 'Student'}</div>
+                <div class="user-role">${((user && user.role) || 'student').toUpperCase()} • ${((user && user.preferredStyle) || 'VISUAL').toUpperCase()}</div>
+              </div>
+            </div>
+            <button onclick="AppState.openModal('questionnaire')" style="width:100%; font-size:0.75rem; background:var(--bg-card-hover); padding:6px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:var(--color-purple); font-weight:700; display:flex; align-items:center; justify-content:center; gap:4px;">
+              ${renderIcon('sliders')} Retake Assessment
             </button>
           </div>
         </aside>
@@ -127,7 +133,7 @@
             <div style="display:flex; align-items:center; gap:16px;">
               <div class="nav-search">
                 ${renderIcon('search')}
-                <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; if (AppState.currentView !== 'catalog' && AppState.currentView !== 'courses') { AppState.setView('courses'); } else { AppState.notify(); }">
+                <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; if (AppState.currentView !== 'catalog') { AppState.setView('catalog'); } else { AppState.notify(); }">
               </div>
             </div>
 
@@ -142,7 +148,7 @@
                 </button>
               ` : ''}
 
-              <button onclick="AppState.logoutUser()" class="icon-btn" title="Log Out" style="color:var(--text-muted);">
+              <button onclick="AppState.logoutUser()" class="icon-btn" title="Log Out" style="color:var(--color-rose);">
                 ${renderIcon('log-out')}
               </button>
             </div>
@@ -212,7 +218,7 @@
 
         <!-- Hero Section -->
         <section style="padding:80px 40px 60px 40px; max-width:1200px; margin:0 auto; text-align:center;">
-          <div style="display:inline-flex; align-items:center; gap:8px; background:var(--color-teal-light); color:var(--color-teal-action); padding:6px 16px; border-radius:var(--radius-full); font-size:0.85rem; font-weight:700; margin-bottom:24px;">
+          <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(190,24,93,0.12); color:var(--color-indigo); padding:6px 16px; border-radius:var(--radius-full); font-size:0.85rem; font-weight:700; margin-bottom:24px;">
             ${renderIcon('cpu')} AI-POWERED PERSONALIZED LEARNING PLATFORM
           </div>
 
@@ -260,11 +266,12 @@
   // --------------------------------------------------------------------------
   // AUTHENTICATED STUDENT DASHBOARD
   // --------------------------------------------------------------------------
-    function renderDashboard() {
+  function renderDashboard() {
     const state = window.AppState;
     const user = state.currentUser || {};
     const resources = (state.data && state.data.resources) ? state.data.resources : [];
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
+    const recommendations = window.AIEngine ? window.AIEngine.getRecommendations(resources, user, 'all', 6) : resources.slice(0, 6);
     const enrolledCourses = courses.filter(c => (user.enrolledCourseIds || []).includes(c.id));
     const recommendedCourses = courses.filter(c => !(user.enrolledCourseIds || []).includes(c.id));
     recommendedCourses.sort((a, b) => {
@@ -272,84 +279,179 @@
       const bMatches = (user.interests || []).includes(b.subjectId) ? 1 : 0;
       return bMatches - aMatches;
     });
+    let recommendedCoursesHTML = '';
+    if (recommendedCourses.length > 0) {
+      recommendedCoursesHTML = `
+      <div style="margin-bottom:32px;">
+        <div class="section-header">
+          <h2 class="section-title">
+            ${renderIcon('sparkles')} Recommended Course Pathways
+          </h2>
+          <button class="section-link" onclick="AppState.setView('courses')">View All Courses ${renderIcon('arrow-right')}</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:24px; margin-bottom:20px;">
+          ${recommendedCourses.slice(0, 3).map(c => renderCourseCard(c, false)).join('')}
+        </div>
+      </div>
+      `;
+    }
+    const recentActivity = user.recentActivity || [];
 
     return `
-      <!-- Student Profile Card Header (Matches 1.PNG) -->
-      <div class="student-profile-banner">
-        <div class="banner-top-tag">
-          ${renderIcon('user')} STUDENT PROFILE • ${(user.gradeClass || 'Grade 11').toUpperCase()}
+      <!-- Student Profile Card Header -->
+      <div class="hero-card" style="margin-bottom:28px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px;">
+          <div class="hero-content" style="max-width:750px;">
+            <div class="hero-tag">
+              ${renderIcon('user')} STUDENT PROFILE • ${user.gradeClass || 'Undergraduate'}
+            </div>
+            <h1 class="hero-title">${user.name || 'Alex Rivera'} 🎓</h1>
+            <p class="hero-subtitle" style="margin-bottom:12px;">
+              Target Career Goal: <strong>${user.careerGoal || 'AI & Machine Learning Engineer'}</strong> • Skill Level: <strong>${user.skillLevel || 'Intermediate'}</strong>
+            </p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <span style="background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem; font-weight:700; padding:4px 12px; border-radius:var(--radius-full);">
+                Primary Style: ${(user.preferredStyle || 'Visual').toUpperCase()}
+              </span>
+              <span style="background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem; font-weight:700; padding:4px 12px; border-radius:var(--radius-full);">
+                Interests: ${(user.interests || ['ds', 'cs']).join(', ').toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <button class="btn-hero-secondary" style="background:#fff; color:var(--primary-600); font-weight:700;" onclick="AppState.openModal('questionnaire')">
+            ${renderIcon('edit-3')} Edit Questionnaire
+          </button>
         </div>
-        <div class="banner-name-row">
-          <div class="banner-student-name">${user.name || 'Afreen Kazi'}</div>
-          ${renderIcon('graduation-cap')}
-        </div>
-        <div class="banner-career-goal">
-          Target Career Goal: <strong>${user.careerGoal || 'AI & Machine Learning Engineer'}</strong> • Skill Level: <strong>${user.skillLevel || 'Intermediate'}</strong>
-        </div>
-        <div class="banner-pills-row">
-          <span class="banner-badge-pill">Primary Style: ${(user.preferredStyle || 'Visual').toUpperCase()}</span>
-          <span class="banner-badge-pill">Interests: ${(user.interests || ['DS', 'MATH']).map(i => i.toUpperCase()).join(', ')}</span>
-        </div>
-        <button class="btn-edit-questionnaire" onclick="AppState.openModal('questionnaire')">
-          ${renderIcon('edit-3')} Edit Questionnaire
-        </button>
       </div>
 
-      <!-- Key Learning Metrics Grid (Matches 1.PNG) -->
-      <div class="stats-grid-4">
-        <div class="stat-metric-card">
-          <div class="stat-circle-icon teal">
+      <!-- Key Learning Metrics & Daily Goal Grid -->
+      <div class="stats-grid">
+        <div class="stat-card purple">
+          <div class="stat-icon-wrapper">
             ${renderIcon('flame')}
           </div>
-          <div class="stat-info-col">
-            <div class="stat-metric-value">${user.streakDays || 6} Days</div>
-            <div class="stat-metric-label">Active Streak</div>
+          <div>
+            <div class="stat-value">${user.streakDays || 6} Days</div>
+            <div class="stat-label">Active Learning Streak</div>
           </div>
         </div>
 
-        <div class="stat-metric-card">
-          <div class="stat-circle-icon slate">
+        <div class="stat-card blue">
+          <div class="stat-icon-wrapper">
             ${renderIcon('clock')}
           </div>
-          <div class="stat-info-col">
-            <div class="stat-metric-value">${user.todayStudiedMinutes || 25} / ${user.dailyGoalMinutes || 30} m</div>
-            <div class="stat-metric-label">Daily Target</div>
+          <div>
+            <div class="stat-value">${user.todayStudiedMinutes || 25} / ${user.dailyGoalMinutes || 30} m</div>
+            <div class="stat-label">Daily Study Target</div>
           </div>
         </div>
 
-        <div class="stat-metric-card">
-          <div class="stat-circle-icon teal">
-            ${renderIcon('book-open')}
+        <div class="stat-card emerald">
+          <div class="stat-icon-wrapper">
+            ${renderIcon('graduation-cap')}
           </div>
-          <div class="stat-info-col">
-            <div class="stat-metric-value">${enrolledCourses.length || 8} Courses</div>
-            <div class="stat-metric-label">Learning Progress</div>
+          <div>
+            <div class="stat-value">${enrolledCourses.length} Courses</div>
+            <div class="stat-label">Learning Progress</div>
           </div>
         </div>
 
-        <div class="stat-metric-card">
-          <div class="stat-circle-icon slate">
-            ${renderIcon('star')}
+        <div class="stat-card amber">
+          <div class="stat-icon-wrapper">
+            ${renderIcon('award')}
           </div>
-          <div class="stat-info-col">
-            <div class="stat-metric-value">98%</div>
-            <div class="stat-metric-label">Interest Score</div>
+          <div>
+            <div class="stat-value">98%</div>
+            <div class="stat-label">Quiz Interest Score</div>
           </div>
         </div>
       </div>
 
-      <!-- Recommended Course Pathways Section (Matches 1.PNG) -->
-      <div class="section-header-clean">
-        <div class="section-title-clean">
-          ${renderIcon('sparkles')} Recommended Course Pathways
+      <!-- Recommended Courses Section -->
+      ${recommendedCoursesHTML}
+
+      <!-- Recommended Study Material Section -->
+      <div style="margin-bottom:32px;">
+        <div class="section-header">
+          <h2 class="section-title">
+            ${renderIcon('book-open')} Recommended Study Materials
+          </h2>
+          <button class="section-link" onclick="AppState.setView('catalog')">View Full Catalog ${renderIcon('arrow-right')}</button>
         </div>
-        <a href="#" onclick="event.preventDefault(); AppState.setView('courses');" class="section-link-clean">
-          View All Courses &rarr;
-        </a>
+
+        <div class="resource-grid">
+          ${recommendations.map(res => renderResourceCard(res)).join('')}
+        </div>
       </div>
 
-      <div class="courses-grid-4" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 32px;">
-        ${(recommendedCourses.length > 0 ? recommendedCourses.slice(0, 2) : courses.slice(0, 2)).map(c => renderCourseCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
+      <!-- Section Split: Continue Learning, Recent Activity & Analytics Charts -->
+      <div class="section-grid-2-1">
+        <div>
+          <!-- Continue Learning Section -->
+          <div class="widget-card" style="margin-bottom:24px;">
+            <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('play-circle')} Continue Learning
+            </h3>
+
+            ${enrolledCourses.length > 0 ? enrolledCourses.map(c => `
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); margin-bottom:12px; gap:16px;">
+                <div style="flex:1; min-width:0; text-align:left;">
+                  <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-main); margin:0 0 4px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.title}">${c.title}</h4>
+                  <p style="font-size:0.82rem; color:var(--text-muted); margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.duration || '12 Hours'} • Instructor: ${c.instructor}</p>
+                </div>
+                <button class="btn-launch-resource" style="padding:8px 18px; font-size:0.85rem; flex-shrink:0; background:var(--primary-gradient); color:#fff; border-radius:var(--radius-full);" onclick="AppState.setView('course-hub', {courseId: '${c.id}'})">
+                  ${renderIcon('play')} Resume Course
+                </button>
+              </div>
+            `).join('') : '<p style="color:var(--text-muted);">No courses currently in progress.</p>'}
+          </div>
+
+          <!-- Performance Charts -->
+          <div class="widget-card">
+            <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:16px;">Weekly Study Time Performance</h3>
+            <div style="position:relative; height:240px;">
+              <canvas id="weeklyHoursChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Daily Goal Progress Widget -->
+          <div class="widget-card">
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('target')} Daily Goal Progress
+            </h3>
+            <p style="font-size:0.85rem; color:var(--text-muted);">
+              You're only <strong>${Math.max(0, (user.dailyGoalMinutes || 30) - (user.todayStudiedMinutes || 25))} mins</strong> away from your goal bonus!
+            </p>
+            <div class="goal-progress-bar">
+              <div class="goal-progress-fill" style="width: ${Math.min(100, Math.round(((user.todayStudiedMinutes || 25) / (user.dailyGoalMinutes || 30)) * 100))}%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:700; color:var(--text-subtle);">
+              <span>${user.todayStudiedMinutes || 25} mins completed</span>
+              <span>${user.dailyGoalMinutes || 30} mins goal</span>
+            </div>
+          </div>
+
+          <!-- Recent Activity Log -->
+          <div class="widget-card">
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('activity')} Recent Activity
+            </h3>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              ${recentActivity.slice(0, 5).map(act => `
+                <div style="display:flex; align-items:flex-start; gap:10px; font-size:0.85rem;">
+                  <span style="color:var(--color-purple); margin-top:2px;">${renderIcon(act.icon || 'check-circle')}</span>
+                  <div>
+                    <div style="font-weight:600;">${act.title}</div>
+                    <div style="font-size:0.75rem; color:var(--text-subtle);">${act.time}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -373,75 +475,11 @@
     }
   }
 
-    window.selectedNoteIndex = 0;
-  window.selectStudentNote = function(idx) {
-    window.selectedNoteIndex = idx;
-    window.AppState.notify();
-  };
-  window.clearNoteForm = function(form) {
-    if (form) {
-      form.noteTitle.value = '';
-      form.noteText.value = '';
-    }
-  };
-  window.filterSavedNotes = function(val) {
-    const q = (val || '').toLowerCase();
-    const listEl = document.getElementById('saved-notes-list-box');
-    if (!listEl) return;
-    const items = listEl.querySelectorAll('.saved-note-item');
-    items.forEach(item => {
-      const text = item.innerText.toLowerCase();
-      item.style.display = text.includes(q) ? 'block' : 'none';
-    });
-  };
-
   function renderNotesView() {
     const state = window.AppState;
     const user = state.currentUser || {};
-    if (!user.notes || user.notes.length === 0) {
-      user.notes = [
-        {
-          courseId: 'course-math-101',
-          title: 'Derivatives and Integration Fundamentals',
-          text: `Fundamental Theorem of Calculus:
-
-1. Connects differentiation and integration.
-2. The integral of a function f over [a,b] can be calculated by finding an antiderivative F of f:
-∫(a to b) f(x) dx = F(b) - F(a)
-
-Key takeaways from today's lecture:
-- Always check if the function is continuous on the interval before applying FTC.
-- Review the power rule and chain rule for tomorrow's quiz.
-- Need to ask tutor about the specific edge cases for piecewise functions.`,
-          date: 'Today',
-          badge: 'Advanced Calculus I'
-        },
-        {
-          courseId: 'course-physics-101',
-          title: 'Schrödinger Equation Basics',
-          text: 'Notes on time-dependent and time-independent forms. Wave function collapse...',
-          date: 'Yesterday',
-          badge: 'Quantum Mechanics'
-        },
-        {
-          courseId: 'course-history-101',
-          title: 'Industrial Revolution Impacts',
-          text: 'Socio-economic shifts in 19th century Europe. Urbanization rates and labor laws...',
-          date: 'Oct 12',
-          badge: 'World History'
-        },
-        {
-          courseId: 'course-chem-101',
-          title: 'Acid-Base Titrations',
-          text: 'Formulas for calculating pH at equivalence point. Weak acid strong base examples...',
-          date: 'Oct 10',
-          badge: 'General Chemistry'
-        }
-      ];
-    }
+    if (!user.notes) user.notes = [];
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
-    const activeNoteIndex = window.selectedNoteIndex !== undefined ? window.selectedNoteIndex : 0;
-    const currentActiveNote = user.notes[activeNoteIndex] || user.notes[0] || {};
 
     return `
       <div class="page-header">
@@ -449,72 +487,55 @@ Key takeaways from today's lecture:
         <p class="page-subtitle">Take notes, list key takeaways, and document conceptual details while watching lecture videos.</p>
       </div>
 
-      <div class="notes-2col-layout">
-        <!-- Create / Edit Note Card (Matches 5.PNG) -->
-        <div class="note-editor-card">
+      <div class="section-grid-2-1">
+        <!-- New Note Form -->
+        <div class="widget-card">
+          <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:16px; color:var(--primary-500); display:flex; align-items:center; gap:8px;">
+            ${renderIcon('edit-3')} Create / Edit Note
+          </h3>
           <form onsubmit="event.preventDefault(); window.saveStudentNote(this);">
-            <div class="note-editor-header">
-              <div class="note-editor-title">Create / Edit Note</div>
-              <div class="note-editor-actions">
-                <button type="button" class="btn-note-clear" onclick="window.clearNoteForm(this.form)">Clear</button>
-                <button type="submit" class="btn-note-save">
-                  ${renderIcon('save')} Save Note
-                </button>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <div>
+                <label style="font-size:0.85rem; font-weight:700; display:block; margin-bottom:6px;">Select Course</label>
+                <select name="courseId" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
+                </select>
               </div>
-            </div>
-
-            <div class="note-form-group">
-              <label class="note-form-label">Select Course</label>
-              <select name="courseId" class="note-select-input" required>
-                ${courses.map(c => `<option value="${c.id}" ${currentActiveNote.courseId === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
-              </select>
-            </div>
-
-            <div class="note-form-group">
-              <label class="note-form-label">Note Title</label>
-              <input type="text" name="noteTitle" class="note-text-input" value="${currentActiveNote.title || ''}" placeholder="e.g. Derivatives and Integration Fundamentals" required>
-            </div>
-
-            <div class="note-form-group">
-              <label class="note-form-label">Note Content</label>
-              <div class="note-editor-toolbar">
-                <button type="button" class="toolbar-btn">B</button>
-                <button type="button" class="toolbar-btn">I</button>
-                <button type="button" class="toolbar-btn">${renderIcon('list')}</button>
-                <button type="button" class="toolbar-btn">${renderIcon('list-ordered')}</button>
+              <div>
+                <label style="font-size:0.85rem; font-weight:700; display:block; margin-bottom:6px;">Note Title</label>
+                <input type="text" name="noteTitle" placeholder="e.g. Backpropagation gradients notes" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
               </div>
-              <textarea name="noteText" class="note-textarea" placeholder="Write down notes, formulas, conceptual takeaways..." required>${currentActiveNote.text || ''}</textarea>
+              <div>
+                <label style="font-size:0.85rem; font-weight:700; display:block; margin-bottom:6px;">Note Content</label>
+                <textarea name="noteText" placeholder="Write down notes, formulas, code snippets..." required style="width:100%; height:220px; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:var(--font-main); resize:vertical;"></textarea>
+              </div>
+              <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; justify-content:center; padding:12px; font-size:0.95rem;">
+                ${renderIcon('save')} Save Study Note
+              </button>
             </div>
           </form>
         </div>
 
-        <!-- Saved Notes List Card (Matches 5.PNG) -->
-        <div class="saved-notes-container">
-          <div class="saved-notes-header">
-            <div class="saved-notes-title">Saved Notes</div>
-            <a href="#" onclick="event.preventDefault();" class="saved-notes-view-all">View All</a>
-          </div>
-
-          <div class="saved-notes-search">
-            ${renderIcon('search')}
-            <input type="text" placeholder="Search notes..." oninput="window.filterSavedNotes(this.value)">
-          </div>
-
-          <div class="saved-notes-list" id="saved-notes-list-box">
-            ${user.notes.map((n, idx) => {
-              const course = courses.find(c => c.id === n.courseId);
-              const badgeName = n.badge || (course ? course.title : 'General Studies');
+        <!-- Saved Notes List -->
+        <div class="widget-card">
+          <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+            ${renderIcon('book-open')} Saved Notes (${user.notes.length})
+          </h3>
+          <div style="display:flex; flex-direction:column; gap:12px; max-height:480px; overflow-y:auto; padding-right:4px;">
+            ${user.notes.length > 0 ? user.notes.map((note, idx) => {
+              const course = courses.find(c => c.id === note.courseId) || { title: 'General Studies' };
               return `
-                <div class="saved-note-item ${idx === activeNoteIndex ? 'active' : ''}" onclick="window.selectStudentNote(${idx})">
-                  <div class="saved-note-top-line">
-                    <span class="saved-note-tag">${badgeName}</span>
-                    <span class="saved-note-date">${n.date || 'Today'}</span>
-                  </div>
-                  <div class="saved-note-heading">${n.title}</div>
-                  <div class="saved-note-snippet">${n.text}</div>
+                <div style="padding:16px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); position:relative;">
+                  <button style="position:absolute; top:12px; right:12px; color:var(--color-rose);" onclick="window.deleteStudentNote(${idx})">
+                    ${renderIcon('trash-2')}
+                  </button>
+                  <span class="tag-pill" style="font-size:0.7rem; margin-bottom:8px; display:inline-block;">${course.title}</span>
+                  <h4 style="font-size:1rem; font-weight:700; margin-bottom:6px; padding-right:24px;">${note.title}</h4>
+                  <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5; white-space:pre-wrap; margin-bottom:8px;">${note.text}</p>
+                  <div style="font-size:0.75rem; color:var(--text-subtle);">${note.date}</div>
                 </div>
               `;
-            }).join('')}
+            }).join('') : '<p style="color:var(--text-muted); text-align:center; padding:20px;">No notes created yet. Start typing on the left!</p>'}
           </div>
         </div>
       </div>
@@ -526,22 +547,17 @@ Key takeaways from today's lecture:
     if (!user) return;
     if (!user.notes) user.notes = [];
 
-    const courses = (window.AppState.data && window.AppState.data.courses) ? window.AppState.data.courses : [];
-    const c = courses.find(item => item.id === form.courseId.value);
-    const badgeName = c ? c.title : 'General Studies';
-
     const newNote = {
       courseId: form.courseId.value,
       title: form.noteTitle.value.trim(),
       text: form.noteText.value.trim(),
-      badge: badgeName,
-      date: 'Today'
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     user.notes.unshift(newNote);
-    window.selectedNoteIndex = 0;
     window.AppState.saveData();
-    window.AppState.notify();
+    form.noteTitle.value = '';
+    form.noteText.value = '';
   };
 
   window.deleteStudentNote = function(idx) {
@@ -549,10 +565,10 @@ Key takeaways from today's lecture:
     if (user && user.notes) {
       user.notes.splice(idx, 1);
       window.AppState.saveData();
-      window.AppState.notify();
     }
   };
-function renderEvaluationView() {
+
+  function renderEvaluationView() {
     const state = window.AppState;
     const user = state.currentUser || {};
 
@@ -624,20 +640,10 @@ function renderEvaluationView() {
     alert('AI Diagnostic Evaluation: Analyzing quiz logs, reading progress, and lesson history... Concept scorecard is fully updated and optimized based on your current skill level!');
   };
 
-    function renderCoursesCatalog() {
+  function renderCoursesCatalog() {
     const state = window.AppState;
     const user = state.currentUser || {};
-    let courses = (state.data && state.data.courses) ? state.data.courses : [];
-    const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
-    const activeSub = state.activeSubjectFilter || 'all';
-
-    if (activeSub !== 'all') {
-      courses = courses.filter(c => c.subjectId === activeSub);
-    }
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
-      courses = courses.filter(c => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
-    }
+    const courses = (state.data && state.data.courses) ? state.data.courses : [];
 
     return `
       <div class="page-header">
@@ -645,23 +651,7 @@ function renderEvaluationView() {
         <p class="page-subtitle">Enroll in structured AI & Computer Science courses with step-by-step study materials and quizzes.</p>
       </div>
 
-      <!-- Filter Pills Bar (Matches 2.PNG) -->
-      <div class="filter-pills-bar">
-        <div class="nav-search" style="width: 320px; margin-right: 8px;">
-          ${renderIcon('search')}
-          <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; AppState.notify();">
-        </div>
-        <button class="pill-filter-btn ${activeSub === 'all' ? 'active' : ''}" onclick="AppState.activeSubjectFilter='all'; AppState.notify();">
-          All Subjects
-        </button>
-        ${subjects.map(s => `
-          <button class="pill-filter-btn ${activeSub === s.id ? 'active' : ''}" onclick="AppState.activeSubjectFilter='${s.id}'; AppState.notify();">
-            ${s.name}
-          </button>
-        `).join('')}
-      </div>
-
-      <div class="courses-grid-4">
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:24px;">
         ${courses.map(c => renderCourseCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
       </div>
     `;
@@ -669,30 +659,30 @@ function renderEvaluationView() {
 
   function renderCourseCard(c, isEnrolled) {
     return `
-      <div class="course-clean-card">
-        <div class="course-card-banner" style="background-image: url('${c.bannerImage || 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800'}');">
-          <div class="course-ai-match-badge">
-            ${c.matchScore || 95}% AI Match
+      <div class="resource-card" style="padding:0; overflow:hidden;">
+        <div style="height:140px; background:url('${c.bannerImage || 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800'}') center/cover; position:relative;">
+          <div style="position:absolute; top:12px; right:12px;" class="ai-match-badge">
+            ${renderIcon('cpu')} ${c.matchScore || 98}% AI Match
           </div>
         </div>
         
-        <div class="course-card-content">
-          <div class="course-card-title">${c.title}</div>
-          <div class="course-card-desc">${c.description}</div>
+        <div style="padding:20px; display:flex; flex-direction:column; flex:1;">
+          <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:6px;">${c.title}</h3>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;">${c.description}</p>
           
-          <div class="course-card-meta">
-            <div class="course-card-meta-item">${renderIcon('clock')} ${c.duration || '10 Weeks'}</div>
-            <div class="course-card-meta-item">${renderIcon('users')} ${c.enrolledCount || '3.4k'}</div>
-            <div class="course-card-meta-item">${renderIcon('star')} ${c.rating || '4.98'}</div>
+          <div class="resource-meta" style="margin-bottom:16px;">
+            <div class="resource-meta-item">${renderIcon('clock')} ${c.duration || '12 Hours'}</div>
+            <div class="resource-meta-item">${renderIcon('users')} ${c.enrolledCount || 1200} Enrolled</div>
+            <div class="resource-meta-item">${renderIcon('star')} ${c.rating || 4.9}</div>
           </div>
 
-          <div style="margin-top:auto;">
+          <div style="margin-top:auto; display:flex; gap:10px;">
             ${isEnrolled ? `
-              <button class="btn-study-hub-clean" onclick="AppState.setView('course-hub', {courseId: '${c.id}'})">
+              <button class="btn-launch-resource" style="flex:1; background:var(--gradient-emerald-teal);" onclick="AppState.setView('course-hub', {courseId: '${c.id}'})">
                 ${renderIcon('book-open')} Go to Study Hub
               </button>
             ` : `
-              <button class="btn-enroll-dark" onclick="AppState.enrollInCourse('${c.id}')">
+              <button class="btn-launch-resource" style="flex:1;" onclick="AppState.enrollInCourse('${c.id}')">
                 ${renderIcon('plus-circle')} Enroll Now
               </button>
             `}
@@ -728,7 +718,7 @@ function renderEvaluationView() {
 
     return `
       <div style="margin-bottom:24px;">
-        <button onclick="AppState.setView('courses')" style="font-size:0.88rem; font-weight:700; color:var(--color-teal-action); display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+        <button onclick="AppState.setView('courses')" style="font-size:0.88rem; font-weight:700; color:var(--color-purple); display:flex; align-items:center; gap:6px; margin-bottom:12px;">
           ${renderIcon('arrow-left')} Back to All Courses
         </button>
         
@@ -758,13 +748,13 @@ function renderEvaluationView() {
       </div>
 
       <div class="widget-card" style="margin-bottom:28px;">
-        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:14px; color:var(--color-teal-action);">${currentCatData.title}</h3>
+        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:14px; color:var(--color-purple);">${currentCatData.title}</h3>
 
         <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
           ${(currentCatData.materials || []).map(mat => `
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
               <div style="display:flex; align-items:center; gap:12px;">
-                <span class="format-badge" style="background:var(--color-teal-light); color:var(--color-teal-action);">${mat.format}</span>
+                <span class="format-badge" style="background:rgba(190,24,93,0.12); color:var(--color-indigo);">${mat.format}</span>
                 <span style="font-weight:700; font-size:0.95rem;">${mat.title}</span>
               </div>
               <button class="btn-launch-resource" style="padding:6px 14px; font-size:0.8rem;" onclick="AppState.openModal('resource-viewer', '${mat.id}')">
@@ -774,12 +764,12 @@ function renderEvaluationView() {
           `).join('')}
         </div>
 
-        <div style="background:var(--color-teal-light); border:1px dashed var(--color-teal-action); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+        <div style="background:rgba(157, 23, 77, 0.08); border:1px dashed var(--color-purple); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
           <div>
-            <strong style="font-size:1rem; color:var(--color-teal-action);">${currentCategory} Category Quiz (${qCount} Questions)</strong>
+            <strong style="font-size:1rem; color:var(--color-purple);">${currentCategory} Category Quiz (${qCount} Questions)</strong>
             <p style="font-size:0.85rem; color:var(--text-muted);">Solve this ${qCount}-question quiz to evaluate your category mastery and interest.</p>
           </div>
-          <button class="btn-launch-resource" style="background:#0f172a; padding:10px 20px; font-size:0.88rem;" onclick="AppState.openModal('quiz', '${currentCatData.quizId}')">
+          <button class="btn-launch-resource" style="background:var(--gradient-purple-pink); padding:10px 20px; font-size:0.88rem;" onclick="AppState.openModal('quiz', '${currentCatData.quizId}')">
             ${renderIcon('award')} Take ${qCount}-Question Quiz
           </button>
         </div>
@@ -838,7 +828,7 @@ function renderEvaluationView() {
     `;
   }
 
-    function renderRoadmap() {
+  function renderRoadmap() {
     const state = window.AppState;
     const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
     const activeSub = (state.activeSubjectFilter && state.activeSubjectFilter !== 'all') ? state.activeSubjectFilter : 'ds';
@@ -846,30 +836,38 @@ function renderEvaluationView() {
     
     const targetSubject = subjects.find(s => s.id === activeSub);
     const rawRoadmap = roadmaps[activeSub] || {
-      title: 'Artificial Intelligence & Deep Learning Pathway',
+      title: `${targetSubject ? targetSubject.name : 'Subject'} Learning Pathway`,
       nodes: [
-        { id: 'node-1', title: '1. Python for AI & Data Wrangling', status: 'completed', desc: 'NumPy arrays, Pandas & Matrix operations', resourceId: 'res-1' },
-        { id: 'node-2', title: '2. Artificial Intelligence Core', status: 'in-progress', desc: 'Perceptrons, Gradient Descent & Backpropagation', resourceId: 'res-5' },
-        { id: 'node-3', title: '3. Deep Learning & CNNs', status: 'locked', desc: 'Convolutional neural nets & Computer Vision', resourceId: 'res-2' },
-        { id: 'node-4', title: '4. Transformers & LLM Architectures', status: 'locked', desc: 'Attention mechanism, BERT, GPT & NLP Models', resourceId: 'res-3' }
+        { id: 'node-1', title: '1. Foundational Core & Theory', status: 'completed', desc: 'Core principles, fundamental definitions & concepts', icon: 'book-open', resourceId: 'res-1' },
+        { id: 'node-2', title: '2. Applied Practice & Problem Solving', status: 'in-progress', desc: 'Hands-on practice exercises & interactive labs', icon: 'play', resourceId: 'res-5' },
+        { id: 'node-3', title: '3. Advanced Mastery & Projects', status: 'locked', desc: 'Advanced techniques, capstone project & optimization', icon: 'award', resourceId: 'res-2' }
       ]
     };
 
     const completedResourceIds = (state.currentUser && state.currentUser.completedResourceIds) || [];
     
+    // Calculate dynamic node statuses based on completedResourceIds
     let firstIncompleteFound = false;
-    const nodes = (rawRoadmap.nodes || []).map((node, idx) => {
-      let status = node.status;
-      if (completedResourceIds.includes(node.resourceId) || idx === 0) {
+    const calculatedNodes = (rawRoadmap.nodes || []).map((node) => {
+      let status = 'unlocked';
+      const isCompleted = completedResourceIds.includes(node.resourceId);
+      if (isCompleted) {
         status = 'completed';
-      } else if (!firstIncompleteFound) {
-        status = 'in-progress';
-        firstIncompleteFound = true;
       } else {
-        status = 'locked';
+        if (!firstIncompleteFound) {
+          status = 'in-progress';
+          firstIncompleteFound = true;
+        } else {
+          status = 'unlocked';
+        }
       }
       return { ...node, status };
     });
+
+    const roadmap = {
+      ...rawRoadmap,
+      nodes: calculatedNodes
+    };
 
     return `
       <div class="page-header">
@@ -877,43 +875,36 @@ function renderEvaluationView() {
         <p class="page-subtitle">Interactive step-by-step visual pathways with milestone completion tracking.</p>
       </div>
 
-      <!-- Subject Selector Pills (Matches 3.PNG) -->
-      <div class="filter-pills-bar">
+      <div class="subject-tabs" style="margin-bottom:24px;">
         ${subjects.map(s => `
-          <button class="pill-filter-btn ${activeSub === s.id ? 'active' : ''}" onclick="AppState.activeSubjectFilter='${s.id}'; AppState.notify();">
+          <button class="tab-btn ${activeSub === s.id ? 'active' : ''}" onclick="AppState.activeSubjectFilter='${s.id}'; AppState.notify();">
             ${s.name}
           </button>
         `).join('')}
       </div>
 
-      <div class="roadmap-box-container">
-        <div class="roadmap-box-title">${rawRoadmap.title || 'Artificial Intelligence & Deep Learning Pathway'}</div>
+      <div class="roadmap-container">
+        <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:24px; color:var(--color-purple);">${roadmap.title}</h2>
 
-        <div class="roadmap-steps-vertical">
-          ${nodes.map(node => `
-            <div class="roadmap-step-row">
-              <div class="step-node-circle ${node.status}">
-                ${node.status === 'completed' ? renderIcon('check') : (node.status === 'in-progress' ? renderIcon('play') : renderIcon('lock'))}
+        <div class="roadmap-tree">
+          ${(roadmap.nodes || []).map(node => `
+            <div class="roadmap-node ${node.status}">
+              <div class="node-icon-status">
+                ${node.status === 'completed' ? renderIcon('check') : (node.status === 'in-progress' ? renderIcon('play') : renderIcon('unlock'))}
               </div>
-              <div class="step-card-box ${node.status === 'in-progress' ? 'in-progress-border' : ''}">
+              <div class="node-card">
                 <div>
-                  <div class="step-card-title">${node.title}</div>
-                  <div class="step-card-desc">${node.desc}</div>
+                  <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:4px;">${node.title}</h3>
+                  <p style="font-size:0.88rem; color:var(--text-muted);">${node.desc}</p>
                 </div>
                 <div>
-                  ${node.status === 'completed' ? `
-                    <button class="btn-node-action dark" onclick="AppState.openModal('resource-viewer', '${node.resourceId}')">
-                      Review Node Material
-                    </button>
-                  ` : (node.status === 'in-progress' ? `
-                    <button class="btn-node-action teal" onclick="AppState.openModal('resource-viewer', '${node.resourceId}')">
-                      Continue Node Material
-                    </button>
+                  ${node.status === 'locked' ? `
+                    <span style="font-size:0.8rem; font-weight:700; color:var(--text-subtle);">Prerequisites Locked</span>
                   ` : `
-                    <button class="btn-node-action locked" disabled>
-                      Locked Node
+                    <button class="btn-launch-resource" onclick="AppState.openModal('resource-viewer', '${node.resourceId}')">
+                      Launch Node Material
                     </button>
-                  `)}
+                  `}
                 </div>
               </div>
             </div>
@@ -1022,10 +1013,20 @@ function renderEvaluationView() {
   let activeQuizCategoryFilter = 'all';
   let activeQuizSubjectFilter = 'all';
 
-    function renderQuizzes() {
+  function renderQuizzes() {
     const state = window.AppState;
     let quizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
     const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+
+    const userInterests = (state.currentUser && state.currentUser.interests) ? state.currentUser.interests : [];
+    
+    // Filter quizzes to match student interests only
+    if (userInterests.length > 0) {
+      quizzes = quizzes.filter(q => userInterests.includes(q.subjectId));
+    }
+    
+    // Filter subject tabs to match student interests only
+    const filteredSubjects = userInterests.length > 0 ? subjects.filter(s => userInterests.includes(s.id)) : subjects;
 
     if (activeQuizSubjectFilter && activeQuizSubjectFilter !== 'all') {
       quizzes = quizzes.filter(q => q.subjectId === activeQuizSubjectFilter);
@@ -1042,58 +1043,51 @@ function renderEvaluationView() {
       </div>
 
       <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
-        <!-- Row 1: Subject Filter Pills -->
-        <div class="filter-pills-bar" style="margin-bottom:0;">
-          <button class="pill-filter-btn ${activeQuizSubjectFilter === 'all' ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='all'; AppState.notify();">
-            All Subjects
-          </button>
-          ${subjects.map(s => `
-            <button class="pill-filter-btn ${activeQuizSubjectFilter === s.id ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='${s.id}'; AppState.notify();">
-              ${s.name}
-            </button>
+        <!-- Subject Filter Tabs -->
+        <div class="subject-tabs">
+          <button class="tab-btn ${activeQuizSubjectFilter === 'all' ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='all'; AppState.notify();">All Subjects</button>
+          ${filteredSubjects.map(s => `
+            <button class="tab-btn ${activeQuizSubjectFilter === s.id ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='${s.id}'; AppState.notify();">${s.name}</button>
           `).join('')}
         </div>
 
-        <!-- Row 2: Category Filter Pills (Matches 4.PNG) -->
-        <div class="filter-pills-bar" style="margin-bottom:0;">
-          <button class="pill-filter-btn ${activeQuizCategoryFilter === 'all' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='all'; AppState.notify();">
-            All Categories
-          </button>
-          <button class="pill-filter-btn ${activeQuizCategoryFilter === 'Beginner' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Beginner'; AppState.notify();">
-            <span class="category-dot teal"></span> Beginner (5 Questions)
-          </button>
-          <button class="pill-filter-btn ${activeQuizCategoryFilter === 'Intermediate' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Intermediate'; AppState.notify();">
-            <span class="category-dot yellow"></span> Intermediate (10 Questions)
-          </button>
-          <button class="pill-filter-btn ${activeQuizCategoryFilter === 'Advanced' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Advanced'; AppState.notify();">
-            <span class="category-dot red"></span> Advanced (15 Questions)
-          </button>
+        <!-- Category Tier Filter Tabs -->
+        <div class="subject-tabs">
+          <button class="tab-btn ${activeQuizCategoryFilter === 'all' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='all'; AppState.notify();">All Categories</button>
+          <button class="tab-btn ${activeQuizCategoryFilter === 'Beginner' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Beginner'; AppState.notify();">🟢 Beginner (5 Questions)</button>
+          <button class="tab-btn ${activeQuizCategoryFilter === 'Intermediate' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Intermediate'; AppState.notify();">🟡 Intermediate (10 Questions)</button>
+          <button class="tab-btn ${activeQuizCategoryFilter === 'Advanced' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Advanced'; AppState.notify();">🔴 Advanced (15 Questions)</button>
         </div>
       </div>
 
-      <div class="quizzes-grid-2x2">
+      <div class="resource-grid">
         ${quizzes.map(q => {
           const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId };
           const qCount = q.questionCount || (q.questions ? q.questions.length : (q.level === 'Beginner' ? 5 : (q.level === 'Intermediate' ? 10 : 15)));
-          const tierClass = (q.level || 'beginner').toLowerCase();
+          
+          let levelBadgeClass = 'color:var(--color-indigo); background:rgba(190,24,93,0.15);';
+          if (q.level === 'Intermediate') levelBadgeClass = 'color:var(--color-purple); background:rgba(157,23,77,0.15);';
+          if (q.level === 'Advanced') levelBadgeClass = 'color:var(--color-rose); background:rgba(239,68,68,0.15);';
 
           return `
-            <div class="quiz-card-clean">
-              <div class="quiz-card-top-row">
-                <div class="quiz-tier-badge ${tierClass}">
+            <div class="resource-card">
+              <div class="resource-top-bar">
+                <div class="format-badge" style="${levelBadgeClass}">
                   ${q.level} • ${qCount} Questions
                 </div>
-                <div class="quiz-card-duration">
-                  ${renderIcon('clock')} ${q.timeLimitMinutes || (qCount === 5 ? 8 : (qCount === 10 ? 15 : 25))} Mins
+                <div style="font-size:0.8rem; font-weight:700; color:var(--text-subtle);">
+                  ${renderIcon('clock')} ${q.timeLimitMinutes} Mins
                 </div>
               </div>
 
-              <div class="quiz-card-title">${q.title}</div>
-              <div class="quiz-card-subject">Subject: ${subject.name} • ${qCount} Questions Assessment</div>
+              <h3 class="resource-title">${q.title}</h3>
+              <p class="resource-desc">Subject: <strong>${subject.name}</strong> • ${qCount} Questions Assessment</p>
 
-              <button class="btn-start-quiz-navy" onclick="AppState.openModal('quiz', '${q.id}')">
-                ${renderIcon('play-circle')} Start ${qCount}-Question Quiz
-              </button>
+              <div class="resource-actions" style="margin-top:20px;">
+                <button class="btn-launch-resource" onclick="AppState.openModal('quiz', '${q.id}')">
+                  ${renderIcon('play')} Start ${qCount}-Question Quiz
+                </button>
+              </div>
             </div>
           `;
         }).join('')}
@@ -1101,102 +1095,25 @@ function renderEvaluationView() {
     `;
   }
 
-    function renderAnalytics() {
+  function renderAnalytics() {
     return `
       <div class="page-header">
-        <h1 class="page-title">${renderIcon('trending-up')} Performance & Quiz Interest Analytics</h1>
-        <p class="page-subtitle">Track your study patterns and mastery levels across subjects.</p>
+        <h1 class="page-title">${renderIcon('bar-chart-3')} Performance & Quiz Interest Analytics</h1>
+        <p class="page-subtitle">Track weekly study hours, quiz solving accuracy, and interest score breakdown.</p>
       </div>
 
-      <!-- Top Row: Weekly Study Hours & Radar Chart (Matches 7.PNG) -->
-      <div class="insights-charts-grid">
-        <div class="insight-chart-card">
-          <div class="insight-chart-header">
-            <div class="insight-chart-title">Weekly Study Hours</div>
-            ${renderIcon('bar-chart-2')}
-          </div>
-          <div class="insight-canvas-wrapper">
+      <div class="section-grid-2-1">
+        <div class="widget-card">
+          <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:16px;">Weekly Study Hours</h3>
+          <div style="position:relative; height:260px;">
             <canvas id="weeklyHoursChart"></canvas>
           </div>
         </div>
 
-        <div class="insight-chart-card">
-          <div class="insight-chart-header">
-            <div class="insight-chart-title">Subject Mastery & Interest Radar</div>
-            ${renderIcon('target')}
-          </div>
-          <div class="insight-canvas-wrapper">
+        <div class="widget-card">
+          <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:16px;">Subject Mastery & Interest Radar</h3>
+          <div style="position:relative; height:260px;">
             <canvas id="subjectMasteryChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom Section: Conceptual Performance Evaluation (Matches 7.PNG) -->
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-        <h2 style="font-size:1.25rem; font-weight:800; color:var(--text-main);">Conceptual Performance Evaluation</h2>
-        <button class="btn-run-diagnostic" onclick="window.runDiagnosticEvaluation()">
-          ${renderIcon('play')} Run Diagnostic Evaluation &gt;
-        </button>
-      </div>
-
-      <div class="concept-eval-grid">
-        <!-- Card 1: Artificial Intelligence -->
-        <div class="concept-eval-card">
-          <div class="concept-card-header">
-            <div class="concept-sq-icon">
-              ${renderIcon('cpu')}
-            </div>
-            <div class="concept-card-title">Artificial Intelligence</div>
-          </div>
-          <div class="mastery-label-row">
-            <span>Mastery Level</span>
-            <span style="color:var(--color-teal-action); font-weight:800;">85%</span>
-          </div>
-          <div class="mastery-track">
-            <div class="mastery-fill teal" style="width: 85%;"></div>
-          </div>
-          <div class="ai-guide-box">
-            ${renderIcon('lightbulb')} <strong>AI Guide:</strong> Solid understanding of neural networks. Focus review on backpropagation algorithms.
-          </div>
-        </div>
-
-        <!-- Card 2: Computer Science -->
-        <div class="concept-eval-card">
-          <div class="concept-card-header">
-            <div class="concept-sq-icon">
-              ${renderIcon('code')}
-            </div>
-            <div class="concept-card-title">Computer Science</div>
-          </div>
-          <div class="mastery-label-row">
-            <span>Mastery Level</span>
-            <span style="color:#0f172a; font-weight:800;">72%</span>
-          </div>
-          <div class="mastery-track">
-            <div class="mastery-fill navy" style="width: 72%;"></div>
-          </div>
-          <div class="ai-guide-box">
-            ${renderIcon('lightbulb')} <strong>AI Guide:</strong> Good grasp of data structures. Needs more practice with dynamic programming concepts.
-          </div>
-        </div>
-
-        <!-- Card 3: Advanced Mathematics -->
-        <div class="concept-eval-card">
-          <div class="concept-card-header">
-            <div class="concept-sq-icon">
-              ${renderIcon('calculator')}
-            </div>
-            <div class="concept-card-title">Advanced Mathematics</div>
-          </div>
-          <div class="mastery-label-row">
-            <span>Mastery Level</span>
-            <span style="color:#64748b; font-weight:800;">60%</span>
-          </div>
-          <div class="mastery-track">
-            <div class="mastery-fill slate" style="width: 60%;"></div>
-          </div>
-          <div class="ai-guide-box">
-            ${renderIcon('lightbulb')} <strong>AI Guide:</strong> Action required. Schedule dedicated study time for linear algebra applications.
           </div>
         </div>
       </div>
@@ -1214,172 +1131,65 @@ function renderEvaluationView() {
         data: {
           labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           datasets: [{
-            label: 'Study Hours',
-            data: [3, 4.5, 2, 5, 3.5, 6, 2],
-            backgroundColor: '#0b192c',
-            borderRadius: 4,
-            barThickness: 28
+            label: 'Study Time (Minutes)',
+            data: [45, 60, 30, 75, 50, 90, 40],
+            backgroundColor: '#6366f1',
+            borderRadius: 8
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 6,
-              ticks: { stepSize: 1 }
-            },
-            x: {
-              grid: { display: false }
-            }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false }
       });
       activeCharts.push(chart1);
     }
-
-    const ctx2 = document.getElementById('subjectMasteryChart');
-    if (ctx2) {
-      const chart2 = new Chart(ctx2, {
-        type: 'radar',
-        data: {
-          labels: ['AI', 'Math', 'Physics', 'CS', 'Ethics', 'Data'],
-          datasets: [
-            {
-              label: 'Mastery',
-              data: [80, 50, 60, 75, 40, 70],
-              borderColor: '#64748b',
-              backgroundColor: 'rgba(100, 116, 139, 0.35)',
-              borderWidth: 2,
-              pointBackgroundColor: '#64748b',
-              pointRadius: 3
-            },
-            {
-              label: 'Interest',
-              data: [95, 65, 40, 90, 70, 85],
-              borderColor: '#0f766e',
-              backgroundColor: 'rgba(15, 118, 110, 0.25)',
-              borderWidth: 2,
-              pointBackgroundColor: '#0f766e',
-              pointRadius: 3
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { boxWidth: 14, font: { size: 12, weight: 'bold' } }
-            }
-          },
-          scales: {
-            r: {
-              angleLines: { color: 'rgba(150, 150, 150, 0.2)' },
-              grid: { color: 'rgba(150, 150, 150, 0.2)' },
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: { display: false }
-            }
-          }
-        }
-      });
-      activeCharts.push(chart2);
-    }
   }
 
-    function renderAchievements() {
+  function renderAchievements() {
     const state = window.AppState;
     const user = state.currentUser || {};
+    const badges = (state.data && state.data.badges) ? state.data.badges : [];
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
+    const enrolledCourses = courses.filter(c => (user.enrolledCourseIds || []).includes(c.id));
 
     return `
       <div class="page-header">
-        <h1 class="page-title">${renderIcon('award')} Achievements & Certificates</h1>
+        <h1 class="page-title">${renderIcon('shield-check')} Achievements & Certificates</h1>
         <p class="page-subtitle">Earn badges by completing courses and generate official verified certificates.</p>
       </div>
 
-      <!-- Section 1: Unlocked Badges (Matches 6.PNG) -->
-      <div class="badges-section-header">
-        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Unlocked Badges</h2>
-        <span class="total-count-badge">Total: 4</span>
-      </div>
-
-      <div class="unlocked-badges-row-4">
-        <div class="achievement-badge-box">
-          <div class="badge-round-icon">
-            ${renderIcon('rocket')}
-          </div>
-          <div class="achievement-box-title">Quick Starter</div>
-          <div class="achievement-box-desc">Completed first course within 48 hours of enrollment.</div>
-        </div>
-
-        <div class="achievement-badge-box">
-          <div class="badge-round-icon">
-            ${renderIcon('bot')}
-          </div>
-          <div class="achievement-box-title">AI Enrollee</div>
-          <div class="achievement-box-desc">Started the first module in the AI Fundamentals path.</div>
-        </div>
-
-        <div class="achievement-badge-box">
-          <div class="badge-round-icon">
-            ${renderIcon('flame')}
-          </div>
-          <div class="achievement-box-title">7 Day Streak</div>
-          <div class="achievement-box-desc">Logged in and completed lessons for 7 consecutive days.</div>
-        </div>
-
-        <div class="achievement-badge-box">
-          <div class="badge-round-icon">
-            ${renderIcon('award')}
-          </div>
-          <div class="achievement-box-title">Top 10%</div>
-          <div class="achievement-box-desc">Scored in the top 10% on the mid-term assessment.</div>
-        </div>
-      </div>
-
-      <!-- Section 2: Course Certificates (Matches 6.PNG) -->
-      <div style="margin-bottom: 16px;">
-        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Course Certificates</h2>
-      </div>
-
-      <div class="course-certs-list">
-        <div class="course-cert-row">
-          <div class="cert-left-box">
-            <div class="cert-code-icon-sq">&lt;&gt;</div>
-            <div>
-              <div class="cert-row-title">Introduction to Python Programming</div>
-              <div class="cert-row-meta">
-                Completed on October 12, 2023 • Grade: 98%
-                <span class="cert-verified-tag">Verified</span>
+      <div class="section-grid-2-1" style="margin-bottom:28px;">
+        <!-- Left: Badges Grid -->
+        <div class="widget-card">
+          <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:16px;">Unlocked Badges</h2>
+          <div class="badges-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:16px;">
+            ${badges.map(b => `
+              <div class="badge-card ${b.unlocked ? '' : 'locked'}">
+                <div class="badge-icon-box">
+                  ${renderIcon(b.icon || 'award')}
+                </div>
+                <div class="badge-title" style="font-size:0.9rem;">${b.title}</div>
+                <div class="badge-desc" style="font-size:0.75rem;">${b.desc}</div>
               </div>
-            </div>
+            `).join('')}
           </div>
-          <button class="btn-cert-download" onclick="AppState.openModal('certificate', { courseId: 'course-cs-101' })">
-            ${renderIcon('download')} Certificate
-          </button>
         </div>
 
-        <div class="course-cert-row">
-          <div class="cert-left-box">
-            <div class="cert-code-icon-sq">{}</div>
-            <div>
-              <div class="cert-row-title">Data Structures and Algorithms</div>
-              <div class="cert-row-meta">
-                Completed on November 05, 2023 • Grade: 92%
-                <span class="cert-verified-tag">Verified</span>
+        <!-- Right: Certificates List -->
+        <div class="widget-card">
+          <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:16px;">Course Certificates</h2>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Generate and download a professional Certificate of Completion for your active courses.</p>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${enrolledCourses.map(c => `
+              <div style="padding:14px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <div style="min-width:0; flex:1;">
+                  <h4 style="font-size:0.9rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.title}</h4>
+                  <span style="font-size:0.75rem; color:var(--primary-500); font-weight:700;">Verified Pathway</span>
+                </div>
+                <button class="btn-launch-resource" style="padding:6px 12px; font-size:0.8rem; flex-shrink:0; background:var(--primary-gradient); color:#fff;" onclick="AppState.openModal('certificate', { courseId: '${c.id}' })">
+                  ${renderIcon('file-text')} Certificate
+                </button>
               </div>
-            </div>
+            `).join('')}
           </div>
-          <button class="btn-cert-download" onclick="AppState.openModal('certificate', { courseId: 'course-ai-101' })">
-            ${renderIcon('download')} Certificate
-          </button>
         </div>
       </div>
     `;
@@ -2154,7 +1964,7 @@ function renderEvaluationView() {
       <div>
         ${welcomeHtml}
         <div style="text-align:center; margin-bottom:20px;">
-          <div style="display:inline-flex; align-items:center; gap:6px; background:var(--color-teal-light); color:var(--color-teal-action); padding:4px 12px; border-radius:var(--radius-full); font-size:0.8rem; font-weight:700; margin-bottom:8px;">
+          <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(190,24,93,0.12); color:var(--color-indigo); padding:4px 12px; border-radius:var(--radius-full); font-size:0.8rem; font-weight:700; margin-bottom:8px;">
             ${renderIcon('cpu')} AI PROFILING QUESTIONNAIRE
           </div>
           <h2 style="font-size:1.6rem; font-weight:800;">Student Assessment Questionnaire</h2>
@@ -2548,7 +2358,7 @@ function renderEvaluationView() {
           <!-- Application Logo & Header at the Top -->
           <div style="text-align:center; margin-bottom:14px;">
             <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:6px;">
-              <div style="width:36px; height:36px; background:#0b192c; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#72eed5; font-size:1.25rem; font-weight:900; font-family:Georgia, serif; box-shadow:0 4px 10px rgba(157,23,77,0.25);">L</div>
+              <div style="width:36px; height:36px; background:#9d174d; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.25rem; font-weight:900; font-family:Georgia, serif; box-shadow:0 4px 10px rgba(157,23,77,0.25);">L</div>
               <span style="font-size:1.15rem; font-weight:900; letter-spacing:0.1em; color:#475569; font-family:var(--font-heading);">LearnAI Pro</span>
             </div>
             <!-- Subtle Gold Divider -->
@@ -2566,7 +2376,7 @@ function renderEvaluationView() {
           </p>
 
           <!-- Student Name (Burgundy, Elegant Typography) -->
-          <div class="cert-student-name" style="color:#0f766e; font-family:'Brush Script MT', 'Georgia', cursive; font-size:3.2rem; font-weight:700; margin:10px 0; border:none; display:block;">
+          <div class="cert-student-name" style="color:#9d174d; font-family:'Brush Script MT', 'Georgia', cursive; font-size:3.2rem; font-weight:700; margin:10px 0; border:none; display:block;">
             ${user.name}
           </div>
 
