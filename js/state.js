@@ -252,12 +252,14 @@ window.AppState = {
     if (params.subject) this.activeSubjectFilter = params.subject;
     if (params.courseId) this.selectedCourseId = params.courseId;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.closeMobileSidebar) window.closeMobileSidebar();
     this.notify();
   },
 
   openModal: function(modalName, data = null) {
     this.activeModal = modalName;
     this.modalData = data;
+    if (window.closeMobileSidebar) window.closeMobileSidebar();
     this.notify();
   },
 

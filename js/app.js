@@ -5,6 +5,36 @@
     return `<i data-lucide="${iconName}" class="${extraClass}"></i>`;
   }
 
+  // Mobile Drawer Navigation Controllers
+  window.toggleMobileSidebar = function(forceOpen) {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (!sidebar) return;
+
+    const isOpen = sidebar.classList.contains('open');
+    const shouldOpen = (typeof forceOpen === 'boolean') ? forceOpen : !isOpen;
+
+    if (shouldOpen) {
+      sidebar.classList.add('open');
+      if (backdrop) backdrop.classList.add('active');
+      document.body.classList.add('sidebar-drawer-open');
+    } else {
+      sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.classList.remove('sidebar-drawer-open');
+    }
+  };
+
+  window.closeMobileSidebar = function() {
+    window.toggleMobileSidebar(false);
+  };
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 900) {
+      window.closeMobileSidebar();
+    }
+  });
+
   let activeCharts = [];
   function clearCharts() {
     activeCharts.forEach(c => {
@@ -41,13 +71,21 @@
       root.innerHTML = renderLandingPage();
     } else {
       root.innerHTML = `
-        <!-- Sidebar Navigation (Matches 1.PNG - 7.PNG) -->
+        <!-- Mobile Drawer Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="window.closeMobileSidebar()"></div>
+
+        <!-- Sidebar Navigation (Matches 1.PNG - 7.PNG & Mobile Drawer) -->
         <aside class="sidebar" id="sidebar">
-          <div class="brand-logo">
-            <div class="brand-icon">
-              ${renderIcon('sparkles')}
+          <div class="sidebar-header-row">
+            <div class="brand-logo">
+              <div class="brand-icon">
+                ${renderIcon('sparkles')}
+              </div>
+              <div class="brand-title">LearnAIPro</div>
             </div>
-            <div class="brand-title">LearnAIPro</div>
+            <button class="sidebar-close-btn" onclick="window.closeMobileSidebar()" aria-label="Close Navigation Drawer" title="Close Drawer">
+              ${renderIcon('x')}
+            </button>
           </div>
 
           <!-- Student Profile Card at Top of Sidebar -->
@@ -61,46 +99,46 @@
             </div>
           </div>
 
-          <!-- Navigation Menu Items -->
+          <!-- Navigation Menu Items (Every Drawer Accessible) -->
           <ul class="nav-menu">
             <li class="nav-item ${state.currentView === 'dashboard' ? 'active' : ''}">
-              <button onclick="AppState.setView('dashboard')">
+              <button onclick="AppState.setView('dashboard'); window.closeMobileSidebar();">
                 ${renderIcon('layout-dashboard')} Dashboard
               </button>
             </li>
-            <li class="nav-item ${state.currentView === 'courses' ? 'active' : ''}">
-              <button onclick="AppState.setView('courses')">
+            <li class="nav-item ${state.currentView === 'courses' || state.currentView === 'course-hub' ? 'active' : ''}">
+              <button onclick="AppState.setView('courses'); window.closeMobileSidebar();">
                 ${renderIcon('graduation-cap')} Courses
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'roadmap' ? 'active' : ''}">
-              <button onclick="AppState.setView('roadmap')">
+              <button onclick="AppState.setView('roadmap'); window.closeMobileSidebar();">
                 ${renderIcon('git-branch')} Roadmaps
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'quizzes' ? 'active' : ''}">
-              <button onclick="AppState.setView('quizzes')">
+              <button onclick="AppState.setView('quizzes'); window.closeMobileSidebar();">
                 ${renderIcon('help-circle')} Assessments
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'notes' ? 'active' : ''}">
-              <button onclick="AppState.setView('notes')">
+              <button onclick="AppState.setView('notes'); window.closeMobileSidebar();">
                 ${renderIcon('file-text')} Notes
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'achievements' ? 'active' : ''}">
-              <button onclick="AppState.setView('achievements')">
+              <button onclick="AppState.setView('achievements'); window.closeMobileSidebar();">
                 ${renderIcon('award')} Achievements
               </button>
             </li>
             <li class="nav-item ${state.currentView === 'analytics' || state.currentView === 'evaluation' ? 'active' : ''}">
-              <button onclick="AppState.setView('analytics')">
+              <button onclick="AppState.setView('analytics'); window.closeMobileSidebar();">
                 ${renderIcon('trending-up')} Insights
               </button>
             </li>
             ${user && user.role === 'admin' ? `
               <li class="nav-item ${state.currentView === 'admin' ? 'active' : ''}">
-                <button onclick="AppState.setView('admin')">
+                <button onclick="AppState.setView('admin'); window.closeMobileSidebar();">
                   ${renderIcon('settings')} Admin Dashboard
                 </button>
               </li>
@@ -109,13 +147,13 @@
 
           <!-- Sidebar Bottom Actions -->
           <div class="sidebar-footer">
-            <button class="btn-sidebar-ai-tutor" onclick="if(window.AIChatbot) window.AIChatbot.toggle();">
+            <button class="btn-sidebar-ai-tutor" onclick="if(window.AIChatbot) window.AIChatbot.toggle(); window.closeMobileSidebar();">
               ${renderIcon('bot')} Ask AI Tutor
             </button>
-            <button class="sidebar-footer-link" onclick="AppState.openModal('questionnaire')">
+            <button class="sidebar-footer-link" onclick="AppState.openModal('questionnaire'); window.closeMobileSidebar();">
               ${renderIcon('settings')} Settings
             </button>
-            <button class="sidebar-footer-link" onclick="if(window.AIChatbot) window.AIChatbot.toggle();">
+            <button class="sidebar-footer-link" onclick="AppState.openModal('help'); window.closeMobileSidebar();">
               ${renderIcon('help-circle')} Help Center
             </button>
           </div>
@@ -124,7 +162,10 @@
         <!-- Main Wrapper -->
         <div class="main-wrapper">
           <header class="navbar">
-            <div style="display:flex; align-items:center; gap:16px;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+              <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" onclick="window.toggleMobileSidebar(true)" aria-label="Open Navigation Drawer" title="Open Menu">
+                ${renderIcon('menu')}
+              </button>
               <div class="nav-search">
                 ${renderIcon('search')}
                 <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; if (AppState.currentView !== 'catalog' && AppState.currentView !== 'courses') { AppState.setView('courses'); } else { AppState.notify(); }">
@@ -151,6 +192,30 @@
           <main class="page-container">
             ${renderCurrentView()}
           </main>
+
+          <!-- Mobile Bottom Navigation Bar (Sticky Thumb Navigation for Mobile) -->
+          <nav class="mobile-bottom-nav">
+            <button class="mobile-nav-tab ${state.currentView === 'dashboard' ? 'active' : ''}" onclick="AppState.setView('dashboard'); window.closeMobileSidebar();">
+              ${renderIcon('layout-dashboard')}
+              <span>Home</span>
+            </button>
+            <button class="mobile-nav-tab ${state.currentView === 'courses' || state.currentView === 'course-hub' ? 'active' : ''}" onclick="AppState.setView('courses'); window.closeMobileSidebar();">
+              ${renderIcon('graduation-cap')}
+              <span>Courses</span>
+            </button>
+            <button class="mobile-nav-tab ${state.currentView === 'roadmap' ? 'active' : ''}" onclick="AppState.setView('roadmap'); window.closeMobileSidebar();">
+              ${renderIcon('git-branch')}
+              <span>Roadmaps</span>
+            </button>
+            <button class="mobile-nav-tab ${state.currentView === 'quizzes' ? 'active' : ''}" onclick="AppState.setView('quizzes'); window.closeMobileSidebar();">
+              ${renderIcon('help-circle')}
+              <span>Assess</span>
+            </button>
+            <button class="mobile-nav-tab ${['notes', 'achievements', 'analytics', 'evaluation'].includes(state.currentView) ? 'active' : ''}" onclick="window.toggleMobileSidebar(true);">
+              ${renderIcon('menu')}
+              <span>Drawers</span>
+            </button>
+          </nav>
         </div>
       `;
     }
@@ -348,7 +413,7 @@
         </a>
       </div>
 
-      <div class="courses-grid-4" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 32px;">
+      <div class="courses-grid-4 dashboard-courses-grid">
         ${(recommendedCourses.length > 0 ? recommendedCourses.slice(0, 2) : courses.slice(0, 2)).map(c => renderCourseCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
       </div>
     `;
@@ -2006,6 +2071,8 @@ function renderEvaluationView() {
       content = renderAddResourceModalContent();
     } else if (state.activeModal === 'submit-assignment') {
       content = renderSubmitAssignmentModalContent(state.modalData);
+    } else if (state.activeModal === 'help') {
+      content = renderHelpCenterModalContent();
     }
 
     return `
@@ -2015,6 +2082,59 @@ function renderEvaluationView() {
             ${renderIcon('x')}
           </button>
           ${content}
+        </div>
+      </div>
+    `;
+  }
+
+  // Help Center Modal
+  function renderHelpCenterModalContent() {
+    return `
+      <div>
+        <div style="text-align:center; margin-bottom:20px;">
+          <div style="width:48px; height:48px; border-radius:50%; background:rgba(15, 118, 110, 0.1); color:#0f766e; display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px;">
+            ${renderIcon('help-circle')}
+          </div>
+          <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:6px; color:var(--text-main);">Help Center & FAQ</h2>
+          <p style="color:var(--text-muted); font-size:0.88rem;">Everything you need to know about navigating and learning on LearnAI Pro.</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+          <div style="padding:14px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+            <div style="font-weight:700; font-size:0.92rem; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--text-main);">
+              ${renderIcon('sparkles')} How do AI recommendations work?
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.5;">
+              Recommendations adapt dynamically to your student profile questionnaire, selected interests, skill level, and preferred learning modality.
+            </div>
+          </div>
+
+          <div style="padding:14px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+            <div style="font-weight:700; font-size:0.92rem; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--text-main);">
+              ${renderIcon('git-branch')} How do I track roadmaps & assessments?
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.5;">
+              Use the Roadmaps drawer to follow weekly subject milestones, and complete Assessments to earn verified mastery certificates and badges.
+            </div>
+          </div>
+
+          <div style="padding:14px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+            <div style="font-weight:700; font-size:0.92rem; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--text-main);">
+              ${renderIcon('bot')} How can I ask the AI Tutor?
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.5;">
+              Tap "Ask AI Tutor" in the navigation drawer or tap the floating robot icon at the bottom right. Voice speech-to-text and instant academic explanations are supported!
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn-hero-secondary" style="padding:10px 18px; font-size:0.85rem;" onclick="AppState.closeModal()">
+            Close
+          </button>
+          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:10px 18px; font-size:0.85rem; display:flex; align-items:center; gap:6px;" onclick="AppState.closeModal(); if(window.AIChatbot) window.AIChatbot.toggle();">
+            ${renderIcon('bot')} Launch AI Tutor
+          </button>
         </div>
       </div>
     `;

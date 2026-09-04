@@ -201,6 +201,138 @@ input, select, textarea {
   font-family: var(--font-heading);
 }
 
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 20px;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+
+.sidebar-close-btn svg, .sidebar-close-btn i {
+  width: 18px;
+  height: 18px;
+}
+
+/* Mobile Sidebar Backdrop Overlay */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1040;
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.sidebar-backdrop.active {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.sidebar-drawer-open {
+  overflow: hidden !important;
+}
+
+/* Mobile Sidebar Toggle Button (Navbar) */
+.mobile-sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.mobile-sidebar-toggle:hover {
+  background: var(--bg-card-hover);
+  border-color: #0f172a;
+}
+
+[data-theme="dark"] .mobile-sidebar-toggle:hover {
+  border-color: var(--color-mint-active);
+}
+
+.mobile-sidebar-toggle svg, .mobile-sidebar-toggle i {
+  width: 20px;
+  height: 20px;
+}
+
+/* Mobile Bottom Navigation Bar */
+.mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 52px;
+}
+
+.mobile-nav-tab svg, .mobile-nav-tab i {
+  width: 20px;
+  height: 20px;
+}
+
+.mobile-nav-tab:hover {
+  color: var(--text-main);
+}
+
+.mobile-nav-tab.active {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .mobile-nav-tab.active {
+  color: #72eed5;
+}
+
+.dashboard-courses-grid {
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 32px;
+}
+
 /* Sidebar Student Profile Card */
 .sidebar-profile-card, .sidebar-user-card {
   display: flex;
@@ -2246,11 +2378,22 @@ input, select, textarea {
 }
 
 @media (max-width: 900px) {
+  .mobile-sidebar-toggle {
+    display: flex;
+  }
+  .sidebar-close-btn {
+    display: flex;
+  }
   .sidebar {
     transform: translateX(-100%);
+    width: min(300px, 84vw);
+    z-index: 1050;
+    box-shadow: none;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
   }
   .sidebar.open {
     transform: translateX(0);
+    box-shadow: 8px 0 36px rgba(0, 0, 0, 0.4);
   }
   .main-wrapper {
     margin-left: 0;
@@ -2266,15 +2409,63 @@ input, select, textarea {
   }
 }
 
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
+    z-index: 950;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 4px;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .page-container {
+    padding-bottom: 84px !important;
+  }
+
+  .ai-chatbot-fab-wrapper {
+    bottom: 76px !important;
+    right: 16px !important;
+  }
+
+  .ai-chatbot-window {
+    bottom: 76px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 92px) !important;
+  }
+}
+
 @media (max-width: 640px) {
   .page-container {
-    padding: 20px 16px;
+    padding: 16px 14px 84px 14px;
   }
   .navbar {
-    padding: 0 16px;
+    padding: 0 12px;
+    gap: 8px;
   }
   .nav-search {
-    width: 200px;
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    padding: 7px 12px;
+  }
+  .nav-search input {
+    font-size: 0.82rem;
+  }
+  .dashboard-courses-grid {
+    grid-template-columns: 1fr !important;
   }
   .courses-grid-4, .resource-grid {
     grid-template-columns: 1fr;
@@ -2286,10 +2477,10 @@ input, select, textarea {
     grid-template-columns: 1fr;
   }
   .student-profile-banner, .hero-card {
-    padding: 20px;
+    padding: 20px 16px;
   }
   .banner-student-name, .hero-title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
   }
   .course-cert-row {
     flex-direction: column;
