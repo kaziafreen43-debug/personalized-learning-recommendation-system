@@ -648,6 +648,27 @@ body.sidebar-drawer-open {
   box-shadow: 0 8px 24px rgba(16, 28, 45, 0.2);
 }
 
+.student-profile-banner h1,
+.student-profile-banner h2,
+.student-profile-banner h3,
+.student-profile-banner h4,
+.student-profile-banner h5,
+.student-profile-banner h6,
+.hero-card h1,
+.hero-card h2,
+.hero-card h3,
+.hero-card h4,
+.hero-card h5,
+.hero-card h6,
+.hero-card .hero-title {
+  color: #ffffff !important;
+}
+
+.hero-card p,
+.hero-card .hero-subtitle {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
 .student-profile-banner::before, .hero-card::before {
   content: '';
   position: absolute;
@@ -2491,3 +2512,468 @@ body.sidebar-drawer-open {
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   LearnAIPro - Dynamic MCQ Assignment Builder & Test Runner Styles
+   ========================================================================== */
+
+/* Question Builder Card */
+.mcq-builder-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  position: relative;
+}
+
+.mcq-builder-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.mcq-builder-card.dragging {
+  opacity: 0.45;
+  border: 2px dashed #2563eb !important;
+  transform: scale(0.99);
+}
+
+.mcq-builder-card.drag-over {
+  border-top: 3px solid #2563eb !important;
+}
+
+/* Card Header */
+.mcq-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mcq-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mcq-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  user-select: none;
+  font-size: 1rem;
+}
+
+.mcq-drag-handle:active {
+  cursor: grabbing;
+}
+
+.mcq-question-badge {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mcq-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Buttons */
+.btn-reorder-arrow {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-reorder-arrow:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: #94a3b8;
+}
+
+.btn-reorder-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-delete-q {
+  background: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fca5a5;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.btn-delete-q:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.btn-add-next-q {
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px 14px;
+  background: rgba(37, 99, 235, 0.05);
+  color: #2563eb;
+  border: 1px dashed rgba(37, 99, 235, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.btn-add-next-q:hover {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: #2563eb;
+}
+
+.btn-add-question-primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-add-question-primary:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-1px);
+}
+
+.btn-save-assignment-dark {
+  background: #0b192c !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 11px 24px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-save-assignment-dark:hover {
+  background: #1e293b !important;
+  box-shadow: 0 4px 12px rgba(11, 25, 44, 0.3);
+}
+
+/* Options Builder Rows */
+.mcq-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mcq-option-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.mcq-option-row:hover {
+  border-color: #94a3b8;
+}
+
+.mcq-option-row.is-correct {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+  box-shadow: 0 0 0 1px #10b981;
+}
+
+.mcq-radio-btn {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px solid #94a3b8;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.mcq-option-row.is-correct .mcq-radio-btn {
+  border-color: #10b981;
+  background: #10b981;
+  color: #ffffff;
+}
+
+.mcq-option-badge {
+  font-weight: 800;
+  font-size: 0.8rem;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+}
+
+.mcq-option-row.is-correct .mcq-option-badge {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.mcq-option-input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.mcq-option-input:focus {
+  border-color: #2563eb;
+}
+
+.mcq-correct-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* Student Test Runner Styles */
+.mcq-student-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mcq-student-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.mcq-student-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #10b981);
+  transition: width 0.3s ease;
+}
+
+.mcq-student-pill-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mcq-pill-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mcq-pill-btn.active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.mcq-pill-btn.answered:not(.active) {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.mcq-student-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.mcq-student-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 10px;
+}
+
+.mcq-student-option:hover {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.03);
+}
+
+.mcq-student-option.selected {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.mcq-student-radio {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  border: 2px solid #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
+.mcq-student-option.selected .mcq-student-radio {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.mcq-student-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: none;
+}
+
+.mcq-student-option.selected .mcq-student-radio-dot {
+  display: block;
+}
+
+/* Graded Scorecard & Review */
+.mcq-scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .mcq-scorecard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mcq-scorecard-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.mcq-scorecard-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+.mcq-scorecard-lbl {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.mcq-review-card {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.mcq-review-card.correct {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.mcq-review-card.wrong {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+

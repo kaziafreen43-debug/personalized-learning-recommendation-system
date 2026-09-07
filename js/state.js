@@ -62,6 +62,54 @@ window.AppState = {
       if (window.INITIAL_DATA.quizzes) this.data.quizzes = window.INITIAL_DATA.quizzes;
     }
 
+    if (!this.data.assignments || this.data.assignments.length === 0) {
+      this.data.assignments = [
+        {
+          id: 'assign-ai-mcq-1',
+          courseId: 'course-ai-101',
+          title: 'AI & Machine Learning Foundations Assignment',
+          description: 'Assess your foundational understanding of Artificial Intelligence concepts, neural network mechanics, and supervised learning.',
+          points: 100,
+          questions: [
+            {
+              id: 'q-ai-1',
+              text: 'What is AI?',
+              options: [
+                'Artificial Ice',
+                'Artificial Intelligence',
+                'Artificial Internet',
+                'Automatic Input'
+              ],
+              correctAnswer: 1
+            },
+            {
+              id: 'q-ai-2',
+              text: 'Which type of learning uses labeled input and output training pairs?',
+              options: [
+                'Supervised Learning',
+                'Unsupervised Learning',
+                'Clustering Algorithms',
+                'Random Initialization'
+              ],
+              correctAnswer: 0
+            },
+            {
+              id: 'q-ai-3',
+              text: 'What is the role of backpropagation in deep neural networks?',
+              options: [
+                'To delete unused dataset features',
+                'To compute gradients and update connection weights',
+                'To format training data into text files',
+                'To increase screen resolution'
+              ],
+              correctAnswer: 1
+            }
+          ],
+          createdAt: new Date().toISOString()
+        }
+      ];
+    }
+
     if (!this.data || !this.data.courses) {
       this.data = window.INITIAL_DATA || {};
     }
@@ -507,13 +555,14 @@ window.AppState = {
     }
   },
 
-  addAssignment: function(courseId, title, description, points) {
+  addAssignment: function(courseId, title, description, points, questions) {
     const assignment = {
       id: 'assign-' + Date.now(),
       courseId: courseId,
       title: title,
       description: description,
       points: Number(points) || 100,
+      questions: Array.isArray(questions) ? questions : [],
       createdAt: new Date().toISOString()
     };
     if (!this.data.assignments) this.data.assignments = [];
@@ -522,9 +571,43 @@ window.AppState = {
     if (window.FirebaseDB) {
       window.FirebaseDB.saveAssignment(assignment);
     }
+    return assignment;
   },
 
-  submitAssignment: function(assignmentId, courseId, submissionText, submissionLink) {
+  updateAssignment: function(assignmentId, updatedData) {
+    if (!this.data.assignments) return null;
+    const idx = this.data.assignments.findIndex(a => a.id === assignmentId);
+    if (idx >= 0) {
+      this.data.assignments[idx] = {
+        ...this.data.assignments[idx],
+        ...updatedData,
+        updatedAt: new Date().toISOString()
+      };
+      this.saveData();
+      if (window.FirebaseDB) {
+        window.FirebaseDB.saveAssignment(this.data.assignments[idx]);
+      }
+      return this.data.assignments[idx];
+    }
+    return null;
+  },
+
+  deleteAssignment: function(assignmentId) {
+    if (!this.data.assignments) return;
+    this.data.assignments = this.data.assignments.filter(a => a.id !== assignmentId);
+    this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.db) {
+      try {
+        window.FirebaseDB.db.collection('assignments').doc(assignmentId).delete()
+          .then(() => console.log("Assignment deleted from Firestore"))
+          .catch(e => console.error("Error deleting assignment from Firestore:", e));
+      } catch (e) {
+        console.error("Firestore delete error:", e);
+      }
+    }
+  },
+
+  submitAssignment: function(assignmentId, courseId, submissionText, submissionLink, mcqData) {
     if (!this.currentUser) return;
     const submission = {
       userId: this.currentUser.id,
@@ -534,7 +617,8 @@ window.AppState = {
       submissionText: submissionText || '',
       submissionLink: submissionLink || '',
       submittedAt: new Date().toISOString(),
-      status: 'submitted'
+      status: mcqData ? 'graded' : 'submitted',
+      ...(mcqData || {})
     };
     if (!this.data.submissions) this.data.submissions = [];
     
@@ -548,7 +632,7 @@ window.AppState = {
     if (!this.currentUser.recentActivity) this.currentUser.recentActivity = [];
     const assign = (this.data.assignments || []).find(a => a.id === assignmentId);
     this.currentUser.recentActivity.unshift({
-      title: `Submitted Assignment: ${assign ? assign.title : 'Course Work'}`,
+      title: mcqData ? `Completed MCQ: ${assign ? assign.title : 'Assignment'} (${mcqData.percentage}%)` : `Submitted Assignment: ${assign ? assign.title : 'Course Work'}`,
       time: 'Just now',
       icon: 'file-text'
     });
@@ -558,5 +642,6 @@ window.AppState = {
       window.FirebaseDB.saveSubmission(submission);
       window.FirebaseDB.saveUser(this.currentUser);
     }
+    return submission;
   }
 };

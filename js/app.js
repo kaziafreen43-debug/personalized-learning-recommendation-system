@@ -799,8 +799,8 @@ function renderEvaluationView() {
         
         <div class="hero-card" style="padding:28px;">
           <div class="hero-tag">${renderIcon('check-circle')} ENROLLED COURSE STUDY HUB</div>
-          <h1 style="font-size:1.8rem; font-weight:800; margin-bottom:8px;">${course.title}</h1>
-          <p style="font-size:0.95rem; opacity:0.9; margin-bottom:16px;">Instructor: ${course.instructor || 'AI Lab Faculty'} • Prerequisites: ${course.prerequisites || 'Basic Math'}</p>
+          <h1 class="hero-title" style="font-size:1.8rem; font-weight:800; margin-bottom:8px; color:#ffffff !important;">${course.title}</h1>
+          <p class="hero-subtitle" style="font-size:0.95rem; opacity:0.9; margin-bottom:16px; color:rgba(255,255,255,0.9) !important;">Instructor: ${course.instructor || 'AI Lab Faculty'} • Prerequisites: ${course.prerequisites || 'Basic Math'}</p>
         </div>
       </div>
 
@@ -862,19 +862,29 @@ function renderEvaluationView() {
           <div style="display:flex; flex-direction:column; gap:16px;">
             ${courseAssignments.map(a => {
               const sub = submissions.find(s => s.assignmentId === a.id && s.userId === (state.currentUser ? state.currentUser.id : ''));
+              const isMCQ = a.questions && a.questions.length > 0;
               return `
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap; gap:14px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:18px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap; gap:14px;">
                   <div style="flex:1; min-width:250px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                      <span style="font-weight:700; font-size:1.05rem;">${a.title}</span>
+                      <span style="font-weight:700; font-size:1.08rem;">${a.title}</span>
                       <span style="font-size:0.75rem; background:rgba(99, 102, 241, 0.12); color:var(--color-indigo); padding:2px 8px; border-radius:var(--radius-full); font-weight:700;">
                         ${a.points} Points
                       </span>
-                      ${sub ? `
+                      ${isMCQ ? `
+                        <span style="font-size:0.75rem; background:rgba(37, 99, 235, 0.1); color:#2563eb; padding:2px 8px; border-radius:var(--radius-full); font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                          ${renderIcon('help-circle', 'small-icon')} ${a.questions.length} Questions (MCQ)
+                        </span>
+                      ` : ''}
+                      ${sub ? (sub.status === 'graded' || sub.score !== undefined ? `
+                        <span style="font-size:0.75rem; background:${sub.passed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; color:${sub.passed ? 'var(--color-emerald)' : 'var(--color-rose)'}; padding:2px 8px; border-radius:var(--radius-full); font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                          ${renderIcon('check')} Score: ${sub.score}/${a.points} (${sub.percentage}%) • ${sub.passed ? 'Passed' : 'Needs Practice'}
+                        </span>
+                      ` : `
                         <span style="font-size:0.75rem; background:rgba(16, 185, 129, 0.12); color:var(--color-emerald); padding:2px 8px; border-radius:var(--radius-full); font-weight:700; display:inline-flex; align-items:center; gap:4px;">
                           ${renderIcon('check')} Submitted
                         </span>
-                      ` : `
+                      `) : `
                         <span style="font-size:0.75rem; background:rgba(100, 116, 139, 0.12); color:var(--text-muted); padding:2px 8px; border-radius:var(--radius-full); font-weight:700;">
                           Pending
                         </span>
@@ -883,7 +893,7 @@ function renderEvaluationView() {
                     <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0; line-height:1.4;">
                       ${a.description}
                     </p>
-                    ${sub ? `
+                    ${sub && sub.submissionText ? `
                       <div style="margin-top:10px; font-size:0.8rem; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:var(--text-main);">
                         <strong>Your submission:</strong> ${sub.submissionText}
                         ${sub.submissionLink ? `<br><strong>Link:</strong> <a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline;">${sub.submissionLink}</a>` : ''}
@@ -891,8 +901,8 @@ function renderEvaluationView() {
                     ` : ''}
                   </div>
                   
-                  <button class="btn-launch-resource" style="padding:8px 20px; font-size:0.85rem; background:var(--primary-gradient); color:#fff; border-radius:var(--radius-full); display:flex; align-items:center; gap:6px;" onclick="AppState.openModal('submit-assignment', '${a.id}')">
-                    ${sub ? renderIcon('edit') + ' Resubmit' : renderIcon('upload-cloud') + ' Submit Project'}
+                  <button class="btn-launch-resource" style="padding:9px 22px; font-size:0.88rem; background:var(--primary-gradient); color:#fff; border-radius:var(--radius-full); display:flex; align-items:center; gap:6px; font-weight:700;" onclick="AppState.openModal('submit-assignment', '${a.id}')">
+                    ${sub ? (isMCQ ? renderIcon('rotate-ccw') + ' View Results / Retake' : renderIcon('edit') + ' Resubmit') : (isMCQ ? renderIcon('play') + ' Start Assignment' : renderIcon('upload-cloud') + ' Submit Project')}
                   </button>
                 </div>
               `;
@@ -1531,21 +1541,435 @@ function renderEvaluationView() {
     form.reset();
   };
 
-  window.handleCreateAssignmentSubmit = function(e) {
-    e.preventDefault();
-    const form = e.target;
-    const courseId = form.courseId.value;
-    const title = form.title.value.trim();
-    const description = form.description.value.trim();
-    const points = form.points.value || 100;
+  // ==========================================================================
+  // DYNAMIC MCQ ASSIGNMENT BUILDER (Admin Side)
+  // ==========================================================================
+  window.assignmentBuilder = {
+    editingId: null,
+    courseId: '',
+    title: '',
+    points: 100,
+    description: '',
+    questions: [
+      {
+        id: 'q-' + Date.now() + '-1',
+        text: '',
+        options: ['', '', '', ''],
+        correctAnswer: 0
+      }
+    ]
+  };
 
-    if (!courseId || !title || !description) {
-      alert("Please fill in Course, Title, and Instructions.");
+  window.draggedQuestionIndex = null;
+
+  function escapeHtmlAttr(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  window.initAssignmentBuilderState = function(defaultCourseId) {
+    if (!window.assignmentBuilder) {
+      window.assignmentBuilder = {
+        editingId: null,
+        courseId: defaultCourseId || '',
+        title: '',
+        points: 100,
+        description: '',
+        questions: []
+      };
+    }
+    if (!window.assignmentBuilder.courseId && defaultCourseId) {
+      window.assignmentBuilder.courseId = defaultCourseId;
+    }
+    if (!window.assignmentBuilder.questions || window.assignmentBuilder.questions.length === 0) {
+      window.assignmentBuilder.questions = [
+        {
+          id: 'q-' + Date.now() + '-1',
+          text: '',
+          options: ['', '', '', ''],
+          correctAnswer: 0
+        }
+      ];
+    }
+  };
+
+  window.updateBuilderField = function(field, val) {
+    if (!window.assignmentBuilder) window.initAssignmentBuilderState();
+    window.assignmentBuilder[field] = val;
+  };
+
+  window.updateQuestionText = function(qIdx, text) {
+    if (window.assignmentBuilder && window.assignmentBuilder.questions && window.assignmentBuilder.questions[qIdx]) {
+      window.assignmentBuilder.questions[qIdx].text = text;
+    }
+  };
+
+  window.updateOptionText = function(qIdx, optIdx, text) {
+    if (window.assignmentBuilder && window.assignmentBuilder.questions && window.assignmentBuilder.questions[qIdx]) {
+      if (!window.assignmentBuilder.questions[qIdx].options) {
+        window.assignmentBuilder.questions[qIdx].options = ['', '', '', ''];
+      }
+      window.assignmentBuilder.questions[qIdx].options[optIdx] = text;
+    }
+  };
+
+  window.setCorrectOption = function(qIdx, optIdx) {
+    if (!window.assignmentBuilder || !window.assignmentBuilder.questions || !window.assignmentBuilder.questions[qIdx]) return;
+    window.assignmentBuilder.questions[qIdx].correctAnswer = optIdx;
+
+    // Immediately update option rows inside this card
+    const card = document.querySelector(`.mcq-builder-card[data-qindex="${qIdx}"]`);
+    if (card) {
+      const rows = card.querySelectorAll('.mcq-option-row');
+      rows.forEach((row, idx) => {
+        const isSelected = idx === optIdx;
+        row.classList.toggle('is-correct', isSelected);
+        const radioBtn = row.querySelector('.mcq-radio-btn');
+        if (radioBtn) {
+          radioBtn.innerHTML = isSelected ? renderIcon('check', 'small-icon') : '';
+        }
+        let tag = row.querySelector('.mcq-correct-tag');
+        if (isSelected) {
+          if (!tag) {
+            tag = document.createElement('span');
+            tag.className = 'mcq-correct-tag';
+            tag.innerHTML = `${renderIcon('check', 'small-icon')} Correct Answer`;
+            row.appendChild(tag);
+          }
+        } else {
+          if (tag) tag.remove();
+        }
+      });
+    }
+  };
+
+  window.addQuestionToBuilder = function(afterIndex) {
+    if (!window.assignmentBuilder) window.initAssignmentBuilderState();
+    const newQ = {
+      id: 'q-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      text: '',
+      options: ['', '', '', ''],
+      correctAnswer: 0
+    };
+    if (afterIndex !== undefined && afterIndex !== null && afterIndex >= 0) {
+      window.assignmentBuilder.questions.splice(afterIndex + 1, 0, newQ);
+    } else {
+      window.assignmentBuilder.questions.push(newQ);
+    }
+    window.refreshAssignmentBuilderQuestions();
+
+    setTimeout(() => {
+      const targetIdx = (afterIndex !== undefined && afterIndex !== null && afterIndex >= 0) ? afterIndex + 1 : window.assignmentBuilder.questions.length - 1;
+      const targetCard = document.querySelector(`.mcq-builder-card[data-qindex="${targetIdx}"]`);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const input = targetCard.querySelector('input[type="text"]');
+        if (input) input.focus();
+      }
+    }, 60);
+  };
+
+  window.deleteQuestionFromBuilder = function(qIdx) {
+    if (!window.assignmentBuilder || !window.assignmentBuilder.questions) return;
+    if (window.assignmentBuilder.questions.length <= 1) {
+      alert("An assignment must have at least one question. You cannot delete the only question.");
       return;
     }
-    window.AppState.addAssignment(courseId, title, description, points);
-    alert("Assignment successfully created and saved dynamically to Firebase!");
-    form.reset();
+    window.assignmentBuilder.questions.splice(qIdx, 1);
+    window.refreshAssignmentBuilderQuestions();
+  };
+
+  window.moveQuestionInBuilder = function(fromIdx, toIdx) {
+    if (!window.assignmentBuilder || !window.assignmentBuilder.questions) return;
+    const questions = window.assignmentBuilder.questions;
+    if (toIdx < 0 || toIdx >= questions.length) return;
+    const item = questions.splice(fromIdx, 1)[0];
+    questions.splice(toIdx, 0, item);
+    window.refreshAssignmentBuilderQuestions();
+  };
+
+  window.handleQuestionDragStart = function(e, index) {
+    window.draggedQuestionIndex = index;
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', String(index));
+    } catch (err) {}
+    const card = e.currentTarget.closest('.mcq-builder-card');
+    if (card) {
+      setTimeout(() => card.classList.add('dragging'), 0);
+    }
+  };
+
+  window.handleQuestionDragOver = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const card = e.currentTarget.closest('.mcq-builder-card');
+    if (card && !card.classList.contains('dragging')) {
+      card.classList.add('drag-over');
+    }
+  };
+
+  window.handleQuestionDragLeave = function(e) {
+    const card = e.currentTarget.closest('.mcq-builder-card');
+    if (card) {
+      card.classList.remove('drag-over');
+    }
+  };
+
+  window.handleQuestionDrop = function(e, targetIndex) {
+    e.preventDefault();
+    const card = e.currentTarget.closest('.mcq-builder-card');
+    if (card) card.classList.remove('drag-over');
+    if (window.draggedQuestionIndex !== null && window.draggedQuestionIndex !== targetIndex) {
+      window.moveQuestionInBuilder(window.draggedQuestionIndex, targetIndex);
+    }
+    window.draggedQuestionIndex = null;
+  };
+
+  window.handleQuestionDragEnd = function(e) {
+    const cards = document.querySelectorAll('.mcq-builder-card');
+    cards.forEach(c => {
+      c.classList.remove('dragging');
+      c.classList.remove('drag-over');
+    });
+    window.draggedQuestionIndex = null;
+  };
+
+  window.renderAssignmentBuilderQuestionsHtml = function() {
+    const questions = (window.assignmentBuilder && window.assignmentBuilder.questions) ? window.assignmentBuilder.questions : [];
+    const letters = ['A', 'B', 'C', 'D'];
+    return questions.map((q, qIdx) => {
+      return `
+        <div class="mcq-builder-card" data-qindex="${qIdx}" ondragover="window.handleQuestionDragOver(event)" ondragleave="window.handleQuestionDragLeave(event)" ondrop="window.handleQuestionDrop(event, ${qIdx})">
+          <div class="mcq-card-header">
+            <div class="mcq-card-title-wrap">
+              <div class="mcq-drag-handle" draggable="true" ondragstart="window.handleQuestionDragStart(event, ${qIdx})" ondragend="window.handleQuestionDragEnd(event)" title="Drag up or down to reorder question">
+                ⋮⋮
+              </div>
+              <span class="mcq-question-badge">
+                Question ${qIdx + 1}
+              </span>
+              <div style="display:inline-flex; gap:4px; margin-left:4px;">
+                <button type="button" class="btn-reorder-arrow" title="Move Up" onclick="window.moveQuestionInBuilder(${qIdx}, ${qIdx - 1})" ${qIdx === 0 ? 'disabled' : ''}>
+                  ▲
+                </button>
+                <button type="button" class="btn-reorder-arrow" title="Move Down" onclick="window.moveQuestionInBuilder(${qIdx}, ${qIdx + 1})" ${qIdx === questions.length - 1 ? 'disabled' : ''}>
+                  ▼
+                </button>
+              </div>
+            </div>
+            <div class="mcq-card-actions">
+              <button type="button" class="btn-delete-q" onclick="window.deleteQuestionFromBuilder(${qIdx})" title="Delete this question">
+                ${renderIcon('trash-2', 'small-icon')} Delete Question
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Question Text</label>
+            <input type="text" id="q-text-${qIdx}" value="${escapeHtmlAttr(q.text || '')}" placeholder="e.g. What is AI?" oninput="window.updateQuestionText(${qIdx}, this.value)" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.9rem; font-family:inherit;">
+          </div>
+
+          <div class="mcq-options-container">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; margin-bottom:2px; display:flex; justify-content:space-between; align-items:center;">
+              <span>Options & Correct Answer (Select the radio button for the correct answer):</span>
+              <span style="font-size:0.72rem; color:var(--color-emerald); font-weight:700;">Only 1 option can be correct</span>
+            </div>
+            ${letters.map((letter, optIdx) => {
+              const isCorrect = q.correctAnswer === optIdx;
+              const optVal = (q.options && q.options[optIdx]) ? q.options[optIdx] : '';
+              return `
+                <div class="mcq-option-row ${isCorrect ? 'is-correct' : ''}" data-optindex="${optIdx}">
+                  <button type="button" class="mcq-radio-btn" onclick="window.setCorrectOption(${qIdx}, ${optIdx})" title="Mark Option ${letter} as Correct">
+                    ${isCorrect ? renderIcon('check', 'small-icon') : ''}
+                  </button>
+                  <div class="mcq-option-badge">${letter}</div>
+                  <input type="text" id="q-opt-${qIdx}-${optIdx}" class="mcq-option-input" value="${escapeHtmlAttr(optVal)}" placeholder="Option ${letter} answer text..." oninput="window.updateOptionText(${qIdx}, ${optIdx}, this.value)">
+                  ${isCorrect ? `<span class="mcq-correct-tag">${renderIcon('check', 'small-icon')} Correct Answer</span>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <button type="button" class="btn-add-next-q" onclick="window.addQuestionToBuilder(${qIdx})">
+            ➕ Add Next Question
+          </button>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.refreshAssignmentBuilderQuestions = function() {
+    const container = document.getElementById('mcqQuestionsBuilderList');
+    if (container) {
+      container.innerHTML = window.renderAssignmentBuilderQuestionsHtml();
+    }
+    const badge = document.getElementById('builderQuestionsCountBadge');
+    if (badge) {
+      const count = window.assignmentBuilder.questions ? window.assignmentBuilder.questions.length : 0;
+      badge.textContent = `${count} Question${count === 1 ? '' : 's'}`;
+    }
+  };
+
+  window.handleSaveAssignmentBuilder = function(e) {
+    if (e) e.preventDefault();
+    const b = window.assignmentBuilder;
+    if (!b) return;
+
+    // Sync top inputs if in DOM
+    const form = document.getElementById('mcqAssignmentBuilderForm');
+    if (form) {
+      if (form.courseId) b.courseId = form.courseId.value;
+      if (form.title) b.title = form.title.value.trim();
+      if (form.points) b.points = Number(form.points.value) || 100;
+      if (form.description) b.description = form.description.value.trim();
+    }
+
+    if (!b.courseId) {
+      alert("Please select a Target Course.");
+      return;
+    }
+    if (!b.title) {
+      alert("Please enter an Assignment Title.");
+      const el = document.getElementById('assignmentBuilderTitleInput');
+      if (el) el.focus();
+      return;
+    }
+    if (!b.description) {
+      alert("Please provide Instructions & Criteria for the assignment.");
+      const el = document.getElementById('assignmentBuilderDescInput');
+      if (el) el.focus();
+      return;
+    }
+    if (!b.questions || b.questions.length === 0) {
+      alert("Please add at least one question to the assignment.");
+      return;
+    }
+
+    for (let i = 0; i < b.questions.length; i++) {
+      const q = b.questions[i];
+      if (!q.text || !q.text.trim()) {
+        alert(`Question ${i + 1} text cannot be empty.`);
+        const input = document.getElementById(`q-text-${i}`);
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+      for (let j = 0; j < 4; j++) {
+        const optVal = q.options ? q.options[j] : '';
+        if (!optVal || !optVal.trim()) {
+          alert(`Question ${i + 1}, Option ${String.fromCharCode(65 + j)} cannot be empty.`);
+          const optInput = document.getElementById(`q-opt-${i}-${j}`);
+          if (optInput) {
+            optInput.focus();
+            optInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          return;
+        }
+      }
+    }
+
+    if (b.editingId) {
+      window.AppState.updateAssignment(b.editingId, {
+        courseId: b.courseId,
+        title: b.title,
+        description: b.description,
+        points: b.points,
+        questions: b.questions
+      });
+      alert(`Assignment "${b.title}" updated successfully!`);
+    } else {
+      window.AppState.addAssignment(b.courseId, b.title, b.description, b.points, b.questions);
+      alert(`Assignment "${b.title}" successfully created with ${b.questions.length} MCQ questions!`);
+    }
+
+    window.resetAssignmentBuilder();
+    window.AppState.notify();
+  };
+
+  window.editAssignmentInBuilder = function(assignmentId) {
+    const state = window.AppState;
+    const a = (state.data && state.data.assignments) ? state.data.assignments.find(item => item.id === assignmentId) : null;
+    if (!a) return;
+
+    window.assignmentBuilder = {
+      editingId: a.id,
+      courseId: a.courseId,
+      title: a.title,
+      points: a.points || 100,
+      description: a.description || '',
+      questions: (a.questions && a.questions.length > 0) ? JSON.parse(JSON.stringify(a.questions)) : [
+        {
+          id: 'q-' + Date.now() + '-1',
+          text: '',
+          options: ['', '', '', ''],
+          correctAnswer: 0
+        }
+      ]
+    };
+
+    window.activeAdminTab = 'assignments';
+    window.AppState.notify();
+
+    setTimeout(() => {
+      const builderCard = document.getElementById('mcqAssignmentBuilderCard');
+      if (builderCard) {
+        builderCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
+
+  window.resetAssignmentBuilder = function() {
+    const state = window.AppState;
+    const courses = (state.data && state.data.courses) ? state.data.courses : [];
+    window.assignmentBuilder = {
+      editingId: null,
+      courseId: courses[0] ? courses[0].id : '',
+      title: '',
+      points: 100,
+      description: '',
+      questions: [
+        {
+          id: 'q-' + Date.now() + '-1',
+          text: '',
+          options: ['', '', '', ''],
+          correctAnswer: 0
+        }
+      ]
+    };
+    window.AppState.notify();
+  };
+
+  window.deleteAssignmentConfirm = function(assignmentId) {
+    const a = (window.AppState.data && window.AppState.data.assignments) ? window.AppState.data.assignments.find(item => item.id === assignmentId) : null;
+    const title = a ? a.title : 'this assignment';
+    if (confirm(`Are you sure you want to permanently delete "${title}"?`)) {
+      window.AppState.deleteAssignment(assignmentId);
+      if (window.assignmentBuilder && window.assignmentBuilder.editingId === assignmentId) {
+        window.resetAssignmentBuilder();
+      } else {
+        window.AppState.notify();
+      }
+    }
+  };
+
+  window.viewMCQSubmissionBreakdown = function(assignmentId, userId) {
+    const state = window.AppState;
+    const a = (state.data && state.data.assignments) ? state.data.assignments.find(item => item.id === assignmentId) : null;
+    const sub = (state.data && state.data.submissions) ? state.data.submissions.find(item => item.assignmentId === assignmentId && item.userId === userId) : null;
+    if (!a || !sub) {
+      alert("Submission details not found.");
+      return;
+    }
+    window.activeMCQBreakdownData = { assignment: a, submission: sub };
+    window.AppState.openModal('mcq-admin-breakdown', { assignmentId, userId });
   };
 
   function renderAdmin() {
@@ -1685,65 +2109,149 @@ function renderEvaluationView() {
         </div>
       `;
     } else if (window.activeAdminTab === 'assignments') {
+      window.initAssignmentBuilderState(courses[0] ? courses[0].id : '');
+      const b = window.assignmentBuilder;
       activeTabContent = `
-        <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; align-items:start;">
-          <!-- Create Assignment Form -->
-          <div class="widget-card">
-            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
-              ${renderIcon('file-text')} Create Course Assignment
-            </h2>
-            <form onsubmit="window.handleCreateAssignmentSubmit(event)">
-              <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:grid; grid-template-columns:1.35fr 1fr; gap:28px; align-items:start;">
+          <!-- Dynamic MCQ Assignment Builder Form -->
+          <div class="widget-card" id="mcqAssignmentBuilderCard">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+              <h2 style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:8px; margin:0;">
+                ${renderIcon('file-text')} ${b.editingId ? 'Edit Course Assignment' : 'Create Course Assignment'}
+              </h2>
+              ${b.editingId ? `
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="tag-pill" style="background:rgba(245,158,11,0.15); color:var(--color-amber); font-weight:700;">
+                    Editing Mode
+                  </span>
+                  <button type="button" onclick="window.resetAssignmentBuilder()" style="background:none; border:none; color:var(--color-rose); font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline;">
+                    Cancel & New
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+            <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:16px;">
+              Build dynamic multiple-choice assignments with custom questions, options A-D, and automatic evaluation.
+            </p>
+
+            <form id="mcqAssignmentBuilderForm" onsubmit="window.handleSaveAssignmentBuilder(event)">
+              <div style="display:flex; flex-direction:column; gap:14px;">
                 <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Course</label>
-                  <select name="courseId" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                    ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
+                  <select name="courseId" id="assignmentBuilderCourseSelect" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="window.updateBuilderField('courseId', this.value)">
+                    ${courses.map(c => `<option value="${c.id}" ${b.courseId === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
                   </select>
                 </div>
                 <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Assignment Title</label>
-                  <input type="text" name="title" required placeholder="e.g. Calculus Basics Problem Set" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  <input type="text" name="title" id="assignmentBuilderTitleInput" required placeholder="e.g. AI & Neural Networks Problem Set" value="${escapeHtmlAttr(b.title || '')}" oninput="window.updateBuilderField('title', this.value)" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
                 </div>
                 <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Max Grade Points</label>
-                  <input type="number" name="points" value="100" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  <input type="number" name="points" min="1" id="assignmentBuilderPointsInput" value="${b.points || 100}" oninput="window.updateBuilderField('points', this.value)" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
                 </div>
                 <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Instructions & Criteria</label>
-                  <textarea name="description" required placeholder="Provide clear task instructions, required materials, and how to submit..." style="width:100%; height:130px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;"></textarea>
+                  <textarea name="description" id="assignmentBuilderDescInput" required placeholder="Provide clear task instructions, required materials, and how to submit..." oninput="window.updateBuilderField('description', this.value)" style="width:100%; height:90px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;">${escapeHtmlAttr(b.description || '')}</textarea>
                 </div>
-                <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
-                  Create Assignment
-                </button>
+
+                <!-- Questions Section -->
+                <div style="margin-top:10px; padding-top:14px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <h3 style="font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+                      ${renderIcon('help-circle')} Questions Section
+                    </h3>
+                    <span style="font-size:0.78rem; color:var(--text-muted);">Dynamic questions with options A-D and instant correct answer highlight</span>
+                  </div>
+                  <span class="tag-pill" id="builderQuestionsCountBadge" style="background:rgba(37,99,235,0.1); color:#2563eb; font-weight:700;">
+                    ${(b.questions || []).length} Questions
+                  </span>
+                </div>
+
+                <!-- Questions List Container -->
+                <div id="mcqQuestionsBuilderList" style="display:flex; flex-direction:column; gap:14px; margin-top:4px;">
+                  ${window.renderAssignmentBuilderQuestionsHtml()}
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; margin-top:16px; flex-wrap:wrap; padding-top:14px; border-top:1px solid var(--border-color);">
+                  <button type="button" class="btn-add-question-primary" onclick="window.addQuestionToBuilder()">
+                    ➕ Add Question
+                  </button>
+                  
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    ${b.editingId ? `
+                      <button type="button" onclick="window.resetAssignmentBuilder()" style="padding:10px 16px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); border-radius:var(--radius-sm); font-weight:600; cursor:pointer;">
+                        Cancel Edit
+                      </button>
+                    ` : ''}
+                    <button type="submit" class="btn-save-assignment-dark">
+                      💾 ${b.editingId ? 'Update Assignment' : 'Save Assignment'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
+
           <!-- Existing Assignments Table -->
           <div class="widget-card">
-            <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px;">Active Assignments</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">Active Assignments</h2>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">Dynamic and published course assignments.</p>
+              </div>
+              <span class="tag-pill" style="background:rgba(15,118,110,0.1); color:var(--color-teal-action); font-weight:700;">
+                ${assignments.length} Total
+              </span>
+            </div>
             <div style="overflow-x:auto;">
               <table class="admin-table">
                 <thead>
                   <tr>
                     <th>Course Target</th>
                     <th>Assignment Title</th>
+                    <th>Questions</th>
                     <th>Max Grade</th>
+                    <th style="text-align:right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${assignments.map(a => {
                     const c = courses.find(item => item.id === a.courseId) || { title: 'Unknown Course' };
+                    const qCount = (a.questions && a.questions.length) ? a.questions.length : 0;
                     return `
                       <tr>
-                        <td>${c.title}</td>
+                        <td><span style="font-weight:600; font-size:0.85rem;">${c.title}</span></td>
                         <td><strong>${a.title}</strong></td>
+                        <td>
+                          ${qCount > 0 ? `
+                            <span class="tag-pill" style="background:rgba(37,99,235,0.1); color:#2563eb; font-weight:700;">
+                              ${qCount} MCQs
+                            </span>
+                          ` : `
+                            <span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color); color:var(--text-muted);">
+                              Standard
+                            </span>
+                          `}
+                        </td>
                         <td>${a.points} pts</td>
+                        <td style="text-align:right;">
+                          <div style="display:inline-flex; gap:6px;">
+                            <button type="button" class="btn-table-action" style="padding:5px 10px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main); font-size:0.8rem; font-weight:600; cursor:pointer;" onclick="window.editAssignmentInBuilder('${a.id}')" title="Edit in builder">
+                              ${renderIcon('edit', 'small-icon')} Edit
+                            </button>
+                            <button type="button" class="btn-table-action" style="padding:5px 10px; border-radius:4px; border:1px solid #fca5a5; background:#fee2e2; color:#ef4444; font-size:0.8rem; font-weight:600; cursor:pointer;" onclick="window.deleteAssignmentConfirm('${a.id}')" title="Delete Assignment">
+                              ${renderIcon('trash-2', 'small-icon')}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     `;
                   }).join('')}
                   ${assignments.length === 0 ? `
                     <tr>
-                      <td colspan="3" style="text-align:center; color:var(--text-muted);">No assignments created yet.</td>
+                      <td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No assignments created yet.</td>
                     </tr>
                   ` : ''}
                 </tbody>
@@ -1821,8 +2329,8 @@ function renderEvaluationView() {
                     <th>Student Name</th>
                     <th>Course Target</th>
                     <th>Assignment Name</th>
-                    <th>Text Submission</th>
-                    <th>Project Link</th>
+                    <th>Evaluation / Score</th>
+                    <th>Submission / Details</th>
                     <th>Submitted At</th>
                   </tr>
                 </thead>
@@ -1830,16 +2338,44 @@ function renderEvaluationView() {
                   ${allSubmissions.map(sub => {
                     const c = courses.find(item => item.id === sub.courseId) || { title: 'Unknown Course' };
                     const a = assignments.find(item => item.id === sub.assignmentId) || { title: 'Unknown Assignment' };
+                    const isMCQ = sub.status === 'graded' || sub.score !== undefined;
                     return `
                       <tr>
                         <td><strong>${sub.userName || 'Student'}</strong></td>
-                        <td>${c.title}</td>
+                        <td><span style="font-size:0.85rem; font-weight:600;">${c.title}</span></td>
                         <td><strong>${a.title}</strong></td>
                         <td>
-                          <div style="max-width:300px; max-height:80px; overflow-y:auto; font-size:0.85rem; line-height:1.4; white-space:pre-wrap; background:var(--bg-card); padding:6px; border-radius:4px; border:1px solid var(--border-color);">${sub.submissionText}</div>
+                          ${isMCQ ? `
+                            <div style="display:flex; flex-direction:column; gap:3px;">
+                              <div style="font-size:0.92rem; font-weight:800; color:var(--text-main);">
+                                ${sub.score} / ${a.points || 100} pts (${sub.percentage}%)
+                              </div>
+                              <div style="display:flex; align-items:center; gap:6px;">
+                                <span class="tag-pill" style="background:${sub.passed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${sub.passed ? 'var(--color-emerald)' : 'var(--color-rose)'}; font-weight:800; font-size:0.75rem;">
+                                  ${sub.passed ? 'PASSED' : 'NEEDS PRACTICE'}
+                                </span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">
+                                  ✔ ${sub.correctCount || 0} • ✖ ${sub.wrongCount || 0}
+                                </span>
+                              </div>
+                            </div>
+                          ` : `
+                            <span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color); color:var(--text-muted);">
+                              Standard Review
+                            </span>
+                          `}
                         </td>
                         <td>
-                          ${sub.submissionLink ? `<a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline; font-size:0.85rem; display:flex; align-items:center; gap:4px;">${renderIcon('external-link', 'small-icon')} View Link</a>` : '<span style="color:var(--text-subtle);">-</span>'}
+                          ${isMCQ ? `
+                            <button type="button" class="btn-table-action" style="padding:6px 12px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main); font-size:0.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;" onclick="window.viewMCQSubmissionBreakdown('${sub.assignmentId}', '${sub.userId}')">
+                              ${renderIcon('file-text', 'small-icon')} View Answers
+                            </button>
+                          ` : `
+                            <div>
+                              <div style="max-width:280px; max-height:60px; overflow-y:auto; font-size:0.82rem; line-height:1.4; white-space:pre-wrap; background:var(--bg-card); padding:5px 8px; border-radius:4px; border:1px solid var(--border-color); margin-bottom:4px;">${sub.submissionText || '-'}</div>
+                              ${sub.submissionLink ? `<a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline; font-size:0.82rem; display:inline-flex; align-items:center; gap:4px;">${renderIcon('external-link', 'small-icon')} Project Link</a>` : ''}
+                            </div>
+                          `}
                         </td>
                         <td>
                           <span style="font-size:0.8rem; color:var(--text-muted);">${new Date(sub.submittedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
@@ -1849,7 +2385,7 @@ function renderEvaluationView() {
                   }).join('')}
                   ${allSubmissions.length === 0 ? `
                     <tr>
-                      <td colspan="6" style="text-align:center; color:var(--text-muted);">No assignment submissions found.</td>
+                      <td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No assignment submissions found.</td>
                     </tr>
                   ` : ''}
                 </tbody>
@@ -2071,6 +2607,8 @@ function renderEvaluationView() {
       content = renderAddResourceModalContent();
     } else if (state.activeModal === 'submit-assignment') {
       content = renderSubmitAssignmentModalContent(state.modalData);
+    } else if (state.activeModal === 'mcq-admin-breakdown') {
+      content = renderMCQAdminBreakdownModalContent();
     } else if (state.activeModal === 'help') {
       content = renderHelpCenterModalContent();
     }
@@ -2802,6 +3340,202 @@ function renderEvaluationView() {
     window.AppState.closeModal();
   };
 
+  // ==========================================================================
+  // STUDENT MCQ ASSIGNMENT TEST RUNNER & AUTO-GRADING
+  // ==========================================================================
+  window.studentAssignmentSession = null;
+
+  window.selectStudentMCQOption = function(qId, optIdx) {
+    if (!window.studentAssignmentSession) return;
+    window.studentAssignmentSession.answers[qId] = optIdx;
+
+    // Visual selection in the DOM without revealing whether it's right or wrong!
+    const card = document.querySelector(`.mcq-student-card[data-qid="${qId}"]`);
+    if (card) {
+      const options = card.querySelectorAll('.mcq-student-option');
+      options.forEach((opt, idx) => {
+        const isSelected = idx === optIdx;
+        opt.classList.toggle('selected', isSelected);
+      });
+    }
+
+    // Mark question pill as answered
+    const pill = document.querySelector(`.mcq-pill-btn[data-qid="${qId}"]`);
+    if (pill) {
+      pill.classList.add('answered');
+    }
+
+    // Update progress bar
+    const total = window.studentAssignmentSession.totalQuestions || 1;
+    const answeredCount = Object.keys(window.studentAssignmentSession.answers).length;
+    const fillEl = document.getElementById('mcqProgressFill');
+    if (fillEl) fillEl.style.width = `${Math.round((answeredCount / total) * 100)}%`;
+    const labelEl = document.getElementById('mcqProgressLabel');
+    if (labelEl) labelEl.textContent = `Answered ${answeredCount} of ${total}`;
+  };
+
+  window.setStudentAssignmentStep = function(step) {
+    if (!window.studentAssignmentSession) return;
+    window.studentAssignmentSession.currentStep = step;
+    window.AppState.notify();
+  };
+
+  window.toggleStudentAssignmentViewMode = function(mode) {
+    if (!window.studentAssignmentSession) return;
+    window.studentAssignmentSession.viewMode = mode;
+    window.AppState.notify();
+  };
+
+  window.submitStudentMCQ = function(assignmentId) {
+    const state = window.AppState;
+    const assignment = (state.data && state.data.assignments) ? state.data.assignments.find(a => a.id === assignmentId) : null;
+    if (!assignment || !window.studentAssignmentSession) return;
+
+    const questions = assignment.questions || [];
+    const totalQuestions = questions.length;
+    const answeredCount = Object.keys(window.studentAssignmentSession.answers).length;
+    const unanswered = totalQuestions - answeredCount;
+
+    if (unanswered > 0) {
+      if (!confirm(`You have ${unanswered} unanswered question(s). Unanswered questions will receive 0 marks. Do you want to submit your assignment now?`)) {
+        return;
+      }
+    }
+
+    let correctCount = 0;
+    let wrongCount = 0;
+    questions.forEach(q => {
+      const studentAns = window.studentAssignmentSession.answers[q.id];
+      if (studentAns !== undefined && Number(studentAns) === Number(q.correctAnswer)) {
+        correctCount++;
+      } else {
+        wrongCount++;
+      }
+    });
+
+    const percentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+    const maxPoints = Number(assignment.points) || 100;
+    const score = Math.round((correctCount / (totalQuestions || 1)) * maxPoints);
+    const passed = percentage >= 50;
+
+    const mcqData = {
+      score: score,
+      maxPoints: maxPoints,
+      percentage: percentage,
+      correctCount: correctCount,
+      wrongCount: wrongCount,
+      totalQuestions: totalQuestions,
+      answers: { ...window.studentAssignmentSession.answers },
+      passed: passed,
+      status: 'graded'
+    };
+
+    const sub = window.AppState.submitAssignment(assignment.id, assignment.courseId, '', '', mcqData);
+    window.studentAssignmentSession.isSubmitted = true;
+    window.studentAssignmentSession.submission = sub;
+    window.AppState.notify();
+  };
+
+  window.retakeStudentMCQAssignment = function(assignmentId) {
+    window.studentAssignmentSession = {
+      assignmentId: assignmentId,
+      currentStep: 0,
+      viewMode: 'single',
+      answers: {},
+      isSubmitted: false,
+      submission: null
+    };
+    window.AppState.notify();
+  };
+
+  function renderMCQAdminBreakdownModalContent() {
+    const data = window.activeMCQBreakdownData;
+    if (!data || !data.assignment || !data.submission) {
+      return `<div style="padding:20px; text-align:center;">No submission data available.</div>`;
+    }
+    const a = data.assignment;
+    const sub = data.submission;
+    const questions = a.questions || [];
+    const letters = ['A', 'B', 'C', 'D'];
+
+    return `
+      <div>
+        <h2 style="font-size:1.35rem; font-weight:800; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+          ${renderIcon('file-text')} Student Submission Breakdown
+        </h2>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:18px;">
+          Student: <strong>${sub.userName || 'Student'}</strong> • Assignment: <strong>${a.title}</strong>
+        </p>
+
+        <div class="mcq-scorecard-grid">
+          <div class="mcq-scorecard-item">
+            <div class="mcq-scorecard-val" style="color:var(--color-purple);">${sub.score} / ${a.points}</div>
+            <div class="mcq-scorecard-lbl">Total Marks</div>
+          </div>
+          <div class="mcq-scorecard-item">
+            <div class="mcq-scorecard-val" style="color:var(--color-emerald);">${sub.correctCount || 0}</div>
+            <div class="mcq-scorecard-lbl">Correct Answers</div>
+          </div>
+          <div class="mcq-scorecard-item">
+            <div class="mcq-scorecard-val" style="color:var(--color-rose);">${sub.wrongCount || 0}</div>
+            <div class="mcq-scorecard-lbl">Wrong Answers</div>
+          </div>
+          <div class="mcq-scorecard-item">
+            <div class="mcq-scorecard-val" style="color:${sub.passed ? 'var(--color-emerald)' : 'var(--color-rose)'};">${sub.percentage}%</div>
+            <div class="mcq-scorecard-lbl">${sub.passed ? 'PASSED' : 'NEEDS PRACTICE'}</div>
+          </div>
+        </div>
+
+        <h3 style="font-size:1.05rem; font-weight:700; margin:22px 0 12px 0;">Question-by-Question Review</h3>
+        <div style="display:flex; flex-direction:column; gap:12px; max-height:420px; overflow-y:auto; padding-right:6px;">
+          ${questions.map((q, idx) => {
+            const studentChoice = (sub.answers && sub.answers[q.id] !== undefined) ? Number(sub.answers[q.id]) : null;
+            const isCorrect = studentChoice !== null && studentChoice === q.correctAnswer;
+            return `
+              <div class="mcq-review-card ${isCorrect ? 'correct' : 'wrong'}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-weight:800; font-size:0.88rem;">Question ${idx + 1}</span>
+                  <span class="tag-pill" style="background:${isCorrect ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${isCorrect ? 'var(--color-emerald)' : 'var(--color-rose)'}; font-weight:800; font-size:0.75rem;">
+                    ${isCorrect ? '✔ Correct' : '✖ Wrong'}
+                  </span>
+                </div>
+                <div style="font-size:0.92rem; font-weight:600; margin-bottom:10px; color:var(--text-main);">
+                  ${q.text}
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${letters.map((let, optIdx) => {
+                    const optText = (q.options && q.options[optIdx]) ? q.options[optIdx] : '';
+                    const wasChosen = studentChoice === optIdx;
+                    const isRight = q.correctAnswer === optIdx;
+                    let style = 'padding:8px 12px; border-radius:6px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border-color); background:var(--bg-surface);';
+                    if (wasChosen && isRight) {
+                      style = 'padding:8px 12px; border-radius:6px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; border:1.5px solid #10b981; background:rgba(16,185,129,0.1); color:#065f46; font-weight:700;';
+                    } else if (wasChosen && !isRight) {
+                      style = 'padding:8px 12px; border-radius:6px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; border:1.5px solid #ef4444; background:rgba(239,68,68,0.08); color:#991b1b; font-weight:700;';
+                    } else if (isRight) {
+                      style = 'padding:8px 12px; border-radius:6px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; border:1.5px solid #10b981; background:rgba(16,185,129,0.05); color:#065f46; font-weight:600;';
+                    }
+                    return `
+                      <div style="${style}">
+                        <span><strong>${let}.</strong> ${optText}</span>
+                        <span>${wasChosen ? (isRight ? '✔ Student Choice' : '✖ Student Choice') : (isRight ? '✔ Correct Answer' : '')}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff;" onclick="AppState.closeModal()">
+            Close Breakdown
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   window.handleSubmitAssignmentForm = function(e) {
     e.preventDefault();
     const form = e.target;
@@ -2820,42 +3554,336 @@ function renderEvaluationView() {
     const assignment = (state.data && state.data.assignments) ? state.data.assignments.find(a => a.id === assignmentId) : null;
     if (!assignment) return `<div>Error: Assignment not found.</div>`;
 
+    const courses = (state.data && state.data.courses) ? state.data.courses : [];
+    const course = courses.find(c => c.id === assignment.courseId) || { title: 'Course' };
     const existingSubmission = (state.data && state.data.submissions) ? state.data.submissions.find(s => s.assignmentId === assignmentId && s.userId === state.currentUser.id) : null;
+    const isMCQ = assignment.questions && assignment.questions.length > 0;
 
-    return `
-      <div>
-        <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:var(--color-purple);">
-          ${renderIcon('file-text')} Submit Assignment
-        </h2>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
-          Course assignment: <strong>${assignment.title}</strong>
-        </p>
-        
-        <div style="background:var(--bg-surface); border:1px solid var(--border-color); padding:12px; border-radius:var(--radius-md); font-size:0.85rem; margin-bottom:16px; max-height:120px; overflow-y:auto; line-height:1.5;">
-          <strong>Instructions:</strong><br>
-          ${assignment.description.replace(/\n/g, '<br>')}
-        </div>
-
-        <form onsubmit="window.handleSubmitAssignmentForm(event)">
-          <input type="hidden" name="assignmentId" value="${assignment.id}">
-          <input type="hidden" name="courseId" value="${assignment.courseId}">
+    // If legacy standard assignment without questions:
+    if (!isMCQ) {
+      return `
+        <div>
+          <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:var(--color-purple);">
+            ${renderIcon('file-text')} Submit Assignment
+          </h2>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+            Course assignment: <strong>${assignment.title}</strong>
+          </p>
           
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            <div>
-              <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Write Your Submission Answer / Description</label>
-              <textarea name="submissionText" required placeholder="Write your answers, notes, or explanations here..." style="width:100%; height:110px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;">${existingSubmission ? existingSubmission.submissionText : ''}</textarea>
-            </div>
-            
-            <div>
-              <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Project Repository / Demo Link (Optional)</label>
-              <input type="url" name="submissionLink" value="${existingSubmission ? existingSubmission.submissionLink : ''}" placeholder="e.g. https://github.com/my-project" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-            </div>
+          <div style="background:var(--bg-surface); border:1px solid var(--border-color); padding:12px; border-radius:var(--radius-md); font-size:0.85rem; margin-bottom:16px; max-height:120px; overflow-y:auto; line-height:1.5;">
+            <strong>Instructions:</strong><br>
+            ${assignment.description.replace(/\n/g, '<br>')}
+          </div>
 
-            <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
-              ${renderIcon('send')} ${existingSubmission ? 'Resubmit Assignment' : 'Submit Assignment'}
+          <form onsubmit="window.handleSubmitAssignmentForm(event)">
+            <input type="hidden" name="assignmentId" value="${assignment.id}">
+            <input type="hidden" name="courseId" value="${assignment.courseId}">
+            
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Write Your Submission Answer / Description</label>
+                <textarea name="submissionText" required placeholder="Write your answers, notes, or explanations here..." style="width:100%; height:110px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit; resize:vertical;">${existingSubmission ? existingSubmission.submissionText : ''}</textarea>
+              </div>
+              
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Project Repository / Demo Link (Optional)</label>
+                <input type="url" name="submissionLink" value="${existingSubmission ? existingSubmission.submissionLink : ''}" placeholder="e.g. https://github.com/my-project" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+              </div>
+
+              <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:11px; justify-content:center;">
+                ${renderIcon('send')} ${existingSubmission ? 'Resubmit Assignment' : 'Submit Assignment'}
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    // MCQ Assignment Handling:
+    if (!window.studentAssignmentSession || window.studentAssignmentSession.assignmentId !== assignment.id) {
+      window.studentAssignmentSession = {
+        assignmentId: assignment.id,
+        currentStep: 0,
+        viewMode: 'single',
+        answers: (existingSubmission && existingSubmission.answers) ? { ...existingSubmission.answers } : {},
+        isSubmitted: !!(existingSubmission && (existingSubmission.status === 'graded' || existingSubmission.score !== undefined)),
+        submission: existingSubmission
+      };
+    }
+
+    const session = window.studentAssignmentSession;
+    session.totalQuestions = assignment.questions.length;
+    const questions = assignment.questions;
+    const letters = ['A', 'B', 'C', 'D'];
+
+    // CASE 1: SUBMITTED -> Show Graded Results & Performance Scorecard + Detailed Review
+    if (session.isSubmitted && session.submission) {
+      const sub = session.submission;
+      return `
+        <div class="mcq-student-container">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div>
+              <span class="tag-pill" style="background:rgba(99,102,241,0.1); color:var(--color-indigo); font-weight:700; margin-bottom:6px; display:inline-block;">
+                ${course.title}
+              </span>
+              <h2 style="font-size:1.4rem; font-weight:800; margin:0; color:var(--text-main);">
+                ${assignment.title} - Performance Report
+              </h2>
+            </div>
+            <span class="tag-pill" style="background:${sub.passed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${sub.passed ? 'var(--color-emerald)' : 'var(--color-rose)'}; font-weight:800; font-size:0.85rem; padding:6px 14px;">
+              ${sub.passed ? '🎉 PASSED' : '⚠️ NEEDS PRACTICE'}
+            </span>
+          </div>
+
+          <!-- Summary Hero Banner -->
+          <div style="padding:18px 20px; border-radius:var(--radius-md); background:${sub.passed ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'}; border:1.5px solid ${sub.passed ? '#10b981' : '#f87171'}; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+            <div>
+              <div style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin-bottom:4px;">
+                ${sub.passed ? 'Excellent work! You achieved a passing score.' : 'Assignment Completed. Review your answers below.'}
+              </div>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin:0;">
+                Auto-calculated evaluation comparing your choices against stored answer keys.
+              </p>
+            </div>
+            <button type="button" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:8px 18px; font-size:0.85rem;" onclick="window.retakeStudentMCQAssignment('${assignment.id}')">
+              ${renderIcon('rotate-ccw', 'small-icon')} Retake Assignment
             </button>
           </div>
-        </form>
+
+          <!-- 4-Metric Scorecard Grid -->
+          <div class="mcq-scorecard-grid">
+            <div class="mcq-scorecard-item">
+              <div class="mcq-scorecard-val" style="color:var(--color-purple);">${sub.score} / ${sub.maxPoints || assignment.points}</div>
+              <div class="mcq-scorecard-lbl">Total Marks</div>
+            </div>
+            <div class="mcq-scorecard-item">
+              <div class="mcq-scorecard-val" style="color:var(--color-emerald);">${sub.correctCount || 0} / ${questions.length}</div>
+              <div class="mcq-scorecard-lbl">Correct Answers</div>
+            </div>
+            <div class="mcq-scorecard-item">
+              <div class="mcq-scorecard-val" style="color:var(--color-rose);">${sub.wrongCount || 0} / ${questions.length}</div>
+              <div class="mcq-scorecard-lbl">Wrong Answers</div>
+            </div>
+            <div class="mcq-scorecard-item">
+              <div class="mcq-scorecard-val" style="color:${sub.passed ? 'var(--color-emerald)' : 'var(--color-rose)'};">${sub.percentage}%</div>
+              <div class="mcq-scorecard-lbl">Percentage Score</div>
+            </div>
+          </div>
+
+          <!-- Detailed Answer Review Section -->
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+              ${renderIcon('check-circle')} Detailed Question Review
+            </h3>
+            <div style="display:flex; flex-direction:column; gap:14px; max-height:400px; overflow-y:auto; padding-right:4px;">
+              ${questions.map((q, idx) => {
+                const studentAns = (sub.answers && sub.answers[q.id] !== undefined) ? Number(sub.answers[q.id]) : null;
+                const isCorrect = studentAns !== null && studentAns === q.correctAnswer;
+                return `
+                  <div class="mcq-review-card ${isCorrect ? 'correct' : 'wrong'}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                      <span style="font-weight:800; font-size:0.9rem;">Question ${idx + 1}</span>
+                      <span class="tag-pill" style="background:${isCorrect ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${isCorrect ? 'var(--color-emerald)' : 'var(--color-rose)'}; font-weight:800; font-size:0.75rem;">
+                        ${isCorrect ? '✔ Correct (+pts)' : '✖ Incorrect (0 pts)'}
+                      </span>
+                    </div>
+                    <div style="font-size:0.95rem; font-weight:600; margin-bottom:12px; color:var(--text-main);">
+                      ${q.text}
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      ${letters.map((let, optIdx) => {
+                        const optText = (q.options && q.options[optIdx]) ? q.options[optIdx] : '';
+                        const wasChosen = studentAns === optIdx;
+                        const isRight = q.correctAnswer === optIdx;
+                        let rowStyle = 'padding:10px 14px; border-radius:var(--radius-sm); font-size:0.88rem; display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border-color); background:var(--bg-surface);';
+                        if (wasChosen && isRight) {
+                          rowStyle = 'padding:10px 14px; border-radius:var(--radius-sm); font-size:0.88rem; display:flex; align-items:center; justify-content:space-between; border:2px solid #10b981; background:rgba(16,185,129,0.1); color:#065f46; font-weight:700;';
+                        } else if (wasChosen && !isRight) {
+                          rowStyle = 'padding:10px 14px; border-radius:var(--radius-sm); font-size:0.88rem; display:flex; align-items:center; justify-content:space-between; border:2px solid #ef4444; background:rgba(239,68,68,0.08); color:#991b1b; font-weight:700;';
+                        } else if (isRight) {
+                          rowStyle = 'padding:10px 14px; border-radius:var(--radius-sm); font-size:0.88rem; display:flex; align-items:center; justify-content:space-between; border:2px solid #10b981; background:rgba(16,185,129,0.06); color:#065f46; font-weight:700;';
+                        }
+                        return `
+                          <div style="${rowStyle}">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                              <span style="font-weight:800; opacity:0.8;">${let}.</span>
+                              <span>${optText}</span>
+                            </div>
+                            <div>
+                              ${wasChosen ? (isRight ? '<span style="font-size:0.75rem; color:#10b981; font-weight:800; display:inline-flex; align-items:center; gap:4px;">✔ Your Choice (Correct)</span>' : '<span style="font-size:0.75rem; color:#ef4444; font-weight:800; display:inline-flex; align-items:center; gap:4px;">✖ Your Choice</span>') : (isRight ? '<span style="font-size:0.75rem; color:#10b981; font-weight:800; display:inline-flex; align-items:center; gap:4px;">✔ Correct Answer</span>' : '')}
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+            <button type="button" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff;" onclick="AppState.closeModal()">
+              Close
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // CASE 2: NOT SUBMITTED -> Interactive Test Runner
+    const answeredCount = Object.keys(session.answers).length;
+    const progressPct = Math.round((answeredCount / questions.length) * 100);
+
+    return `
+      <div class="mcq-student-container">
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+          <div>
+            <div style="font-size:0.8rem; font-weight:700; color:var(--color-indigo); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+              ${course.title}
+            </div>
+            <h2 style="font-size:1.35rem; font-weight:800; margin:0; color:var(--text-main);">
+              ${assignment.title}
+            </h2>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:6px; font-size:0.82rem; color:var(--text-muted);">
+              <span>${renderIcon('award', 'small-icon')} ${assignment.points} Points</span> • 
+              <span>${renderIcon('help-circle', 'small-icon')} ${questions.length} Questions</span>
+            </div>
+          </div>
+
+          <!-- View Mode Switcher -->
+          <div style="display:inline-flex; background:var(--bg-surface); padding:3px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+            <button type="button" style="padding:6px 12px; border:none; border-radius:4px; font-size:0.8rem; font-weight:700; cursor:pointer; background:${session.viewMode === 'single' ? '#0b192c' : 'transparent'}; color:${session.viewMode === 'single' ? '#ffffff' : 'var(--text-muted)'};" onclick="window.toggleStudentAssignmentViewMode('single')">
+              Step-by-Step
+            </button>
+            <button type="button" style="padding:6px 12px; border:none; border-radius:4px; font-size:0.8rem; font-weight:700; cursor:pointer; background:${session.viewMode === 'all' ? '#0b192c' : 'transparent'}; color:${session.viewMode === 'all' ? '#ffffff' : 'var(--text-muted)'};" onclick="window.toggleStudentAssignmentViewMode('all')">
+              All Questions
+            </button>
+          </div>
+        </div>
+
+        <!-- Instructions Banner -->
+        <div style="background:var(--bg-surface); border:1px solid var(--border-color); padding:10px 14px; border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-main);">
+          <strong>Instructions:</strong> ${assignment.description}
+        </div>
+
+        <!-- Progress Bar & Question Tracker -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:0.82rem; font-weight:700; color:var(--text-main);">
+            <span>Question ${session.currentStep + 1} of ${questions.length}</span>
+            <span id="mcqProgressLabel" style="color:var(--color-indigo);">Answered ${answeredCount} of ${questions.length}</span>
+          </div>
+          <div class="mcq-student-progress-bar">
+            <div id="mcqProgressFill" class="mcq-student-progress-fill" style="width:${progressPct}%;"></div>
+          </div>
+        </div>
+
+        <!-- Question Pills Navigator -->
+        <div class="mcq-student-pill-nav">
+          ${questions.map((q, idx) => {
+            const isAnswered = session.answers[q.id] !== undefined;
+            const isActive = session.currentStep === idx;
+            return `
+              <button type="button" class="mcq-pill-btn ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''}" data-qid="${q.id}" onclick="window.setStudentAssignmentStep(${idx})" title="Jump to Question ${idx + 1}">
+                ${idx + 1}
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Questions View -->
+        ${session.viewMode === 'single' ? (() => {
+          const q = questions[session.currentStep] || questions[0];
+          const selectedOpt = session.answers[q.id];
+          return `
+            <div class="mcq-student-card" data-qid="${q.id}">
+              <div style="font-size:0.85rem; font-weight:700; color:var(--color-indigo); margin-bottom:6px;">
+                Question ${session.currentStep + 1}
+              </div>
+              <div style="font-size:1.1rem; font-weight:700; color:var(--text-main); margin-bottom:20px; line-height:1.4;">
+                ${q.text}
+              </div>
+
+              <div>
+                ${letters.map((let, optIdx) => {
+                  const optText = (q.options && q.options[optIdx]) ? q.options[optIdx] : '';
+                  const isSelected = selectedOpt === optIdx;
+                  return `
+                    <div class="mcq-student-option ${isSelected ? 'selected' : ''}" onclick="window.selectStudentMCQOption('${q.id}', ${optIdx})">
+                      <div class="mcq-student-radio">
+                        <div class="mcq-student-radio-dot"></div>
+                      </div>
+                      <div class="mcq-option-badge">${let}</div>
+                      <div style="font-size:0.92rem; font-weight:500; color:var(--text-main); flex:1;">
+                        ${optText}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+
+              <!-- Navigation bar in single view -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:16px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:10px;">
+                <button type="button" class="btn-hero-secondary" style="padding:9px 18px; border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main); border-radius:var(--radius-sm); font-weight:700; cursor:pointer;" onclick="window.setStudentAssignmentStep(${session.currentStep - 1})" ${session.currentStep === 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
+                  ${renderIcon('arrow-left', 'small-icon')} Previous
+                </button>
+
+                <div style="display:flex; gap:10px;">
+                  ${session.currentStep < questions.length - 1 ? `
+                    <button type="button" class="btn-hero-primary" style="background:#0b192c; color:#fff; padding:9px 20px;" onclick="window.setStudentAssignmentStep(${session.currentStep + 1})">
+                      Next Question ${renderIcon('arrow-right', 'small-icon')}
+                    </button>
+                  ` : `
+                    <button type="button" class="btn-hero-primary" style="background:var(--gradient-emerald-teal); color:#fff; padding:10px 24px; font-weight:800;" onclick="window.submitStudentMCQ('${assignment.id}')">
+                      ${renderIcon('send', 'small-icon')} Submit Assignment
+                    </button>
+                  `}
+                </div>
+              </div>
+            </div>
+          `;
+        })() : `
+          <!-- All Questions View -->
+          <div style="display:flex; flex-direction:column; gap:18px; max-height:480px; overflow-y:auto; padding-right:4px;">
+            ${questions.map((q, idx) => {
+              const selectedOpt = session.answers[q.id];
+              return `
+                <div class="mcq-student-card" data-qid="${q.id}">
+                  <div style="font-size:0.85rem; font-weight:700; color:var(--color-indigo); margin-bottom:6px;">
+                    Question ${idx + 1}
+                  </div>
+                  <div style="font-size:1.05rem; font-weight:700; color:var(--text-main); margin-bottom:16px; line-height:1.4;">
+                    ${q.text}
+                  </div>
+                  <div>
+                    ${letters.map((let, optIdx) => {
+                      const optText = (q.options && q.options[optIdx]) ? q.options[optIdx] : '';
+                      const isSelected = selectedOpt === optIdx;
+                      return `
+                        <div class="mcq-student-option ${isSelected ? 'selected' : ''}" onclick="window.selectStudentMCQOption('${q.id}', ${optIdx})">
+                          <div class="mcq-student-radio">
+                            <div class="mcq-student-radio-dot"></div>
+                          </div>
+                          <div class="mcq-option-badge">${let}</div>
+                          <div style="font-size:0.92rem; font-weight:500; color:var(--text-main); flex:1;">
+                            ${optText}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+            <button type="button" class="btn-hero-primary" style="background:var(--gradient-emerald-teal); color:#fff; padding:11px 28px; font-weight:800;" onclick="window.submitStudentMCQ('${assignment.id}')">
+              ${renderIcon('send', 'small-icon')} Submit Assignment
+            </button>
+          </div>
+        `}
       </div>
     `;
   }
