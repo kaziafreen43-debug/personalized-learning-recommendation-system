@@ -15,6 +15,10 @@ window.AppState = {
   
   activeModal: null,
   modalData: null,
+
+  isLoadingStudents: true,
+  studentLoadError: null,
+  realtimeUnsubscribe: null,
   
   listeners: [],
 
@@ -60,6 +64,28 @@ window.AppState = {
       }
       if (window.INITIAL_DATA.roadmaps) this.data.roadmaps = window.INITIAL_DATA.roadmaps;
       if (window.INITIAL_DATA.quizzes) this.data.quizzes = window.INITIAL_DATA.quizzes;
+      if (window.INITIAL_DATA.defaultUsers) {
+        if (!this.data.defaultUsers) {
+          this.data.defaultUsers = window.INITIAL_DATA.defaultUsers;
+        } else {
+          window.INITIAL_DATA.defaultUsers.forEach(u => {
+            if (!this.data.defaultUsers.some(du => du.id === u.id)) {
+              this.data.defaultUsers.push(u);
+            }
+          });
+        }
+      }
+    }
+
+    // Purge any legacy static mock students (u-1 to u-8) from cached localStorage data
+    const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
+    const mockEmails = ['alex@student.ai', 'ethan.b@student.ai', 'sophia.c@student.ai', 'marcus.t@student.ai', 'priya.s@student.ai', 'lucas.s@student.ai', 'elena.r@student.ai', 'noah.k@student.ai'];
+    if (this.data && this.data.defaultUsers) {
+      this.data.defaultUsers = this.data.defaultUsers.filter(u => {
+        if (u.role === 'admin') return true;
+        if (legacyMockIds.includes(u.id) || (u.email && mockEmails.includes(u.email.toLowerCase()))) return false;
+        return true;
+      });
     }
 
     if (!this.data.assignments || this.data.assignments.length === 0) {
@@ -119,20 +145,27 @@ window.AppState = {
     document.documentElement.setAttribute('data-theme', this.theme);
 
     const savedAuth = localStorage.getItem('plr_is_auth');
-    this.isAuthenticated = savedAuth !== 'false';
-
     const savedUserId = localStorage.getItem('plr_user_id');
-    if (savedUserId && this.data.defaultUsers) {
-      const user = this.data.defaultUsers.find(u => u.id === savedUserId);
-      this.currentUser = user || this.data.defaultUsers[0];
+
+    if (savedAuth === 'true' && savedUserId) {
+      const user = (this.data.defaultUsers || []).find(u => u.id === savedUserId);
+      if (user) {
+        this.currentUser = user;
+        this.isAuthenticated = true;
+      } else {
+        this.currentUser = null;
+        this.isAuthenticated = false;
+        try {
+          localStorage.removeItem('plr_is_auth');
+          localStorage.removeItem('plr_user_id');
+        } catch(_) {}
+      }
     } else {
-      this.currentUser = (this.data.defaultUsers && this.data.defaultUsers[0]) ? this.data.defaultUsers[0] : null;
+      this.currentUser = null;
+      this.isAuthenticated = false;
     }
 
-    if (this.currentUser) {
-      if (this.currentUser.name === 'Alex Rivera') {
-        this.currentUser.name = 'Afreen Kazi';
-      }
+    if (this.currentUser && this.currentUser.role !== 'admin') {
       if (!this.currentUser.interests) {
         this.currentUser.interests = ['ds', 'math'];
       }
@@ -155,34 +188,15 @@ window.AppState = {
       if (!this.currentUser.completedResourceIds) this.currentUser.completedResourceIds = [];
       if (!this.currentUser.bookmarkedResourceIds) this.currentUser.bookmarkedResourceIds = [];
       if (!this.currentUser.careerGoal) this.currentUser.careerGoal = 'AI & Machine Learning Engineer';
+    }
 
-      // Sync completed resources from the roadmap node initial statuses
-      if (this.data && this.data.roadmaps) {
-        Object.values(this.data.roadmaps).forEach(rm => {
-          if (rm && rm.nodes) {
-            rm.nodes.forEach(node => {
-              if (node.status === 'completed' && node.resourceId) {
-                if (!this.currentUser.completedResourceIds.includes(node.resourceId)) {
-                  this.currentUser.completedResourceIds.push(node.resourceId);
-                }
-              }
-            });
-          }
-        });
-      }
-    }
-    if (this.data && this.data.defaultUsers) {
-      this.data.defaultUsers.forEach(u => {
-        if (u.name === 'Alex Rivera') {
-          u.name = 'Afreen Kazi';
-        }
-      });
-    }
     // Initialize Firestore dynamic sync
     if (window.FirebaseDB) {
       window.FirebaseDB.init();
       window.FirebaseDB.syncAppState(this);
     }
+
+    this.setupStudentListener();
   },
 
   saveData: function() {
@@ -217,16 +231,65 @@ window.AppState = {
     this.setTheme(nextTheme);
   },
 
-  loginUser: function(email, password = '') {
+  setupStudentListener: function() {
+    if (this.realtimeUnsubscribe) {
+      try { this.realtimeUnsubscribe(); } catch (_) {}
+      this.realtimeUnsubscribe = null;
+    }
+
+    if (window.FirebaseDB) {
+      this.isLoadingStudents = true;
+      this.studentLoadError = null;
+
+      this.realtimeUnsubscribe = window.FirebaseDB.listenToStudents(
+        (students) => {
+          this.isLoadingStudents = false;
+          this.studentLoadError = null;
+
+          if (!this.data) this.data = {};
+          if (!this.data.defaultUsers) this.data.defaultUsers = [];
+
+          // Retain admin account
+          const admin = this.data.defaultUsers.find(u => u.role === 'admin') || (window.INITIAL_DATA && window.INITIAL_DATA.defaultUsers ? window.INITIAL_DATA.defaultUsers.find(u => u.role === 'admin') : null);
+
+          // Rebuild defaultUsers with admin + dynamic Firestore students
+          const validStudents = (students || []).filter(s => s && s.role !== 'admin');
+          this.data.defaultUsers = admin ? [admin, ...validStudents] : validStudents;
+          this.data.students = validStudents;
+
+          if (this.currentUser && this.currentUser.role !== 'admin') {
+            const updatedProfile = validStudents.find(s => s.id === this.currentUser.id || (s.email && s.email.toLowerCase() === (this.currentUser.email || '').toLowerCase()));
+            if (updatedProfile) {
+              Object.assign(this.currentUser, updatedProfile);
+            }
+          }
+
+          try {
+            localStorage.setItem('plr_app_data', JSON.stringify(this.data));
+          } catch (_) {}
+
+          this.notify();
+        },
+        (error) => {
+          console.error("Error in real-time student listener:", error);
+          this.isLoadingStudents = false;
+          this.studentLoadError = "Unable to load student data. Please try again.";
+          this.notify();
+        }
+      );
+    } else {
+      this.isLoadingStudents = false;
+    }
+  },
+
+  loginUser: async function(email, password = '') {
     if (email === 'admin@gmail.com') {
       if (password !== 'Pass@123') {
         alert('Invalid admin credentials. Please try again.');
         return false;
       }
-    }
-    let user = this.data.defaultUsers.find(u => u.email === email);
-    if (!user) {
-      if (email === 'admin@gmail.com') {
+      let user = (this.data.defaultUsers || []).find(u => u.email === email);
+      if (!user) {
         user = {
           id: 'u-admin',
           name: 'Admin Instructor',
@@ -244,11 +307,49 @@ window.AppState = {
           streakDays: 1,
           recentActivity: []
         };
+        if (!this.data.defaultUsers) this.data.defaultUsers = [];
         this.data.defaultUsers.push(user);
-      } else {
-        user = this.data.defaultUsers[0];
+      }
+      this.currentUser = user;
+      this.isAuthenticated = true;
+      try {
+        localStorage.setItem('plr_is_auth', 'true');
+        localStorage.setItem('plr_user_id', user.id);
+      } catch(e) {}
+      this.closeModal();
+      this.setView('admin');
+      return true;
+    }
+
+    // Student Login
+    let user = (this.data.defaultUsers || []).find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+
+    // Try Firebase Authentication
+    if (window.auth && password) {
+      try {
+        const cred = await window.auth.signInWithEmailAndPassword(email, password);
+        if (cred && cred.user) {
+          const authUid = cred.user.uid;
+          if (!user) {
+            user = (this.data.defaultUsers || []).find(u => u.id === authUid || u.uid === authUid);
+          }
+          if (!user && window.FirebaseDB && window.FirebaseDB.db) {
+            const docSnap = await window.FirebaseDB.db.collection('users').doc(authUid).get();
+            if (docSnap && (typeof docSnap.data === 'function' ? docSnap.data() : docSnap.exists)) {
+              user = typeof docSnap.data === 'function' ? docSnap.data() : null;
+            }
+          }
+        }
+      } catch (authErr) {
+        console.warn("Firebase Auth sign-in warning:", authErr.code || authErr.message);
       }
     }
+
+    if (!user) {
+      alert("No registered student account found for " + email + ". Please register to continue.");
+      return false;
+    }
+
     this.currentUser = user;
     this.isAuthenticated = true;
     try {
@@ -259,20 +360,21 @@ window.AppState = {
     if (window.FirebaseDB) {
       window.FirebaseDB.syncAppState(this);
     }
-    if (user.role === 'admin') {
-      this.setView('admin');
-    } else {
-      this.setView('dashboard');
-    }
+    this.setView('dashboard');
     return true;
   },
 
   logoutUser: function() {
+    if (window.auth) {
+      try { window.auth.signOut(); } catch (_) {}
+    }
     this.isAuthenticated = false;
+    this.currentUser = null;
     try {
       localStorage.setItem('plr_is_auth', 'false');
+      localStorage.removeItem('plr_user_id');
     } catch(e) {}
-    this.notify();
+    this.setView('dashboard');
   },
 
   setUser: function(userId) {
@@ -317,30 +419,41 @@ window.AppState = {
     this.notify();
   },
 
-  submitQuestionnaire: function(formData) {
-    if (!this.currentUser) {
-      this.currentUser = {
-        id: 'u-' + Date.now(),
-        role: 'student',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-        dailyGoalMinutes: 30,
-        todayStudiedMinutes: 0,
-        streakDays: 1,
-        enrolledCourseIds: [],
-        completedResourceIds: [],
-        recentActivity: [{ title: 'Completed Profile Onboarding Questionnaire', time: 'Just now', icon: 'check-circle' }]
-      };
-      this.data.defaultUsers.push(this.currentUser);
+  submitQuestionnaire: async function(formData) {
+    const isNewRegistration = this.modalData && this.modalData.isNewRegistration;
+    let registeredEmail = (this.modalData && this.modalData.email) 
+      ? this.modalData.email.trim() 
+      : ((this.currentUser && this.currentUser.email) ? this.currentUser.email : '');
+    let studentName = (formData.name && formData.name.trim()) 
+      ? formData.name.trim() 
+      : ((this.modalData && this.modalData.name) ? this.modalData.name.trim() : (this.currentUser ? this.currentUser.name : 'Student'));
+    let userId = (this.currentUser && !isNewRegistration) ? this.currentUser.id : ('u-' + Date.now());
+
+    // Connect with Firebase Authentication if email and password are provided
+    if (window.auth && this.modalData && this.modalData.email && this.modalData.password) {
+      try {
+        const userCredential = await window.auth.createUserWithEmailAndPassword(this.modalData.email, this.modalData.password);
+        if (userCredential && userCredential.user) {
+          userId = userCredential.user.uid;
+          registeredEmail = userCredential.user.email;
+          try {
+            await userCredential.user.updateProfile({ displayName: studentName });
+          } catch (_) {}
+        }
+      } catch (authErr) {
+        console.warn("Firebase Auth registration note:", authErr.code || authErr.message);
+        if (authErr.code === 'auth/email-already-in-use') {
+          try {
+            const signCred = await window.auth.signInWithEmailAndPassword(this.modalData.email, this.modalData.password);
+            if (signCred && signCred.user) {
+              userId = signCred.user.uid;
+              registeredEmail = signCred.user.email;
+            }
+          } catch (_) {}
+        }
+      }
     }
 
-    this.currentUser.name = formData.name || 'Alex Rivera';
-    this.currentUser.gradeClass = formData.gradeClass || 'Grade 11';
-    this.currentUser.skillLevel = formData.skillLevel || 'Intermediate';
-    this.currentUser.preferredStyle = formData.preferredStyle || 'visual';
-    this.currentUser.careerGoal = formData.careerGoal || 'AI & Machine Learning Engineer';
-    this.currentUser.interests = formData.interests || ['ds', 'math'];
-
-    // Dynamically map selected interests directly to enrolled course IDs
     const interestToCourseMap = {
       'ds': 'course-ai-101',
       'cs': 'course-cs-101',
@@ -349,7 +462,7 @@ window.AppState = {
       'bio': 'course-bio-101',
       'chem': 'course-chem-101'
     };
-    const selectedInterests = this.currentUser.interests || [];
+    const selectedInterests = formData.interests || [];
     const enrolledIds = selectedInterests.map(id => interestToCourseMap[id]).filter(Boolean);
     const dbCourses = (this.data && this.data.courses) ? this.data.courses : [];
     dbCourses.forEach(c => {
@@ -357,15 +470,49 @@ window.AppState = {
         enrolledIds.push(c.id);
       }
     });
-    this.currentUser.enrolledCourseIds = enrolledIds;
+
+    const userProfile = {
+      id: userId,
+      uid: userId,
+      name: studentName,
+      email: registeredEmail,
+      role: 'student',
+      avatar: (this.currentUser && this.currentUser.avatar) ? this.currentUser.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      gradeClass: formData.gradeClass || 'Grade 11',
+      skillLevel: formData.skillLevel || 'Intermediate',
+      preferredStyle: formData.preferredStyle || 'visual',
+      careerGoal: formData.careerGoal || 'AI & Machine Learning Engineer',
+      interests: selectedInterests,
+      enrolledCourseIds: enrolledIds,
+      completedResourceIds: (this.currentUser && !isNewRegistration && this.currentUser.completedResourceIds) ? this.currentUser.completedResourceIds : [],
+      bookmarkedResourceIds: (this.currentUser && !isNewRegistration && this.currentUser.bookmarkedResourceIds) ? this.currentUser.bookmarkedResourceIds : [],
+      dailyGoalMinutes: 30,
+      todayStudiedMinutes: 0,
+      streakDays: 1,
+      createdAt: (this.currentUser && !isNewRegistration && this.currentUser.createdAt) ? this.currentUser.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      recentActivity: [{ title: 'Registered & Completed Onboarding Questionnaire', time: 'Just now', icon: 'check-circle' }]
+    };
+
+    this.currentUser = userProfile;
+    if (!this.data.defaultUsers) this.data.defaultUsers = [];
+    const existingIdx = this.data.defaultUsers.findIndex(u => u.id === userId || (u.email && u.email.toLowerCase() === registeredEmail.toLowerCase()));
+    if (existingIdx >= 0) {
+      this.data.defaultUsers[existingIdx] = userProfile;
+    } else {
+      this.data.defaultUsers.push(userProfile);
+    }
 
     this.isAuthenticated = true;
     try {
       localStorage.setItem('plr_is_auth', 'true');
-      localStorage.setItem('plr_user_id', this.currentUser.id);
+      localStorage.setItem('plr_user_id', userProfile.id);
     } catch(e) {}
 
     this.saveData();
+    if (window.FirebaseDB) {
+      await window.FirebaseDB.saveUser(userProfile);
+    }
     this.closeModal();
     this.setView('dashboard');
   },

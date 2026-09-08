@@ -43,6 +43,51 @@
     activeCharts = [];
   }
 
+  function animateDynamicCounters() {
+    const counterElements = document.querySelectorAll('.stat-value[data-count]');
+    counterElements.forEach(el => {
+      const target = parseInt(el.getAttribute('data-count'), 10);
+      if (isNaN(target)) return;
+
+      const currentText = (el.textContent || '').replace(/,/g, '').trim();
+      const currentDisplayed = parseInt(currentText, 10);
+
+      if (el.dataset.animatedTarget !== undefined && parseInt(el.dataset.animatedTarget, 10) === target && currentDisplayed === target) {
+        return;
+      }
+
+      const startVal = (el.dataset.animatedTarget !== undefined && !isNaN(parseInt(el.dataset.animatedTarget, 10))) 
+        ? parseInt(el.dataset.animatedTarget, 10) 
+        : 0;
+
+      el.dataset.animatedTarget = target;
+
+      if (startVal === target) {
+        el.textContent = target.toLocaleString();
+        return;
+      }
+
+      const duration = 650;
+      const startTime = performance.now();
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const currentVal = Math.round(startVal + (target - startVal) * ease);
+        el.textContent = currentVal.toLocaleString();
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          el.textContent = target.toLocaleString();
+        }
+      }
+
+      requestAnimationFrame(step);
+    });
+  }
+
   function renderApp() {
     const root = document.getElementById('app');
     if (!root) return;
@@ -91,11 +136,11 @@
           <!-- Student Profile Card at Top of Sidebar -->
           <div class="sidebar-profile-card">
             <div class="sidebar-avatar-circle">
-              ${(user && user.name) ? user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : 'AK'}
+              ${(user && user.name) ? user.name.split(' ').filter(Boolean).map(n=>n[0]).join('').substring(0,2).toUpperCase() : ((user && user.email) ? user.email.substring(0,2).toUpperCase() : 'ST')}
             </div>
             <div class="sidebar-profile-info">
-              <div class="sidebar-profile-name">${(user && user.name) || 'Afreen Kazi'}</div>
-              <div class="sidebar-profile-sub">${(user && user.gradeClass) ? (user.gradeClass.includes('Student') ? user.gradeClass : `${user.gradeClass} Student`) : 'Grade 11 Student'}</div>
+              <div class="sidebar-profile-name">${(user && user.name) || ((user && user.email) ? user.email.split('@')[0] : 'Student')}</div>
+              <div class="sidebar-profile-sub">${(user && user.gradeClass) ? (user.gradeClass.includes('Student') ? user.gradeClass : `${user.gradeClass} Student`) : ((user && user.role === 'admin') ? 'Administrator' : 'Student')}</div>
             </div>
           </div>
 
@@ -177,11 +222,14 @@
                 ${state.theme === 'light' ? renderIcon('moon') : renderIcon('sun')}
               </button>
 
-              ${user && user.role === 'admin' ? `
-                <button class="role-switcher-btn" onclick="AppState.setUser('u-1')">
-                  ${renderIcon('user-check')} Switch to Student
-                </button>
-              ` : ''}
+              ${user && user.role === 'admin' ? (() => {
+                const firstStudent = (state.data && state.data.defaultUsers) ? state.data.defaultUsers.find(u => u && u.role !== 'admin' && !['u-1','u-2','u-3','u-4','u-5','u-6','u-7','u-8'].includes(u.id)) : null;
+                return firstStudent ? `
+                  <button class="role-switcher-btn" onclick="AppState.setUser('${firstStudent.id}')">
+                    ${renderIcon('user-check')} Switch to Student
+                  </button>
+                ` : '';
+              })() : ''}
 
               <button onclick="AppState.logoutUser()" class="icon-btn" title="Log Out" style="color:var(--text-muted);">
                 ${renderIcon('log-out')}
@@ -239,6 +287,7 @@
     }
 
     attachCharts();
+    animateDynamicCounters();
   }
 
   // --------------------------------------------------------------------------
@@ -290,11 +339,11 @@
           </p>
 
           <div style="display:flex; justify-content:center; gap:16px;">
-            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:1.1rem; padding:14px 36px; box-shadow:var(--shadow-colorful);" onclick="AppState.openModal('questionnaire', { name: 'Afreen Kazi', isNewRegistration: true })">
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:1.1rem; padding:14px 36px; box-shadow:var(--shadow-colorful);" onclick="AppState.openModal('register')">
               ${renderIcon('sparkles')} Start Learning
             </button>
-            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:1.05rem; padding:14px 28px; border:1px solid var(--border-color);" onclick="AppState.loginUser('alex@student.ai')">
-              ${renderIcon('user-check')} Quick Demo Student Login
+            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:1.05rem; padding:14px 28px; border:1px solid var(--border-color);" onclick="AppState.openModal('login')">
+              ${renderIcon('log-in')} Student / Admin Login
             </button>
           </div>
         </section>
@@ -342,10 +391,10 @@
       <!-- Student Profile Card Header (Matches 1.PNG) -->
       <div class="student-profile-banner">
         <div class="banner-top-tag">
-          ${renderIcon('user')} STUDENT PROFILE • ${(user.gradeClass || 'Grade 11').toUpperCase()}
+          ${renderIcon('user')} STUDENT PROFILE • ${(user.gradeClass || 'Student').toUpperCase()}
         </div>
         <div class="banner-name-row">
-          <div class="banner-student-name">${user.name || 'Afreen Kazi'}</div>
+          <div class="banner-student-name">${user.name || ((user.email) ? user.email.split('@')[0] : 'Student')}</div>
           ${renderIcon('graduation-cap')}
         </div>
         <div class="banner-career-goal">
@@ -1978,6 +2027,24 @@ function renderEvaluationView() {
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
     const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
     const assignments = (state.data && state.data.assignments) ? state.data.assignments : [];
+    
+    // Students list fetched dynamically from Firebase Firestore / state
+    const rawStudents = (state.data && state.data.students && state.data.students.length > 0)
+      ? state.data.students
+      : ((state.data && state.data.defaultUsers) ? state.data.defaultUsers : []);
+    
+    const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
+    const students = rawStudents.filter(u => u && u.role !== 'admin' && !legacyMockIds.includes(u.id));
+
+    // Dynamic metrics calculation
+    const totalRegisteredStudents = students.length;
+    const totalActiveStudents = students.filter(s => (s.streakDays > 0) || (s.completedResourceIds && s.completedResourceIds.length > 0) || (s.enrolledCourseIds && s.enrolledCourseIds.length > 0)).length;
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const totalNewStudents = students.filter(s => {
+      if (!s.createdAt) return true;
+      const t = new Date(s.createdAt).getTime();
+      return !isNaN(t) && t >= sevenDaysAgo;
+    }).length;
 
     let activeTabContent = '';
 
@@ -2261,8 +2328,9 @@ function renderEvaluationView() {
         </div>
       `;
     } else if (window.activeAdminTab === 'submissions') {
-      const students = state.data.defaultUsers ? state.data.defaultUsers.filter(u => u.role !== 'admin') : [];
       const allSubmissions = state.data.submissions || [];
+      const enrolledStudents = students.filter(s => s.enrolledCourseIds && Array.isArray(s.enrolledCourseIds) && s.enrolledCourseIds.length > 0);
+
       activeTabContent = `
         <div style="display:flex; flex-direction:column; gap:28px;">
           <!-- Registered Students Directory -->
@@ -2286,29 +2354,71 @@ function renderEvaluationView() {
                   </tr>
                 </thead>
                 <tbody>
-                  ${students.map(s => `
+                  ${state.isLoadingStudents ? `
                     <tr>
-                      <td>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                          <img src="${s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--border-color);">
-                          <strong>${s.name}</strong>
+                      <td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">
+                        <div style="display:inline-flex; align-items:center; gap:10px; font-size:0.95rem; font-weight:600;">
+                          <span class="loading-spinner" style="display:inline-block; width:18px; height:18px; border:2px solid var(--border-color); border-top-color:var(--color-purple); border-radius:50%; animation:spin 0.8s linear infinite;"></span>
+                          Loading registered students...
                         </div>
                       </td>
-                      <td>${s.email || 'N/A'}</td>
-                      <td><span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color);">${s.gradeClass || 'N/A'}</span></td>
-                      <td><span class="tag-pill" style="background:rgba(99, 102, 241, 0.1); color:var(--color-indigo);">${(s.preferredStyle || 'visual').toUpperCase()}</span></td>
-                      <td>${s.careerGoal || 'N/A'}</td>
-                      <td>
-                        <span style="font-weight:700; color:var(--color-purple);">${s.streakDays || 0} 🔥</span> • 
-                        <span style="font-size:0.8rem; color:var(--text-muted);">${s.completedResourceIds ? s.completedResourceIds.length : 0} lessons done</span>
+                    </tr>
+                  ` : (state.studentLoadError ? `
+                    <tr>
+                      <td colspan="6" style="text-align:center; padding:28px; color:var(--color-rose); font-weight:600; font-size:0.95rem;">
+                        Unable to load student data. Please try again.
                       </td>
                     </tr>
-                  `).join('')}
-                  ${students.length === 0 ? `
+                  ` : (enrolledStudents.length === 0 ? `
                     <tr>
-                      <td colspan="6" style="text-align:center; color:var(--text-muted);">No student accounts found in Firestore.</td>
+                      <td colspan="6" style="text-align:center; color:var(--text-muted); padding:32px; font-size:0.95rem;">
+                        No students enrolled yet.
+                      </td>
                     </tr>
-                  ` : ''}
+                  ` : enrolledStudents.map(s => {
+                    const studentEnrolledCourses = courses.filter(c => (s.enrolledCourseIds || []).includes(c.id));
+                    let totalLessons = 0;
+                    studentEnrolledCourses.forEach(c => {
+                      if (c.modules && Array.isArray(c.modules)) {
+                        c.modules.forEach(m => {
+                          totalLessons += (m.lessons ? m.lessons.length : (m.resources ? m.resources.length : 1));
+                        });
+                      } else if (c.resourceIds && Array.isArray(c.resourceIds)) {
+                        totalLessons += c.resourceIds.length;
+                      }
+                    });
+                    if (totalLessons === 0) {
+                      totalLessons = Math.max(1, (s.enrolledCourseIds || []).length * 5);
+                    }
+                    const completedCount = (s.completedResourceIds && Array.isArray(s.completedResourceIds)) ? s.completedResourceIds.length : 0;
+                    const progressPct = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
+                    const streakDays = (s.streakDays !== undefined && s.streakDays !== null) ? s.streakDays : 1;
+                    const studentName = s.name || s.displayName || 'Student';
+                    const studentEmail = s.email || 'N/A';
+                    const studentGrade = s.gradeClass || s.grade || 'N/A';
+                    const preferredStyle = (s.preferredStyle || 'visual').toUpperCase();
+                    const careerGoal = s.careerGoal || s.goalCareer || 'N/A';
+                    const avatarUrl = s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+
+                    return `
+                      <tr>
+                        <td>
+                          <div style="display:flex; align-items:center; gap:8px;">
+                            <img src="${avatarUrl}" alt="${studentName}" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--border-color); object-fit:cover;">
+                            <strong>${studentName}</strong>
+                          </div>
+                        </td>
+                        <td>${studentEmail}</td>
+                        <td><span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color);">${studentGrade}</span></td>
+                        <td><span class="tag-pill" style="background:rgba(99, 102, 241, 0.1); color:var(--color-indigo);">${preferredStyle}</span></td>
+                        <td>${careerGoal}</td>
+                        <td>
+                          <span style="font-weight:700; color:var(--color-purple);">${streakDays} 🔥</span> • 
+                          <span style="font-size:0.8rem; color:var(--text-muted);">${completedCount} lesson${completedCount === 1 ? '' : 's'} done (${progressPct}%)</span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')))}
                 </tbody>
               </table>
             </div>
@@ -2539,17 +2649,21 @@ function renderEvaluationView() {
       </div>
 
       <div class="stats-grid" style="margin-bottom:28px;">
-        <div class="stat-card blue">
-          <div class="stat-value">1,480</div>
-          <div class="stat-label">Total Students</div>
+        <div class="stat-card blue clickable-stat-card" onclick="window.activeAdminTab='submissions'; AppState.notify();" title="View Registered Students" style="cursor:pointer;">
+          <div class="stat-value" data-count="${totalRegisteredStudents}">${totalRegisteredStudents.toLocaleString()}</div>
+          <div class="stat-label">Total Registered Students</div>
         </div>
-        <div class="stat-card purple">
-          <div class="stat-value">${courses.length}</div>
+        <div class="stat-card emerald clickable-stat-card" onclick="window.activeAdminTab='submissions'; AppState.notify();" title="View Active Students" style="cursor:pointer;">
+          <div class="stat-value" data-count="${totalActiveStudents}">${totalActiveStudents.toLocaleString()}</div>
+          <div class="stat-label">Total Active Students</div>
+        </div>
+        <div class="stat-card amber clickable-stat-card" onclick="window.activeAdminTab='submissions'; AppState.notify();" title="View New Students" style="cursor:pointer;">
+          <div class="stat-value" data-count="${totalNewStudents}">${totalNewStudents.toLocaleString()}</div>
+          <div class="stat-label">Total New Students</div>
+        </div>
+        <div class="stat-card purple clickable-stat-card" onclick="window.activeAdminTab='courses'; AppState.notify();" title="Manage Published Courses" style="cursor:pointer;">
+          <div class="stat-value" data-count="${courses.length}">${courses.length.toLocaleString()}</div>
           <div class="stat-label">Published Courses</div>
-        </div>
-        <div class="stat-card emerald">
-          <div class="stat-value">${assignments.length}</div>
-          <div class="stat-label">Created Assignments</div>
         </div>
       </div>
 
@@ -2707,13 +2821,10 @@ function renderEvaluationView() {
         </form>
 
         <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px; text-align:center;">
-          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Quick One-Click Demo Access:</p>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Quick Demo Access:</p>
           <div style="display:flex; gap:10px; justify-content:center;">
-            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 12px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('alex@student.ai')">
-              Demo Student
-            </button>
-            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 12px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
-              Demo Admin
+            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 16px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
+              Demo Admin (admin@gmail.com)
             </button>
           </div>
         </div>
@@ -2738,8 +2849,13 @@ function renderEvaluationView() {
   };
 
   window.handleRegisterSubmit = function(form) {
-    const regName = form.regName ? form.regName.value.trim() : 'Afreen Kazi';
-    window.AppState.openModal('questionnaire', { name: regName, isNewRegistration: true });
+    const nameInput = form.querySelector('input[name="regName"]');
+    const emailInput = form.querySelector('input[name="regEmail"]') || form.querySelector('input[type="email"]');
+    const passInput = form.querySelector('input[name="regPassword"]') || form.querySelector('input[type="password"]');
+    const regName = nameInput ? nameInput.value.trim() : '';
+    const regEmail = emailInput ? emailInput.value.trim() : '';
+    const regPassword = passInput ? passInput.value : '';
+    window.AppState.openModal('questionnaire', { name: regName, email: regEmail, password: regPassword, isNewRegistration: true });
   };
 
   // Register Modal
@@ -2756,7 +2872,7 @@ function renderEvaluationView() {
 
           <div style="display:flex; flex-direction:column; gap:14px;">
             <input type="text" name="regName" placeholder="Full Name" required autocomplete="new-name" style="width:100%; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-            <input type="email" placeholder="Email Address" required autocomplete="new-email" style="width:100%; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+            <input type="email" name="regEmail" placeholder="Email Address" required autocomplete="new-email" style="width:100%; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
             <div style="position:relative; width:100%;">
               <input type="password" id="regPassword" name="regPassword" placeholder="Password" required autocomplete="new-password" style="width:100%; padding:12px 42px 12px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
               <button type="button" onclick="window.toggleRegisterPasswordVisibility()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); padding:4px; display:flex; align-items:center; justify-content:center;" id="passwordToggleBtn">
@@ -2794,7 +2910,7 @@ function renderEvaluationView() {
     const data = state.data || window.INITIAL_DATA || {};
 
     // Check if name is passed via modalData, or if we have currentUser
-    let defaultName = 'Afreen Kazi';
+    let defaultName = '';
     if (state.modalData && state.modalData.name) {
       defaultName = state.modalData.name;
     } else if (state.currentUser && state.currentUser.name) {
@@ -2804,7 +2920,7 @@ function renderEvaluationView() {
     const isNewReg = state.modalData && state.modalData.isNewRegistration;
     const welcomeHtml = isNewReg ? `
       <div class="welcome-banner" style="background:rgba(190,24,93,0.08); border:1px solid rgba(190,24,93,0.25); padding:16px; border-radius:var(--radius-md); text-align:center; margin-bottom:20px; font-weight:700; color:var(--color-indigo); line-height:1.5; font-size:0.95rem;">
-        Welcome, ${defaultName}! Please complete your assessment to receive personalized AI learning recommendations.
+        Welcome${defaultName ? `, ${defaultName}` : ''}! Please complete your assessment to receive personalized AI learning recommendations.
       </div>
     ` : '';
 
@@ -2829,7 +2945,7 @@ function renderEvaluationView() {
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
               <div>
                 <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Student Name</label>
-                <input type="text" name="name" id="nameInput" value="${defaultName}" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
+                <input type="text" name="name" id="nameInput" value="${defaultName}" placeholder="Your Full Name" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
                 <div id="nameError" style="color:var(--color-rose); font-size:0.78rem; font-weight:600; margin-top:4px; display:none;">Please enter your name.</div>
               </div>
               <div>

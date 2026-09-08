@@ -38,13 +38,34 @@ window.FirebaseDB = {
 
       const usersSnapshot = await this.db.collection('users').limit(1).get();
       if (usersSnapshot.empty) {
-        console.log("Firestore users collection is empty. Seeding initial default users...");
-        if (initialData.defaultUsers && Array.isArray(initialData.defaultUsers)) {
-          for (const user of initialData.defaultUsers) {
-            await this.db.collection('users').doc(user.id).set(user);
-          }
-        }
-        console.log("Firestore seeded successfully with default users.");
+        console.log("Firestore users collection is empty. Seeding admin account only...");
+        const adminUser = (initialData.defaultUsers || []).find(u => u.role === 'admin') || {
+          id: 'u-admin',
+          name: 'Admin Instructor',
+          email: 'admin@gmail.com',
+          role: 'admin',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+          gradeClass: 'Administrator',
+          preferredStyle: 'reading',
+          interests: ['ds', 'cs', 'math'],
+          enrolledCourseIds: [],
+          completedResourceIds: [],
+          bookmarkedResourceIds: [],
+          dailyGoalMinutes: 60,
+          todayStudiedMinutes: 0,
+          streakDays: 1,
+          recentActivity: []
+        };
+        await this.db.collection('users').doc(adminUser.id).set(adminUser);
+        console.log("Firestore seeded successfully with default admin.");
+      }
+
+      // Purge any legacy static mock students so table starts empty
+      const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
+      for (const mid of legacyMockIds) {
+        try {
+          await this.db.collection('users').doc(mid).delete();
+        } catch (_) {}
       }
 
       const subjectsSnapshot = await this.db.collection('subjects').limit(1).get();
@@ -190,7 +211,9 @@ window.FirebaseDB = {
         dbUsers.push(doc.data());
       });
       if (dbUsers.length > 0) {
+        const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
         dbUsers.forEach(u => {
+          if (legacyMockIds.includes(u.id) && u.role !== 'admin') return;
           const idx = appState.data.defaultUsers.findIndex(du => du.id === u.id);
           if (idx >= 0) {
             appState.data.defaultUsers[idx] = u;
@@ -321,10 +344,42 @@ window.FirebaseDB = {
     }
     if (!this.isInitialized) return;
     try {
+      user.updatedAt = new Date().toISOString();
       await this.db.collection('users').doc(user.id).set(user);
       console.log(`User profile ${user.id} saved to Firestore.`);
     } catch (e) {
       console.error("Error saving user to Firestore:", e);
+    }
+  },
+
+  // Real-time listener for enrolled/registered students (onSnapshot)
+  listenToStudents: function(callback, errorCallback) {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.isInitialized || !this.db) {
+      if (errorCallback) errorCallback(new Error("Database not initialized"));
+      return null;
+    }
+    try {
+      return this.db.collection('users').onSnapshot(snapshot => {
+        const students = [];
+        snapshot.forEach(doc => {
+          const data = doc.data() || {};
+          if (data.role !== 'admin') {
+            data.id = data.id || doc.id;
+            students.push(data);
+          }
+        });
+        callback(students);
+      }, error => {
+        console.error("Firestore onSnapshot error:", error);
+        if (errorCallback) errorCallback(error);
+      });
+    } catch (e) {
+      console.error("Error attaching Firestore onSnapshot listener:", e);
+      if (errorCallback) errorCallback(e);
+      return null;
     }
   },
 

@@ -56,11 +56,33 @@ class MockCollectionRef {
   async get() {
     return this.mockFirestore._getDocs(this.collectionName, this._limit, this._where);
   }
+
+  onSnapshot(callback, errorCallback) {
+    const listener = async () => {
+      try {
+        const snap = await this.get();
+        callback(snap);
+      } catch (e) {
+        if (errorCallback) errorCallback(e);
+      }
+    };
+    if (!this.mockFirestore._listeners[this.collectionName]) {
+      this.mockFirestore._listeners[this.collectionName] = [];
+    }
+    this.mockFirestore._listeners[this.collectionName].push(listener);
+    listener();
+    return () => {
+      const list = this.mockFirestore._listeners[this.collectionName] || [];
+      const idx = list.indexOf(listener);
+      if (idx >= 0) list.splice(idx, 1);
+    };
+  }
 }
 
 class MockFirestore {
   constructor() {
     this.apiBase = window.location.port === '5000' ? '' : 'http://127.0.0.1:5000';
+    this._listeners = {};
   }
 
   collection(name) {
@@ -149,6 +171,12 @@ class MockFirestore {
       localStorage.setItem('plr_firestore_mock', JSON.stringify(localDB));
     } catch (_) {}
 
+    if (this._listeners[collectionName]) {
+      this._listeners[collectionName].forEach(fn => {
+        try { fn(); } catch (_) {}
+      });
+    }
+
     try {
       const url = `${this.apiBase}/api/firestore/${collectionName}/${docId}`;
       const response = await fetch(url, {
@@ -175,6 +203,12 @@ class MockFirestore {
       } catch (_) {}
     }
 
+    if (this._listeners[collectionName]) {
+      this._listeners[collectionName].forEach(fn => {
+        try { fn(); } catch (_) {}
+      });
+    }
+
     try {
       const url = `${this.apiBase}/api/firestore/${collectionName}/${docId}`;
       const response = await fetch(url, {
@@ -188,7 +222,15 @@ class MockFirestore {
   }
 }
 
-// 3. Initialize Firestore globally and assign to window.db (with MockFirestore fallback)
+// 3. Initialize Firebase Auth globally
+try {
+  window.auth = firebase.auth();
+  console.log("Firebase Auth initialized successfully.");
+} catch (e) {
+  console.warn("Failed to initialize Firebase Auth:", e);
+}
+
+// 4. Initialize Firestore globally and assign to window.db (with MockFirestore fallback)
 try {
   window.db = firebase.firestore();
   console.log("Firebase Firestore initialized successfully.");

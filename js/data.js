@@ -943,28 +943,6 @@ window.INITIAL_DATA = {
 
   defaultUsers: [
     {
-      id: 'u-1',
-      name: 'Afreen Kazi',
-      email: 'alex@student.ai',
-      role: 'student',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-      gradeClass: 'Grade 11',
-      preferredStyle: 'visual',
-      secondaryStyle: 'kinesthetic',
-      skillLevel: 'Intermediate',
-      careerGoal: 'AI & Machine Learning Engineer',
-      interests: ['ds', 'math'],
-      enrolledCourseIds: ['course-ai-101', 'course-math-101'],
-      completedResourceIds: ['res-ai-road-1'],
-      bookmarkedResourceIds: [],
-      dailyGoalMinutes: 30,
-      todayStudiedMinutes: 25,
-      streakDays: 6,
-      recentActivity: [
-        { title: 'Enrolled in All 6 Subject Video Pathways', time: 'Just now', icon: 'graduation-cap' }
-      ]
-    },
-    {
       id: 'u-admin',
       name: 'Admin Instructor',
       email: 'admin@gmail.com',

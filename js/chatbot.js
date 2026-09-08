@@ -346,7 +346,7 @@ window.AIChatbot = {
 
     const contextLabel = currentCourse 
       ? `Active Course: ${currentCourse.title}` 
-      : (user ? `${user.gradeClass || 'Grade 11'} • ${user.name || 'Afreen Kazi'}` : 'Online AI Tutor');
+      : (user ? `${user.gradeClass || 'Student'} • ${user.name || (user.email ? user.email.split('@')[0] : 'Student')}` : 'Online AI Tutor');
 
     const html = `
       <!-- Floating Trigger Button in Bottom-Right Corner (Matches 3.PNG - 5.PNG) -->

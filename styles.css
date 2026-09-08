@@ -801,6 +801,18 @@ body.sidebar-drawer-open {
   transform: translateY(-2px);
 }
 
+.clickable-stat-card {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.clickable-stat-card:hover {
+  border-color: var(--color-teal-action);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
 .stat-circle-icon, .stat-icon-wrapper {
   width: 44px;
   height: 44px;
