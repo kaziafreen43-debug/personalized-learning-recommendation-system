@@ -107,6 +107,11 @@
   box-sizing: border-box;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-page);
@@ -114,7 +119,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -2392,6 +2396,164 @@ body.sidebar-drawer-open {
   font-size: 0.78rem;
 }
 
+/* Responsive Table Wrapper */
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-full);
+}
+
+/* Responsive Admin Two-Column Layout */
+.admin-two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.admin-two-col-grid.assignments-grid {
+  grid-template-columns: 1.35fr 1fr;
+}
+
+/* Responsive Two-Column Form Row */
+.admin-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Admin Tab Bar & Badge */
+.admin-tab-bar {
+  scrollbar-width: none;
+}
+
+.tab-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 118, 110, 0.15);
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+}
+
+[data-theme="dark"] .tab-count-badge {
+  background: rgba(114, 238, 213, 0.2);
+  color: var(--color-mint-active);
+}
+
+/* View Mode Toggle */
+.btn-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-view-toggle.active {
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Admin Course Cards Grid (Course Directory) */
+.admin-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.admin-course-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all var(--transition-fast);
+}
+
+.admin-course-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-xs);
+}
+
+[data-theme="dark"] .admin-course-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.admin-course-card-top {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-course-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.admin-course-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.admin-course-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.admin-course-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-course-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
 /* ==========================================================================
    RESPONSIVENESS (Desktop, Tablet, Mobile)
    ========================================================================== */
@@ -2442,7 +2604,40 @@ body.sidebar-drawer-open {
   }
 }
 
+@media (min-width: 769px) {
+  .hide-on-desktop {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .admin-two-col-grid,
+  .admin-two-col-grid.assignments-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+
+  .admin-tab-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+
+  .admin-tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .main-wrapper {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
@@ -2522,6 +2717,65 @@ body.sidebar-drawer-open {
   .btn-cert-download {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Admin & Course Directory Mobile Optimizations */
+  .admin-form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .admin-courses-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .widget-card {
+    padding: 18px 14px;
+  }
+
+  /* Modals Mobile Optimizations */
+  .modal-overlay {
+    padding: 10px;
+  }
+  .modal-content {
+    padding: 20px 16px;
+    max-height: 94vh;
+  }
+
+  /* Roadmap Mobile Optimizations */
+  .roadmap-box-container {
+    padding: 20px 14px;
+  }
+  .roadmap-steps-vertical {
+    padding-left: 8px;
+  }
+  .roadmap-steps-vertical::before {
+    left: 28px;
+  }
+  .step-card-box {
+    padding: 14px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .btn-node-action {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Dashboard Profile Card Button */
+  .btn-edit-questionnaire {
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  /* Navigation Sidebar Mobile Drawer Alignments */
+  .sidebar-header-row {
+    margin-bottom: 16px;
+  }
+  .sidebar-close-btn {
+    margin-bottom: 0;
   }
 }
 

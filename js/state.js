@@ -654,6 +654,23 @@ window.AppState = {
     }
   },
 
+  deleteCourse: function(courseId) {
+    if (!this.data.courses) return;
+    this.data.courses = this.data.courses.filter(c => c.id !== courseId);
+    this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.deleteCourse) {
+      window.FirebaseDB.deleteCourse(courseId);
+    } else if (window.FirebaseDB && window.FirebaseDB.db) {
+      try {
+        window.FirebaseDB.db.collection('courses').doc(courseId).delete()
+          .then(() => console.log("Course deleted from Firestore"))
+          .catch(e => console.error("Error deleting course from Firestore:", e));
+      } catch (e) {
+        console.error("Firestore course delete error:", e);
+      }
+    }
+  },
+
   addVideoToCourse: function(courseId, tier, title, description, contentUrl, duration) {
     const course = this.data.courses.find(c => c.id === courseId);
     if (!course) return;

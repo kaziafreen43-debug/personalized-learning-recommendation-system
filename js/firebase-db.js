@@ -294,6 +294,20 @@ window.FirebaseDB = {
     }
   },
 
+  // Delete Course
+  deleteCourse: async function(courseId) {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.isInitialized) return;
+    try {
+      await this.db.collection('courses').doc(courseId).delete();
+      console.log(`Course ${courseId} deleted from Firestore.`);
+    } catch (e) {
+      console.error("Error deleting course from Firestore:", e);
+    }
+  },
+
   // Save/Update Resource
   saveResource: async function(resource) {
     if (!this.isInitialized) {
