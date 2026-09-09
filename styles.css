@@ -101,7 +101,7 @@
   --shadow-colorful: 0 8px 25px rgba(114, 238, 213, 0.15);
 }
 
-* {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -109,7 +109,10 @@
 
 html, body {
   overflow-x: hidden;
-  max-width: 100%;
+  max-width: 100vw;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -126,6 +129,17 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.015em;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+p, span, a, label, li, td, th {
+  overflow-wrap: break-word;
+}
+
+img, video, iframe, canvas, svg {
+  max-width: 100%;
+  height: auto;
 }
 
 button {
@@ -135,15 +149,23 @@ button {
   background: none;
   outline: none;
   transition: all var(--transition-fast);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, select, textarea {
   font-family: var(--font-main);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 #app {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* ==========================================================================
@@ -501,6 +523,10 @@ body.sidebar-drawer-open {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: calc(100% - 260px);
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
 .navbar {
@@ -879,6 +905,8 @@ body.sidebar-drawer-open {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .section-title-clean, .section-title {
@@ -1441,6 +1469,8 @@ body.sidebar-drawer-open {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .note-editor-title {
@@ -2274,6 +2304,8 @@ body.sidebar-drawer-open {
   margin-bottom: 20px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .quiz-timer {
@@ -2555,8 +2587,202 @@ body.sidebar-drawer-open {
 }
 
 /* ==========================================================================
-   RESPONSIVENESS (Desktop, Tablet, Mobile)
+   RESPONSIVE UTILITIES & COMPONENT ADAPTATIONS
    ========================================================================== */
+.responsive-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.course-hub-material-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.course-hub-material-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.cert-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 12px;
+  margin-top: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* Landing Page Responsive Components */
+.landing-header {
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-navbar);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 12px;
+  width: 100%;
+}
+
+.landing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.landing-hero {
+  padding: 72px 24px 50px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  width: 100%;
+}
+
+.landing-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-teal-light);
+  color: var(--color-teal-action);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+[data-theme="dark"] .landing-hero-badge {
+  background: rgba(114, 238, 213, 0.15);
+  color: var(--color-mint-active);
+}
+
+.landing-hero-title {
+  font-size: clamp(1.85rem, 5vw + 0.5rem, 3.2rem);
+  font-weight: 800;
+  line-height: 1.18;
+  margin-bottom: 20px;
+  font-family: var(--font-heading);
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.landing-hero-subtitle {
+  font-size: clamp(0.95rem, 2vw + 0.1rem, 1.15rem);
+  color: var(--text-muted);
+  max-width: 720px;
+  margin: 0 auto 36px auto;
+  line-height: 1.6;
+}
+
+.landing-hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.landing-features-section {
+  padding: 40px 24px 80px 24px;
+  max-width: 1250px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  width: 100%;
+}
+
+/* Chatbot Markdown Code & Bubble Wrapping */
+.ai-chat-bubble pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+  max-width: 100%;
+  background: rgba(0, 0, 0, 0.07);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  margin: 8px 0;
+}
+
+[data-theme="dark"] .ai-chat-bubble pre {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ai-chat-bubble code {
+  word-break: break-all;
+  font-size: 0.85em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .ai-chat-bubble code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ai-chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.ai-suggestion-chip {
+  white-space: normal;
+  text-align: left;
+  line-height: 1.35;
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  max-width: 100%;
+  word-break: break-word;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ai-suggestion-chip:hover {
+  background: var(--bg-card-hover);
+  border-color: #0f766e;
+}
+
+/* ==========================================================================
+   RESPONSIVENESS (Breakpoints: 1100px, 900px, 768px, 640px, 480px)
+   ========================================================================== */
+
+/* Laptop / Small Desktop */
 @media (max-width: 1100px) {
   .courses-grid-4, .resource-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2572,6 +2798,7 @@ body.sidebar-drawer-open {
   }
 }
 
+/* Tablet Landscape & Below */
 @media (max-width: 900px) {
   .mobile-sidebar-toggle {
     display: flex;
@@ -2592,6 +2819,8 @@ body.sidebar-drawer-open {
   }
   .main-wrapper {
     margin-left: 0;
+    width: 100%;
+    max-width: 100vw;
   }
   .notes-2col-layout, .section-grid-2-1 {
     grid-template-columns: 1fr;
@@ -2602,6 +2831,12 @@ body.sidebar-drawer-open {
   .quizzes-grid-2x2 {
     grid-template-columns: 1fr;
   }
+  .navbar {
+    padding: 0 18px;
+  }
+  .page-container {
+    padding: 24px 20px 70px 20px;
+  }
 }
 
 @media (min-width: 769px) {
@@ -2610,6 +2845,7 @@ body.sidebar-drawer-open {
   }
 }
 
+/* Tablet Portrait & Mobile */
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
@@ -2627,14 +2863,21 @@ body.sidebar-drawer-open {
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 8px;
+    width: 100%;
   }
 
   .admin-tab-bar::-webkit-scrollbar {
     display: none;
   }
 
+  .admin-tab-bar .tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .main-wrapper {
     max-width: 100vw;
+    width: 100%;
     overflow-x: hidden;
   }
 
@@ -2644,7 +2887,8 @@ body.sidebar-drawer-open {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--bg-card);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -2652,36 +2896,60 @@ body.sidebar-drawer-open {
     z-index: 950;
     align-items: center;
     justify-content: space-around;
-    padding: 0 4px;
+    padding-left: 4px;
+    padding-right: 4px;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
   }
 
   .page-container {
-    padding-bottom: 84px !important;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .ai-chatbot-fab-wrapper {
-    bottom: 76px !important;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
     right: 16px !important;
   }
 
   .ai-chatbot-window {
-    bottom: 76px !important;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
     right: 12px !important;
     left: 12px !important;
     width: auto !important;
     max-width: none !important;
-    max-height: calc(100vh - 92px) !important;
+    max-height: calc(100vh - 96px - env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .filter-pills-bar,
+  .subject-tabs:not(.admin-tab-bar) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 6px;
+    max-width: 100%;
+  }
+
+  .filter-pills-bar::-webkit-scrollbar,
+  .subject-tabs:not(.admin-tab-bar)::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-pills-bar .pill-filter-btn,
+  .subject-tabs:not(.admin-tab-bar) .tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
+/* Phablets & Large Mobile Phones */
 @media (max-width: 640px) {
   .page-container {
-    padding: 16px 14px 84px 14px;
+    padding: 16px 14px calc(84px + env(safe-area-inset-bottom, 0px)) 14px !important;
   }
   .navbar {
     padding: 0 12px;
     gap: 8px;
+    height: 60px;
   }
   .nav-search {
     width: auto;
@@ -2708,7 +2976,7 @@ body.sidebar-drawer-open {
     padding: 20px 16px;
   }
   .banner-student-name, .hero-title {
-    font-size: 1.5rem;
+    font-size: clamp(1.4rem, 5vw, 1.8rem);
   }
   .course-cert-row {
     flex-direction: column;
@@ -2720,8 +2988,8 @@ body.sidebar-drawer-open {
   }
 
   /* Admin & Course Directory Mobile Optimizations */
-  .admin-form-grid-2 {
-    grid-template-columns: 1fr;
+  .admin-form-grid-2, .responsive-form-grid-2 {
+    grid-template-columns: 1fr !important;
     gap: 10px;
   }
   .admin-courses-grid {
@@ -2734,11 +3002,15 @@ body.sidebar-drawer-open {
 
   /* Modals Mobile Optimizations */
   .modal-overlay {
-    padding: 10px;
+    padding: 8px;
+    align-items: flex-end;
   }
   .modal-content {
-    padding: 20px 16px;
+    padding: 22px 16px;
     max-height: 94vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    width: 100%;
   }
 
   /* Roadmap Mobile Optimizations */
@@ -2761,6 +3033,7 @@ body.sidebar-drawer-open {
     width: 100%;
     text-align: center;
     justify-content: center;
+    min-height: 44px;
   }
 
   /* Dashboard Profile Card Button */
@@ -2768,6 +3041,7 @@ body.sidebar-drawer-open {
     width: 100%;
     justify-content: center;
     margin-top: 12px;
+    min-height: 44px;
   }
 
   /* Navigation Sidebar Mobile Drawer Alignments */
@@ -2776,6 +3050,163 @@ body.sidebar-drawer-open {
   }
   .sidebar-close-btn {
     margin-bottom: 0;
+  }
+
+  /* Landing Page Small Breakpoint */
+  .landing-header {
+    padding: 0 14px;
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .landing-hero {
+    padding: 36px 14px 36px 14px;
+  }
+  .landing-hero-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .landing-hero-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+  .landing-features-section {
+    padding: 30px 14px 60px 14px;
+  }
+
+  /* Certificate Mobile */
+  .certificate-preview-card {
+    border-width: 6px !important;
+    padding: 20px 12px !important;
+  }
+  .cert-header {
+    font-size: 1.4rem !important;
+  }
+  .cert-student-name {
+    font-size: 2rem !important;
+  }
+  .cert-footer-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 14px !important;
+  }
+  .cert-footer-row > div {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Course Hub Mobile */
+  .course-hub-material-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .course-hub-material-row .btn-launch-resource {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+}
+
+/* Compact Smartphones (320px - 480px) */
+@media (max-width: 480px) {
+  html, body {
+    font-size: 15px;
+  }
+  .page-container {
+    padding: 12px 10px calc(80px + env(safe-area-inset-bottom, 0px)) 10px !important;
+  }
+  .navbar {
+    padding: 0 10px;
+    gap: 6px;
+    height: 56px;
+  }
+  .brand-title {
+    font-size: 1.1rem;
+  }
+  .role-switcher-btn {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+  }
+  .stat-metric-card, .stat-card {
+    padding: 14px 12px;
+    gap: 12px;
+  }
+  .stat-circle-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+  .stat-metric-value {
+    font-size: 1.25rem;
+  }
+  .stat-metric-label {
+    font-size: 0.75rem;
+  }
+  .btn-start-quiz-navy, .btn-enroll-dark, .btn-study-hub-clean {
+    min-height: 46px;
+    font-size: 0.92rem;
+  }
+  .modal-content {
+    padding: 18px 12px;
+    max-height: 96vh;
+  }
+  .mcq-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .mcq-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .mcq-option-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mcq-option-input {
+    width: 100%;
+    min-width: 100%;
+  }
+  .table-responsive-wrapper {
+    margin-left: -4px;
+    margin-right: -4px;
+    width: calc(100% + 8px);
+  }
+  .ai-chatbot-window {
+    left: 6px !important;
+    right: 6px !important;
+  }
+  .roadmap-step-row {
+    gap: 12px;
+  }
+  .step-node-circle {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+  .step-card-box {
+    padding: 12px 10px;
+  }
+}
+
+/* Ultra-Compact Smartphones (<= 360px) */
+@media (max-width: 360px) {
+  .mcq-scorecard-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .navbar {
+    padding: 0 6px;
+    gap: 4px;
+  }
+  .brand-title {
+    font-size: 0.96rem;
+  }
+  .role-switcher-btn {
+    padding: 4px 6px;
+    font-size: 0.7rem;
   }
 }
 

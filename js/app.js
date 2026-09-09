@@ -298,71 +298,71 @@
     const features = (state.data && state.data.landingFeatures) ? state.data.landingFeatures : [];
 
     return `
-      <div style="min-height:100vh; background:var(--bg-page); color:var(--text-main);">
+      <div style="min-height:100vh; background:var(--bg-page); color:var(--text-main); width:100%; max-width:100%; overflow-x:hidden;">
         <!-- Top Navigation Header -->
-        <header style="height:76px; display:flex; align-items:center; justify-content:space-between; padding:0 40px; border-bottom:1px solid var(--border-color); background:var(--bg-navbar); backdrop-filter:blur(12px); position:sticky; top:0; z-index:100;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <div class="brand-icon">
+        <header class="landing-header">
+          <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+            <div class="brand-icon" style="flex-shrink:0;">
               ${renderIcon('sparkles')}
             </div>
-            <div>
-              <div class="brand-title" style="font-size:1.3rem;">LearnAI Pro</div>
-              <div style="font-size:0.7rem; color:var(--text-subtle); font-weight:700;">AI LEARNING RECOMMENDATION SYSTEM</div>
+            <div style="min-width:0;">
+              <div class="brand-title" style="font-size:1.25rem;">LearnAI Pro</div>
+              <div style="font-size:0.68rem; color:var(--text-subtle); font-weight:700; letter-spacing:0.04em;">AI LEARNING PLATFORM</div>
             </div>
           </div>
 
-          <div style="display:flex; align-items:center; gap:16px;">
+          <div class="landing-header-actions">
             <button class="theme-toggle-btn" onclick="AppState.toggleTheme()" title="Toggle Light / Dark Mode">
               ${state.theme === 'light' ? renderIcon('moon') : renderIcon('sun')}
             </button>
-            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:0.9rem;" onclick="AppState.openModal('login')">
+            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:0.88rem; padding:8px 16px; min-height:40px;" onclick="AppState.openModal('login')">
               Login
             </button>
-            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:0.9rem; padding:8px 20px;" onclick="AppState.openModal('register')">
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:0.88rem; padding:8px 18px; min-height:40px;" onclick="AppState.openModal('register')">
               Register
             </button>
           </div>
         </header>
 
         <!-- Hero Section -->
-        <section style="padding:80px 40px 60px 40px; max-width:1200px; margin:0 auto; text-align:center;">
-          <div style="display:inline-flex; align-items:center; gap:8px; background:var(--color-teal-light); color:var(--color-teal-action); padding:6px 16px; border-radius:var(--radius-full); font-size:0.85rem; font-weight:700; margin-bottom:24px;">
-            ${renderIcon('cpu')} AI-POWERED PERSONALIZED LEARNING PLATFORM
+        <section class="landing-hero">
+          <div class="landing-hero-badge">
+            ${renderIcon('cpu')} AI-POWERED PERSONALIZED LEARNING
           </div>
 
-          <h1 style="font-size:3.2rem; font-weight:800; line-height:1.15; margin-bottom:20px; font-family:var(--font-heading); max-width:900px; margin-left:auto; margin-right:auto;">
+          <h1 class="landing-hero-title">
             Tailored Study Material & Courses Based on Your <span style="background:var(--primary-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Learning Style & Goals</span>
           </h1>
 
-          <p style="font-size:1.15rem; color:var(--text-muted); max-width:720px; margin:0 auto 36px auto; line-height:1.6;">
+          <p class="landing-hero-subtitle">
             Empower your education with adaptive AI recommendations. Complete a short questionnaire to get personalized courses, videos, articles, interactive labs, and post-quiz interest analytics.
           </p>
 
-          <div style="display:flex; justify-content:center; gap:16px;">
-            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:1.1rem; padding:14px 36px; box-shadow:var(--shadow-colorful);" onclick="AppState.openModal('register')">
+          <div class="landing-hero-actions">
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:1.05rem; padding:12px 30px; min-height:48px; box-shadow:var(--shadow-colorful);" onclick="AppState.openModal('register')">
               ${renderIcon('sparkles')} Start Learning
             </button>
-            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:1.05rem; padding:14px 28px; border:1px solid var(--border-color);" onclick="AppState.openModal('login')">
+            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:1rem; padding:12px 24px; min-height:48px; border:1px solid var(--border-color);" onclick="AppState.openModal('login')">
               ${renderIcon('log-in')} Student / Admin Login
             </button>
           </div>
         </section>
 
         <!-- Features Section Grid -->
-        <section style="padding:60px 40px 100px 40px; max-width:1250px; margin:0 auto;">
-          <div style="text-align:center; margin-bottom:48px;">
-            <h2 style="font-size:2.2rem; font-weight:800; margin-bottom:10px;">Why Choose LearnAI Pro?</h2>
-            <p style="color:var(--text-muted); font-size:1rem;">Designed to optimize your learning journey with adaptive artificial intelligence.</p>
+        <section class="landing-features-section">
+          <div style="text-align:center; margin-bottom:40px;">
+            <h2 style="font-size:clamp(1.5rem, 3vw, 2.2rem); font-weight:800; margin-bottom:8px;">Why Choose LearnAI Pro?</h2>
+            <p style="color:var(--text-muted); font-size:0.95rem;">Designed to optimize your learning journey with adaptive artificial intelligence.</p>
           </div>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:28px;">
+          <div class="landing-features-grid">
             ${features.map(f => `
-              <div class="stat-card" style="padding:28px; flex-direction:column; align-items:flex-start; text-align:left;">
-                <div class="stat-icon-wrapper" style="background:var(--primary-gradient); width:56px; height:56px; margin-bottom:16px;">
+              <div class="stat-card" style="padding:24px 20px; flex-direction:column; align-items:flex-start; text-align:left;">
+                <div class="stat-icon-wrapper" style="background:var(--primary-gradient); width:52px; height:52px; margin-bottom:14px; flex-shrink:0;">
                   ${renderIcon(f.icon)}
                 </div>
-                <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:8px;">${f.title}</h3>
-                <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5;">${f.desc}</p>
+                <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:8px;">${f.title}</h3>
+                <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">${f.desc}</p>
               </div>
             `).join('')}
           </div>
@@ -696,7 +696,7 @@ function renderEvaluationView() {
           </button>
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap:20px;">
           ${concepts.map(c => {
             let badgeStyle = 'background:rgba(16,185,129,0.12); color:var(--color-emerald);';
             if (c.level === 'Proficient') badgeStyle = 'background:rgba(190,24,93,0.12); color:var(--primary-500);';
@@ -874,33 +874,33 @@ function renderEvaluationView() {
       <div class="widget-card" style="margin-bottom:28px;">
         <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:14px; color:var(--color-teal-action);">${currentCatData.title}</h3>
 
-        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; width:100%;">
           ${(currentCatData.materials || []).map(mat => `
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <span class="format-badge" style="background:var(--color-teal-light); color:var(--color-teal-action);">${mat.format}</span>
-                <span style="font-weight:700; font-size:0.95rem;">${mat.title}</span>
+            <div class="course-hub-material-row">
+              <div class="course-hub-material-info">
+                <span class="format-badge" style="background:var(--color-teal-light); color:var(--color-teal-action); flex-shrink:0;">${mat.format}</span>
+                <span style="font-weight:700; font-size:0.95rem; min-width:0; overflow-wrap:break-word;">${mat.title}</span>
               </div>
-              <button class="btn-launch-resource" style="padding:6px 14px; font-size:0.8rem;" onclick="AppState.openModal('resource-viewer', '${mat.id}')">
+              <button class="btn-launch-resource" style="padding:8px 16px; font-size:0.82rem; min-height:42px; display:inline-flex; align-items:center; gap:6px;" onclick="AppState.openModal('resource-viewer', '${mat.id}')">
                 ${renderIcon('play')} Open Material
               </button>
             </div>
           `).join('')}
         </div>
 
-        <div style="background:var(--color-teal-light); border:1px dashed var(--color-teal-action); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
-          <div>
+        <div style="background:var(--color-teal-light); border:1px dashed var(--color-teal-action); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; width:100%;">
+          <div style="flex:1; min-width:200px;">
             <strong style="font-size:1rem; color:var(--color-teal-action);">${currentCategory} Category Quiz (${qCount} Questions)</strong>
-            <p style="font-size:0.85rem; color:var(--text-muted);">Solve this ${qCount}-question quiz to evaluate your category mastery and interest.</p>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Solve this ${qCount}-question quiz to evaluate your category mastery and interest.</p>
           </div>
-          <button class="btn-launch-resource" style="background:#0f172a; padding:10px 20px; font-size:0.88rem;" onclick="AppState.openModal('quiz', '${currentCatData.quizId}')">
+          <button class="btn-launch-resource" style="background:#0f172a; padding:10px 20px; font-size:0.88rem; min-height:44px; display:inline-flex; align-items:center; gap:6px;" onclick="AppState.openModal('quiz', '${currentCatData.quizId}')">
             ${renderIcon('award')} Take ${qCount}-Question Quiz
           </button>
         </div>
       </div>
 
       <!-- Assignments Section -->
-      <div class="widget-card" style="margin-bottom:28px;">
+      <div class="widget-card" style="margin-bottom:28px; width:100%;">
         <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:14px; color:var(--color-indigo); display:flex; align-items:center; gap:8px;">
           ${renderIcon('file-text')} Course Assignments & Projects
         </h3>
@@ -908,15 +908,15 @@ function renderEvaluationView() {
         ${courseAssignments.length === 0 ? `
           <p style="font-size:0.88rem; color:var(--text-muted); text-align:center; padding:12px;">No assignments created for this course yet.</p>
         ` : `
-          <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; flex-direction:column; gap:16px; width:100%;">
             ${courseAssignments.map(a => {
               const sub = submissions.find(s => s.assignmentId === a.id && s.userId === (state.currentUser ? state.currentUser.id : ''));
               const isMCQ = a.questions && a.questions.length > 0;
               return `
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:18px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap; gap:14px;">
-                  <div style="flex:1; min-width:250px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap; gap:14px; width:100%;">
+                  <div style="flex:1; min-width:0; width:100%;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                      <span style="font-weight:700; font-size:1.08rem;">${a.title}</span>
+                      <span style="font-weight:700; font-size:1.05rem;">${a.title}</span>
                       <span style="font-size:0.75rem; background:rgba(99, 102, 241, 0.12); color:var(--color-indigo); padding:2px 8px; border-radius:var(--radius-full); font-weight:700;">
                         ${a.points} Points
                       </span>
@@ -943,14 +943,14 @@ function renderEvaluationView() {
                       ${a.description}
                     </p>
                     ${sub && sub.submissionText ? `
-                      <div style="margin-top:10px; font-size:0.8rem; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:var(--text-main);">
+                      <div style="margin-top:10px; font-size:0.8rem; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); color:var(--text-main); word-break:break-word;">
                         <strong>Your submission:</strong> ${sub.submissionText}
-                        ${sub.submissionLink ? `<br><strong>Link:</strong> <a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline;">${sub.submissionLink}</a>` : ''}
+                        ${sub.submissionLink ? `<br><strong>Link:</strong> <a href="${sub.submissionLink}" target="_blank" style="color:var(--color-purple); text-decoration:underline; word-break:break-all;">${sub.submissionLink}</a>` : ''}
                       </div>
                     ` : ''}
                   </div>
                   
-                  <button class="btn-launch-resource" style="padding:9px 22px; font-size:0.88rem; background:var(--primary-gradient); color:#fff; border-radius:var(--radius-full); display:flex; align-items:center; gap:6px; font-weight:700;" onclick="AppState.openModal('submit-assignment', '${a.id}')">
+                  <button class="btn-launch-resource" style="padding:9px 20px; font-size:0.85rem; background:var(--primary-gradient); color:#fff; border-radius:var(--radius-full); display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; min-height:44px;" onclick="AppState.openModal('submit-assignment', '${a.id}')">
                     ${sub ? (isMCQ ? renderIcon('rotate-ccw') + ' View Results / Retake' : renderIcon('edit') + ' Resubmit') : (isMCQ ? renderIcon('play') + ' Start Assignment' : renderIcon('upload-cloud') + ' Submit Project')}
                   </button>
                 </div>
@@ -1256,8 +1256,8 @@ function renderEvaluationView() {
       </div>
 
       <!-- Bottom Section: Conceptual Performance Evaluation (Matches 7.PNG) -->
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-        <h2 style="font-size:1.25rem; font-weight:800; color:var(--text-main);">Conceptual Performance Evaluation</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <h2 style="font-size:1.25rem; font-weight:800; color:var(--text-main); margin:0;">Conceptual Performance Evaluation</h2>
         <button class="btn-run-diagnostic" onclick="window.runDiagnosticEvaluation()">
           ${renderIcon('play')} Run Diagnostic Evaluation &gt;
         </button>
@@ -2178,7 +2178,7 @@ function renderEvaluationView() {
           <!-- Filters Row: Search and Subject Pills -->
           <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border-color);">
             <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-              <div class="nav-search" style="flex:1; min-width:220px; max-width:400px; padding:8px 14px;">
+              <div class="nav-search" style="flex:1; min-width:0; width:100%; max-width:400px; padding:8px 14px;">
                 ${renderIcon('search')}
                 <input type="text" placeholder="Search courses by title, instructor..." value="${escapeHtmlAttr(window.courseDirectorySearch || '')}" oninput="window.courseDirectorySearch=this.value; AppState.notify();">
                 ${window.courseDirectorySearch ? `
@@ -2337,7 +2337,7 @@ function renderEvaluationView() {
       `;
     } else if (window.activeAdminTab === 'videos') {
       activeTabContent = `
-        <div class="widget-card" style="max-width:650px; margin: 0 auto;">
+        <div class="widget-card" style="max-width:650px; width:100%; margin: 0 auto;">
           <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
             ${renderIcon('video')} Add Video Lessons & Links
           </h2>
@@ -3034,8 +3034,8 @@ function renderEvaluationView() {
 
         <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px; text-align:center;">
           <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Quick Demo Access:</p>
-          <div style="display:flex; gap:10px; justify-content:center;">
-            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:6px 16px; color:var(--text-main); border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn-hero-secondary" style="font-size:0.8rem; padding:8px 16px; color:var(--text-main); border:1px solid var(--border-color); max-width:100%; word-break:break-word; text-align:center;" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
               Demo Admin (admin@gmail.com)
             </button>
           </div>
@@ -3154,7 +3154,7 @@ function renderEvaluationView() {
         <form onsubmit="event.preventDefault(); window.submitQuestionnaireForm(this);">
           <div style="display:flex; flex-direction:column; gap:16px;">
             <!-- 1. Name & Class -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="responsive-form-grid-2">
               <div>
                 <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Student Name</label>
                 <input type="text" name="name" id="nameInput" value="${defaultName}" placeholder="Your Full Name" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
@@ -3171,7 +3171,7 @@ function renderEvaluationView() {
             </div>
 
             <!-- 2. Skill Level & Learning Style -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="responsive-form-grid-2">
               <div>
                 <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Current Skill Level</label>
                 <select name="skillLevel" id="skillLevelSelect" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
@@ -3204,7 +3204,7 @@ function renderEvaluationView() {
             <!-- 4. Subjects of Interest -->
             <div>
               <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">Subjects of Interest (Select All That Apply)</label>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div class="responsive-form-grid-2" style="gap:8px;">
                 ${(data.subjects || []).map(s => `
                   <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); cursor:pointer;">
                     <input type="checkbox" name="interests" value="${s.id}" checked>
@@ -3215,7 +3215,7 @@ function renderEvaluationView() {
               <div id="interestsError" style="color:var(--color-rose); font-size:0.78rem; font-weight:600; margin-top:4px; display:none;">Please select at least one subject of interest.</div>
             </div>
 
-            <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; justify-content:center; padding:12px; margin-top:8px;">
+            <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; justify-content:center; padding:12px; margin-top:8px; min-height:48px; width:100%;">
               ${renderIcon('sparkles')} Generate AI Recommendations
             </button>
           </div>
@@ -3524,58 +3524,58 @@ function renderEvaluationView() {
     const certId = `LAI-2026-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     return `
-      <div>
-        <div class="certificate-preview-card" style="background:#ffffff; color:#0f172a; border: 16px double #c5a880; border-radius:var(--radius-md); padding: 50px 40px; position:relative; box-shadow: var(--shadow-lg); overflow:hidden;">
+      <div style="width:100%; max-width:100%; overflow-x:hidden;">
+        <div class="certificate-preview-card">
           
           <!-- Background Ornamental Gold Lines (Subtle watermarks) -->
-          <div style="position:absolute; top:-50px; left:-50px; width:150px; height:150px; border:2px solid rgba(197, 168, 128, 0.15); border-radius:50%;"></div>
-          <div style="position:absolute; bottom:-50px; right:-50px; width:150px; height:150px; border:2px solid rgba(197, 168, 128, 0.15); border-radius:50%;"></div>
+          <div style="position:absolute; top:-50px; left:-50px; width:150px; height:150px; border:2px solid rgba(197, 168, 128, 0.15); border-radius:50%; pointer-events:none;"></div>
+          <div style="position:absolute; bottom:-50px; right:-50px; width:150px; height:150px; border:2px solid rgba(197, 168, 128, 0.15); border-radius:50%; pointer-events:none;"></div>
 
           <!-- Application Logo & Header at the Top -->
           <div style="text-align:center; margin-bottom:14px;">
             <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:6px;">
-              <div style="width:36px; height:36px; background:#0b192c; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#72eed5; font-size:1.25rem; font-weight:900; font-family:Georgia, serif; box-shadow:0 4px 10px rgba(157,23,77,0.25);">L</div>
-              <span style="font-size:1.15rem; font-weight:900; letter-spacing:0.1em; color:#475569; font-family:var(--font-heading);">LearnAI Pro</span>
+              <div style="width:34px; height:34px; background:#0b192c; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#72eed5; font-size:1.15rem; font-weight:900; font-family:Georgia, serif; box-shadow:0 4px 10px rgba(15,23,42,0.25);">L</div>
+              <span style="font-size:1.1rem; font-weight:900; letter-spacing:0.1em; color:#475569; font-family:var(--font-heading);">LearnAI Pro</span>
             </div>
             <!-- Subtle Gold Divider -->
             <div style="width:120px; height:1px; background:linear-gradient(90deg, transparent, #c5a880, transparent); margin:8px auto 0 auto;"></div>
           </div>
 
           <!-- Title -->
-          <div class="cert-header" style="font-family:'Georgia', serif; font-size:2.4rem; font-weight:700; color:#1e293b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:16px;">
+          <div class="cert-header">
             Certificate of Completion
           </div>
 
           <!-- Description Block -->
-          <p style="font-family:'Georgia', serif; font-size:1rem; color:#475569; margin: 20px auto 10px auto; max-width:600px; line-height:1.6;">
+          <p style="font-family:'Georgia', serif; font-size:clamp(0.85rem, 2vw, 1rem); color:#475569; margin: 16px auto 10px auto; max-width:600px; line-height:1.6;">
             This certificate is proudly presented by <strong>LearnAI Pro</strong> to
           </p>
 
-          <!-- Student Name (Burgundy, Elegant Typography) -->
-          <div class="cert-student-name" style="color:#0f766e; font-family:'Brush Script MT', 'Georgia', cursive; font-size:3.2rem; font-weight:700; margin:10px 0; border:none; display:block;">
+          <!-- Student Name (Elegant Typography) -->
+          <div class="cert-student-name">
             ${user.name}
           </div>
 
-          <p style="font-family:'Georgia', serif; font-size:1rem; color:#475569; max-width:600px; margin:10px auto 30px auto; line-height:1.6;">
-            for successfully completing the course <strong style="color:#1e293b; display:block; font-size:1.1rem; margin-top:6px;">'${courseName}'</strong> <span style="display:block; margin-top:6px;">and fulfilling all the requirements of the program.</span>
+          <p style="font-family:'Georgia', serif; font-size:clamp(0.85rem, 2vw, 1rem); color:#475569; max-width:600px; margin:10px auto 24px auto; line-height:1.6;">
+            for successfully completing the course <strong style="color:#1e293b; display:block; font-size:clamp(0.95rem, 2.5vw, 1.15rem); margin-top:6px; word-break:break-word;">'${courseName}'</strong> <span style="display:block; margin-top:6px;">and fulfilling all the requirements of the program.</span>
           </p>
 
           <!-- Divider gold line -->
-          <div style="width:100%; height:1px; background:#cbd5e1; margin-bottom:28px; position:relative;">
+          <div style="width:100%; height:1px; background:#cbd5e1; margin-bottom:24px; position:relative;">
             <div style="position:absolute; top:-3px; left:calc(50% - 20px); width:40px; height:8px; background:#c5a880; border-radius:4px;"></div>
           </div>
 
           <!-- Bottom Grid: Date, Official Gold Seal, Signature -->
-          <div style="display:flex; justify-content:space-between; align-items:flex-end; padding:0 12px; margin-top:20px;">
+          <div class="cert-footer-row">
             <!-- Date -->
-            <div style="text-align:left; width:160px;">
-              <span style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Date of Issue</span> <br>
-              <span style="font-size:0.9rem; font-weight:700; color:#1e293b;">${new Date().toLocaleDateString()}</span>
+            <div style="text-align:left; flex:1; min-width:120px;">
+              <span style="font-size:0.72rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Date of Issue</span> <br>
+              <span style="font-size:0.88rem; font-weight:700; color:#1e293b;">${new Date().toLocaleDateString()}</span>
             </div>
 
             <!-- Official Gold Seal -->
-            <div style="text-align:center; flex:1;">
-              <svg width="76" height="76" viewBox="0 0 100 100" style="margin:0 auto; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15));">
+            <div style="text-align:center; flex-shrink:0;">
+              <svg width="68" height="68" viewBox="0 0 100 100" style="margin:0 auto; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15));">
                 <!-- Ribbon 1 -->
                 <path d="M 35 70 L 35 95 L 50 85 L 65 95 L 65 70 Z" fill="#d4af37" opacity="0.85" />
                 <!-- Ribbon 2 -->
@@ -3593,24 +3593,24 @@ function renderEvaluationView() {
                   </linearGradient>
                 </defs>
               </svg>
-              <div style="font-size:0.65rem; color:#8a6f27; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; margin-top:4px;">Official Seal</div>
+              <div style="font-size:0.62rem; color:#8a6f27; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; margin-top:3px;">Official Seal</div>
             </div>
 
             <!-- Signature -->
-            <div style="text-align:right; width:160px; border-top:1px solid #cbd5e1; padding-top:6px;">
-              <span style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Authorized Signature</span>
+            <div style="text-align:right; flex:1; min-width:120px; border-top:1px solid #cbd5e1; padding-top:6px;">
+              <span style="font-size:0.72rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Authorized Signature</span>
             </div>
           </div>
 
           <!-- Verification ID -->
-          <div style="margin-top:28px; font-size:0.65rem; color:#94a3b8; font-family:monospace; text-align:center; letter-spacing:0.05em;">
+          <div style="margin-top:24px; font-size:0.65rem; color:#94a3b8; font-family:monospace; text-align:center; letter-spacing:0.05em; word-break:break-all;">
             CERTIFICATE ID: ${certId}
           </div>
 
         </div>
 
-        <div style="margin-top:20px; display:flex; gap:12px;">
-          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; justify-content:center;" onclick="window.print()">
+        <div style="margin-top:20px; display:flex; gap:12px; width:100%;">
+          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; justify-content:center; min-height:46px;" onclick="window.print()">
             ${renderIcon('printer')} Print / Save PDF
           </button>
         </div>
