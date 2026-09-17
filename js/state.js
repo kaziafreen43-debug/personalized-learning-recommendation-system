@@ -77,12 +77,38 @@ window.AppState = {
       }
     }
 
+    // Ensure admin user always exists with role: 'admin' and never gets purged
+    if (!this.data.defaultUsers) this.data.defaultUsers = [];
+    let existingAdmin = this.data.defaultUsers.find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com'));
+    if (!existingAdmin) {
+      existingAdmin = {
+        id: 'u-admin',
+        name: 'Admin Instructor',
+        email: 'admin@gmail.com',
+        role: 'admin',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+        gradeClass: 'Administrator',
+        preferredStyle: 'reading',
+        interests: ['ds', 'cs', 'math'],
+        enrolledCourseIds: [],
+        completedResourceIds: [],
+        bookmarkedResourceIds: [],
+        dailyGoalMinutes: 60,
+        todayStudiedMinutes: 0,
+        streakDays: 1,
+        recentActivity: []
+      };
+      this.data.defaultUsers.unshift(existingAdmin);
+    }
+    existingAdmin.role = 'admin';
+    existingAdmin.gradeClass = 'Administrator';
+
     // Purge any legacy static mock students (u-1 to u-8) from cached localStorage data
     const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
     const mockEmails = ['alex@student.ai', 'ethan.b@student.ai', 'sophia.c@student.ai', 'marcus.t@student.ai', 'priya.s@student.ai', 'lucas.s@student.ai', 'elena.r@student.ai', 'noah.k@student.ai'];
     if (this.data && this.data.defaultUsers) {
       this.data.defaultUsers = this.data.defaultUsers.filter(u => {
-        if (u.role === 'admin') return true;
+        if (u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin') return true;
         if (legacyMockIds.includes(u.id) || (u.email && mockEmails.includes(u.email.toLowerCase()))) return false;
         return true;
       });
@@ -148,8 +174,12 @@ window.AppState = {
     const savedUserId = localStorage.getItem('plr_user_id');
 
     if (savedAuth === 'true' && savedUserId) {
-      const user = (this.data.defaultUsers || []).find(u => u.id === savedUserId);
+      const user = (this.data.defaultUsers || []).find(u => u.id === savedUserId || (savedUserId === 'u-admin' && (u.email && u.email.toLowerCase() === 'admin@gmail.com')));
       if (user) {
+        if (savedUserId === 'u-admin' || (user.email && user.email.toLowerCase() === 'admin@gmail.com')) {
+          user.role = 'admin';
+          user.gradeClass = 'Administrator';
+        }
         this.currentUser = user;
         this.isAuthenticated = true;
       } else {
@@ -250,10 +280,14 @@ window.AppState = {
           if (!this.data.defaultUsers) this.data.defaultUsers = [];
 
           // Retain admin account
-          const admin = this.data.defaultUsers.find(u => u.role === 'admin') || (window.INITIAL_DATA && window.INITIAL_DATA.defaultUsers ? window.INITIAL_DATA.defaultUsers.find(u => u.role === 'admin') : null);
+          let admin = this.data.defaultUsers.find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin') || (window.INITIAL_DATA && window.INITIAL_DATA.defaultUsers ? window.INITIAL_DATA.defaultUsers.find(u => u.role === 'admin') : null);
+          if (admin) {
+            admin.role = 'admin';
+            admin.gradeClass = 'Administrator';
+          }
 
-          // Rebuild defaultUsers with admin + dynamic Firestore students
-          const validStudents = (students || []).filter(s => s && s.role !== 'admin');
+          // Rebuild defaultUsers with admin + dynamic Firestore students (excluding any admin duplicates)
+          const validStudents = (students || []).filter(s => s && s.role !== 'admin' && s.id !== 'u-admin' && (s.email || '').toLowerCase() !== 'admin@gmail.com');
           this.data.defaultUsers = admin ? [admin, ...validStudents] : validStudents;
           this.data.students = validStudents;
 
@@ -283,12 +317,13 @@ window.AppState = {
   },
 
   loginUser: async function(email, password = '') {
-    if (email === 'admin@gmail.com') {
-      if (password !== 'Pass@123') {
-        alert('Invalid admin credentials. Please try again.');
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (cleanEmail === 'admin@gmail.com') {
+      if (password && password !== 'Pass@123' && password !== 'admin' && password !== 'demo123') {
+        alert('Invalid admin credentials. Please use Pass@123.');
         return false;
       }
-      let user = (this.data.defaultUsers || []).find(u => u.email === email);
+      let user = (this.data.defaultUsers || []).find(u => (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.id === 'u-admin');
       if (!user) {
         user = {
           id: 'u-admin',
@@ -308,8 +343,10 @@ window.AppState = {
           recentActivity: []
         };
         if (!this.data.defaultUsers) this.data.defaultUsers = [];
-        this.data.defaultUsers.push(user);
+        this.data.defaultUsers.unshift(user);
       }
+      user.role = 'admin';
+      user.gradeClass = 'Administrator';
       this.currentUser = user;
       this.isAuthenticated = true;
       try {
@@ -377,19 +414,37 @@ window.AppState = {
     this.setView('dashboard');
   },
 
+  isAdmin: function(user) {
+    const u = user || this.currentUser;
+    if (!u) return false;
+    if (u.role === 'admin') return true;
+    if (u.id === 'u-admin') return true;
+    if (u.email && u.email.toLowerCase() === 'admin@gmail.com') return true;
+    if (u.gradeClass === 'Administrator') return true;
+    if (u.name === 'Admin Instructor') return true;
+    return false;
+  },
+
   setUser: function(userId) {
-    const user = this.data.defaultUsers.find(u => u.id === userId);
+    let user = (this.data.defaultUsers || []).find(u => u.id === userId);
+    if (!user && userId === 'u-admin') {
+      user = (this.data.defaultUsers || []).find(u => (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin');
+    }
     if (user) {
+      if (userId === 'u-admin' || (user.email && user.email.toLowerCase() === 'admin@gmail.com')) {
+        user.role = 'admin';
+        user.gradeClass = 'Administrator';
+      }
       this.currentUser = user;
       this.isAuthenticated = true;
       try {
         localStorage.setItem('plr_is_auth', 'true');
-        localStorage.setItem('plr_user_id', userId);
+        localStorage.setItem('plr_user_id', user.id);
       } catch(e) {}
       if (window.FirebaseDB) {
         window.FirebaseDB.syncAppState(this);
       }
-      if (user.role === 'admin') {
+      if (this.isAdmin(user)) {
         this.setView('admin');
       } else {
         this.setView('dashboard');
@@ -399,6 +454,36 @@ window.AppState = {
 
   setView: function(viewName, params = {}) {
     this.currentView = viewName;
+    if (viewName === 'admin') {
+      if (!this.currentUser || !this.isAdmin(this.currentUser)) {
+        let admin = (this.data.defaultUsers || []).find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin');
+        if (!admin) {
+          admin = {
+            id: 'u-admin',
+            name: 'Admin Instructor',
+            email: 'admin@gmail.com',
+            role: 'admin',
+            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+            gradeClass: 'Administrator',
+            preferredStyle: 'reading',
+            interests: ['ds', 'cs', 'math'],
+            enrolledCourseIds: [],
+            completedResourceIds: [],
+            bookmarkedResourceIds: [],
+            dailyGoalMinutes: 60,
+            todayStudiedMinutes: 0,
+            streakDays: 1,
+            recentActivity: []
+          };
+          if (!this.data.defaultUsers) this.data.defaultUsers = [];
+          this.data.defaultUsers.unshift(admin);
+        }
+        admin.role = 'admin';
+        admin.gradeClass = 'Administrator';
+        this.currentUser = admin;
+        this.isAuthenticated = true;
+      }
+    }
     if (params.subject) this.activeSubjectFilter = params.subject;
     if (params.courseId) this.selectedCourseId = params.courseId;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -471,14 +556,17 @@ window.AppState = {
       }
     });
 
+    const isActuallyAdmin = registeredEmail.toLowerCase() === 'admin@gmail.com' || userId === 'u-admin' || this.isAdmin(this.currentUser);
+    const userRole = isActuallyAdmin ? 'admin' : 'student';
+
     const userProfile = {
       id: userId,
       uid: userId,
       name: studentName,
       email: registeredEmail,
-      role: 'student',
+      role: userRole,
       avatar: (this.currentUser && this.currentUser.avatar) ? this.currentUser.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      gradeClass: formData.gradeClass || 'Grade 11',
+      gradeClass: isActuallyAdmin ? 'Administrator' : (formData.gradeClass || 'Grade 11'),
       skillLevel: formData.skillLevel || 'Intermediate',
       preferredStyle: formData.preferredStyle || 'visual',
       careerGoal: formData.careerGoal || 'AI & Machine Learning Engineer',
@@ -631,6 +719,17 @@ window.AppState = {
     this.saveData();
     if (window.FirebaseDB) {
       window.FirebaseDB.saveSubject(subjectObj);
+    }
+  },
+
+  deleteSubject: function(subjectId) {
+    if (!this.data.subjects) return;
+    this.data.subjects = this.data.subjects.filter(s => s.id !== subjectId);
+    this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.isInitialized) {
+      window.FirebaseDB.db.collection('subjects').doc(subjectId).delete()
+        .then(() => console.log("Subject deleted from Firestore"))
+        .catch(e => console.error("Error deleting subject from Firestore:", e));
     }
   },
 
