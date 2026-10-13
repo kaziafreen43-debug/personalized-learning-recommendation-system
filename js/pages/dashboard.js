@@ -67,7 +67,7 @@
               ${window.renderIcon('flame')}
             </div>
             <div class="stat-info-col">
-              <div class="stat-metric-value">${user.streakDays || 6} Days</div>
+              <div class="stat-metric-value">${user.streakDays || 0} Days</div>
               <div class="stat-metric-label">Active Streak</div>
             </div>
           </div>
@@ -77,7 +77,7 @@
               ${window.renderIcon('clock')}
             </div>
             <div class="stat-info-col">
-              <div class="stat-metric-value">${user.todayStudiedMinutes || 25} / ${user.dailyGoalMinutes || 30} m</div>
+              <div class="stat-metric-value">${user.todayStudiedMinutes || 0} / ${user.dailyGoalMinutes || 60} m</div>
               <div class="stat-metric-label">Daily Target</div>
             </div>
           </div>
@@ -87,7 +87,7 @@
               ${window.renderIcon('book-open')}
             </div>
             <div class="stat-info-col">
-              <div class="stat-metric-value">${enrolledCourses.length || 8} Courses</div>
+              <div class="stat-metric-value">${enrolledCourses.length} Courses</div>
               <div class="stat-metric-label">Learning Progress</div>
             </div>
           </div>
@@ -97,7 +97,7 @@
               ${window.renderIcon('star')}
             </div>
             <div class="stat-info-col">
-              <div class="stat-metric-value">98%</div>
+              <div class="stat-metric-value">${user.interestScore !== undefined ? user.interestScore + '%' : (enrolledCourses.length > 0 ? '95%' : '0%')}</div>
               <div class="stat-metric-label">Interest Score</div>
             </div>
           </div>
@@ -114,7 +114,13 @@
         </div>
 
         <div class="courses-grid-4 dashboard-courses-grid">
-          ${(recommendedCourses.length > 0 ? recommendedCourses.slice(0, 2) : courses.slice(0, 2)).map(c => {
+          ${courses.length === 0 ? `
+            <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 36px 20px;">
+              <div style="font-size: 2.2rem; margin-bottom: 8px;">📚</div>
+              <h4 style="font-weight: 800; margin-bottom: 4px;">No Courses Published Yet</h4>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">Once the instructor creates and publishes courses in the Admin panel, recommendations will appear here.</p>
+            </div>
+          ` : (recommendedCourses.length > 0 ? recommendedCourses.slice(0, 2) : courses.slice(0, 2)).map(c => {
             if (courseCardRenderer) {
               return courseCardRenderer(c, (user.enrolledCourseIds || []).includes(c.id));
             }

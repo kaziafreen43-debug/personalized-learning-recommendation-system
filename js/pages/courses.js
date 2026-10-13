@@ -107,7 +107,13 @@
         </div>
 
         <div class="courses-grid-4">
-          ${courses.map(c => CoursesView.renderCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
+          ${courses.length === 0 ? `
+            <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 50px 20px;">
+              <div style="font-size: 2.5rem; margin-bottom: 12px;">🎓</div>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No Courses Available Yet</h3>
+              <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto;">No courses match the current filter. Courses created in the Admin panel will appear dynamically here.</p>
+            </div>
+          ` : courses.map(c => CoursesView.renderCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
         </div>
       `;
     }

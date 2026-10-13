@@ -80,8 +80,14 @@
         </div>
 
         <div class="quizzes-grid-2x2">
-          ${quizzes.map(q => {
-            const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId };
+          ${quizzes.length === 0 ? `
+            <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 48px 20px;">
+              <div style="font-size: 2.5rem; margin-bottom: 12px;">🏆</div>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No Quizzes Available Yet</h3>
+              <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto;">There are no quizzes published for this selection yet. Quizzes created in the Admin panel will appear here.</p>
+            </div>
+          ` : quizzes.map(q => {
+            const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId || 'General' };
             const qCount = q.questionCount || (q.questions ? q.questions.length : (q.level === 'Beginner' ? 5 : (q.level === 'Intermediate' ? 10 : 15)));
             const tierClass = (q.level || 'beginner').toLowerCase();
 

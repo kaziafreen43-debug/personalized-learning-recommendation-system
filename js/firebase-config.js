@@ -1,16 +1,23 @@
 // 1. Firebase configuration from your console
 const firebaseConfig = {
-  apiKey: "AIzaSyCUPXcUZmsm2ZiZUDKqdqZb-TJ3owQeBjU",
-  authDomain: "new-personalized-learning.firebaseapp.com",
-  projectId: "new-personalized-learning",
-  storageBucket: "new-personalized-learning.firebasestorage.app",
-  messagingSenderId: "205286842033",
-  appId: "1:205286842033:web:a5d73b508c88d610198c90",
-  measurementId: "G-T0HXSZCHZC"
+  apiKey: "AIzaSyAvbsSLW0vQ8ubX7R-jidS2_mTu18vE_IY",
+  authDomain: "my-mini-project-43074.firebaseapp.com",
+  projectId: "my-mini-project-43074",
+  storageBucket: "my-mini-project-43074.firebasestorage.app",
+  messagingSenderId: "536242207483",
+  appId: "1:536242207483:web:1eb65a7787f4726586ce5e",
+  measurementId: "G-TF0BMZS1X3"
 };
 
 // 2. Initialize Firebase globally
-firebase.initializeApp(firebaseConfig);
+try {
+  if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase initialized successfully.");
+  }
+} catch (e) {
+  console.warn("Firebase initializeApp note:", e);
+}
 
 // --------------------------------------------------------------------------
 // Robust MockFirestore Client Proxy (100X Logic for Local/Backend Sync)
@@ -224,16 +231,22 @@ class MockFirestore {
 
 // 3. Initialize Firebase Auth globally
 try {
-  window.auth = firebase.auth();
-  console.log("Firebase Auth initialized successfully.");
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    window.auth = firebase.auth();
+    console.log("Firebase Auth initialized successfully.");
+  }
 } catch (e) {
   console.warn("Failed to initialize Firebase Auth:", e);
 }
 
 // 4. Initialize Firestore globally and assign to window.db (with MockFirestore fallback)
 try {
-  window.db = firebase.firestore();
-  console.log("Firebase Firestore initialized successfully.");
+  if (typeof firebase !== 'undefined' && firebase.firestore) {
+    window.db = firebase.firestore();
+    console.log("Firebase Firestore initialized successfully.");
+  } else {
+    window.db = new MockFirestore();
+  }
 } catch (e) {
   console.warn("Failed to initialize Firebase Firestore, falling back to MockFirestore:", e);
   window.db = new MockFirestore();

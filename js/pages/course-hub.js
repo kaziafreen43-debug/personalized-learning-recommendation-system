@@ -34,8 +34,26 @@
     render: function() {
       const state = window.AppState || {};
       const courses = (state.data && state.data.courses) ? state.data.courses : [];
-      const courseId = state.selectedCourseId || 'course-ai-101';
-      const course = courses.find(c => c.id === courseId) || courses[0] || { title: 'AI Masterclass' };
+      if (!courses.length) {
+        return `
+          <div style="margin-bottom:24px;">
+            <button onclick="AppState.setView('courses')" style="font-size:0.88rem; font-weight:700; color:var(--color-teal-action); display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+              ${window.renderIcon('arrow-left')} Back to All Courses
+            </button>
+            <div class="widget-card" style="text-align:center; padding:60px 20px;">
+              <div style="font-size:2.8rem; margin-bottom:12px;">📚</div>
+              <h2 style="font-size:1.35rem; font-weight:800; margin-bottom:8px;">No Courses Available in Study Hub</h2>
+              <p style="color:var(--text-muted); max-width:440px; margin:0 auto 20px;">There are currently no courses published. Create a course in the Admin panel or check back later.</p>
+              <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex;" onclick="AppState.setView('courses')">
+                Browse Courses
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      const courseId = state.selectedCourseId || (courses[0] && courses[0].id);
+      const course = courses.find(c => c.id === courseId) || courses[0];
       const userSkill = (state.currentUser && state.currentUser.skillLevel) || 'Intermediate';
 
       const courseAssignments = (state.data && state.data.assignments) ? state.data.assignments.filter(a => a.courseId === course.id) : [];
@@ -87,7 +105,11 @@
           <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:14px; color:var(--color-teal-action);">${currentCatData.title}</h3>
 
           <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; width:100%;">
-            ${(currentCatData.materials || []).map(mat => `
+            ${(currentCatData.materials || []).length === 0 ? `
+              <div style="padding:24px; text-align:center; color:var(--text-muted); background:var(--bg-surface); border-radius:var(--radius-md); border:1px dashed var(--border-color);">
+                <p style="margin:0; font-size:0.9rem;">No video lectures or study materials added to this category tier yet.</p>
+              </div>
+            ` : (currentCatData.materials || []).map(mat => `
               <div class="course-hub-material-row">
                 <div class="course-hub-material-info">
                   <span class="format-badge" style="background:var(--color-teal-light); color:var(--color-teal-action); flex-shrink:0;">${mat.format}</span>
@@ -100,15 +122,29 @@
             `).join('')}
           </div>
 
-          <div style="background:var(--color-teal-light); border:1px dashed var(--color-teal-action); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; width:100%;">
-            <div style="flex:1; min-width:200px;">
-              <strong style="font-size:1rem; color:var(--color-teal-action);">${currentCategory} Category Quiz (${qCount} Questions)</strong>
-              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Solve this ${qCount}-question quiz to evaluate your category mastery and interest.</p>
-            </div>
-            <button class="btn-launch-resource" style="background:#0f172a; padding:10px 20px; font-size:0.88rem; min-height:44px; display:inline-flex; align-items:center; gap:6px;" onclick="AppState.openModal('quiz', '${currentCatData.quizId}')">
-              ${window.renderIcon('award')} Take ${qCount}-Question Quiz
-            </button>
-          </div>
+          ${(() => {
+            const allQuizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
+            const matchedQuiz = allQuizzes.find(q => q.id === currentCatData.quizId || (q.subjectId === course.subjectId && q.level === currentCategory)) || allQuizzes[0];
+            if (!matchedQuiz) {
+              return `
+                <div style="background:var(--bg-surface); border:1px dashed var(--border-color); padding:16px; border-radius:var(--radius-md); width:100%; text-align:center; color:var(--text-muted);">
+                  <span style="font-size:0.9rem;">No quiz published for this category yet. Instructors can add one from the Admin Panel.</span>
+                </div>
+              `;
+            }
+            const qCountActual = matchedQuiz.questions ? matchedQuiz.questions.length : (matchedQuiz.questionCount || qCount);
+            return `
+              <div style="background:var(--color-teal-light); border:1px dashed var(--color-teal-action); padding:18px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; width:100%;">
+                <div style="flex:1; min-width:200px;">
+                  <strong style="font-size:1rem; color:var(--color-teal-action);">${currentCategory} Category Quiz (${qCountActual} Questions)</strong>
+                  <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">${matchedQuiz.title}</p>
+                </div>
+                <button class="btn-launch-resource" style="background:#0f172a; padding:10px 20px; font-size:0.88rem; min-height:44px; display:inline-flex; align-items:center; gap:6px;" onclick="AppState.openModal('quiz', '${matchedQuiz.id}')">
+                  ${window.renderIcon('award')} Take ${qCountActual}-Question Quiz
+                </button>
+              </div>
+            `;
+          })()}
         </div>
 
         <!-- Assignments Section -->

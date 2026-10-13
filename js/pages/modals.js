@@ -520,8 +520,20 @@
 
     renderQuizModalContent: function(quizId) {
       const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : [];
-      const quiz = quizzes.find(q => q.id === quizId) || quizzes[0] || { title: 'Quiz', questions: [] };
-      const q = (quiz.questions && quiz.questions[currentQuizStep]) ? quiz.questions[currentQuizStep] : (quiz.questions ? quiz.questions[0] : { question: 'Question?', options: ['Option 1', 'Option 2'], correctIndex: 0 });
+      const quiz = quizzes.find(q => q.id === quizId) || quizzes[0];
+      if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+        return `
+          <div style="text-align:center; padding:40px 20px;">
+            <div style="font-size:2.5rem; margin-bottom:12px;">🏆</div>
+            <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:8px;">No Quiz Questions Available</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px;">This quiz has not been populated with questions yet.</p>
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex;" onclick="AppState.closeModal()">
+              Close Quiz
+            </button>
+          </div>
+        `;
+      }
+      const q = (quiz.questions && quiz.questions[currentQuizStep]) ? quiz.questions[currentQuizStep] : quiz.questions[0];
 
       return `
         <div class="quiz-container" style="border:none; padding:0;">

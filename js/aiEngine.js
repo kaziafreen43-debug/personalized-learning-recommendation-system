@@ -256,21 +256,17 @@ window.AIEngine = {
 
     // Courses & Enrolled summary
     if (['my course', 'enrolled', 'what courses am i', 'my progress', 'what am i studying', 'current course'].some(k => msgLower.includes(k))) {
-      const courseNames = {
-        'course-ai-101': '🤖 AI & Neural Networks Masterclass',
-        'course-cs-101': '💻 Computer Science & Software Engineering Pathway',
-        'course-math-101': '📐 Mathematics & Applied Analytics Mastery',
-        'course-physics-101': '⚡ Physics, Mechanics & Quantum Systems',
-        'course-bio-101': '🧬 Genetics, Cell Biology & Biotechnology',
-        'course-chem-101': '🧪 Chemistry, Organic Synthesis & Molecules'
-      };
-      const enrolledTitles = enrolledIds.map(cid => courseNames[cid] || cid);
+      const allCourses = (window.AppState && window.AppState.data && window.AppState.data.courses) || [];
+      const enrolledCourses = allCourses.filter(c => enrolledIds.includes(c.id));
+      const enrolledTitles = enrolledCourses.map(c => `🎓 ${c.title}`);
       return {
-        reply: `Here is a summary of your active learning profile, **${userName}**:\n\n🎓 **Enrolled Courses (${enrolledTitles.length || 2}):**\n` +
-          (enrolledTitles.length > 0 ? enrolledTitles.map(t => `- ${t}`).join('\n') : `- 🤖 AI & Neural Networks Masterclass\n- 📐 Mathematics & Applied Analytics Mastery`) +
-          `\n\n📊 **Current Target**: ${careerGoal}\n🎯 **Learning Style**: ${userStyle.toUpperCase()} (Tailoring visual diagrams & structured step-by-step roadmaps for you!)\n\nWhich course would you like to dive into right now?`,
-        suggestions: ["Open AI Masterclass", "View My Roadmap", "Take a Skill Quiz", "Check Study Notes"],
-        action: { type: 'navigate', view: 'courses', label: '🎓 Open Enrolled Courses Hub' }
+        reply: `Here is a summary of your active learning profile, **${userName}**:\n\n` +
+          (enrolledTitles.length > 0 
+            ? `🎓 **Enrolled Courses (${enrolledTitles.length}):**\n` + enrolledTitles.map(t => `- ${t}`).join('\n')
+            : `You are not enrolled in any courses yet. Explore our courses catalog to enroll in a pathway!`) +
+          `\n\n📊 **Target Career**: ${careerGoal}\n🎯 **Learning Style**: ${userStyle.toUpperCase()}\n\nWhat would you like to explore next?`,
+        suggestions: ["Browse Courses", "View My Roadmap", "Take a Skill Quiz", "Check Study Notes"],
+        action: { type: 'navigate', view: 'courses', label: '🎓 View Courses Catalog' }
       };
     }
 
@@ -289,7 +285,7 @@ window.AIEngine = {
         return {
           reply: `### 🧠 How Backpropagation Works (Step-by-Step):\n\n**Backpropagation** (backward propagation of errors) is the mathematical engine used to train artificial neural networks using the **Chain Rule of Calculus**.\n\n#### 1. The Forward Pass\nInput data $X$ travels through layers: each neuron computes $z = W \\cdot X + b$, followed by an activation function $a = \\sigma(z)$. The final layer produces prediction $\\hat{y}$.\n\n#### 2. Loss Calculation\nThe loss function measures error between prediction $\\hat{y}$ and true label $y$:\n$$\\mathcal{L} = \\frac{1}{2} (\\hat{y} - y)^2$$\n\n#### 3. The Backward Pass (Gradients)\nUsing the chain rule, we compute the gradient of loss with respect to each weight:\n$$\\frac{\\partial \\mathcal{L}}{\\partial W} = \\frac{\\partial \\mathcal{L}}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial z} \\cdot \\frac{\\partial z}{\\partial W}$$\n\n#### 4. Weight Update (Gradient Descent)\nWeights are updated in the opposite direction of the gradient:\n$$W_{\\text{new}} = W_{\\text{old}} - \\alpha \\cdot \\frac{\\partial \\mathcal{L}}{\\partial W}$$\n*(where $\\alpha$ is the learning rate)*.\n\n👁️ **Visual Analogy**: Imagine rolling a ball down a hilly fog-covered terrain. The gradient tells the ball which direction is steepest downhill to reach the lowest valley (minimum loss)!`,
           suggestions: ["What is Gradient Descent?", "Explain Activation Functions (ReLU vs Sigmoid)", "What is Overfitting?", "Open AI Course"],
-          action: { type: 'navigate', view: 'course-hub', courseId: 'course-ai-101', label: '🎥 Watch Perceptrons & Backpropagation Video' }
+          action: { type: 'navigate', view: 'courses', label: '🎥 View Courses' }
         };
       } else if (msgLower.includes('gradient descent')) {
         return {
@@ -301,13 +297,13 @@ window.AIEngine = {
         return {
           reply: `### 🤖 Transformers & Self-Attention Explained:\n\nThe **Transformer architecture** (introduced in *'Attention Is All You Need'*, 2017) revolutionized modern AI and powers models like GPT, Gemini, and Claude.\n\n#### Core Components:\n1. **Self-Attention Mechanism**: Allows every word in a sentence to look at all other words and assign relevance scores.\n2. **Query, Key, Value (Q, K, V) Vectors**:\n$$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right) V$$\n3. **Multi-Head Attention**: Lets the model attend to information from different representation subspaces simultaneously.\n4. **Positional Encoding**: Injects sequence order without requiring recurrent loops (enabling massive parallelization on GPUs).`,
           suggestions: ["Explain CNNs", "How do LLMs generate text?", "Take AI Quiz", "Open AI Course"],
-          action: { type: 'navigate', view: 'course-hub', courseId: 'course-ai-101', label: '🎥 Watch Transformers & LLM Video Lecture' }
+          action: { type: 'navigate', view: 'courses', label: '🎥 View Courses' }
         };
       } else {
         return {
           reply: `### 🧠 Artificial Intelligence & Deep Learning:\n\nIn your **AI & Neural Networks** course, we study how artificial neurons simulate biological learning:\n- **Perceptrons**: Linear classifiers that compute weighted sums and apply non-linear thresholding.\n- **Activation Functions**: Non-linear activations like **ReLU** $(f(x) = \\max(0, x))$, **Sigmoid**, and **Softmax** allow networks to learn complex decision boundaries.\n- **Deep Architectures**: CNNs for vision, Transformers for sequence/language, and GNNs for relational data.`,
-          suggestions: ["Explain Backpropagation", "Explain Transformers", "Open AI Masterclass"],
-          action: { type: 'navigate', view: 'course-hub', courseId: 'course-ai-101', label: '🚀 Open AI Course' }
+          suggestions: ["Explain Backpropagation", "Explain Transformers", "Open Courses"],
+          action: { type: 'navigate', view: 'courses', label: '🚀 Explore Courses' }
         };
       }
     }

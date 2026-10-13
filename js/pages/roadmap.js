@@ -43,18 +43,25 @@
       const activeSub = (state.activeSubjectFilter && state.activeSubjectFilter !== 'all') ? state.activeSubjectFilter : 'ds';
       const roadmaps = (state.data && state.data.roadmaps) ? state.data.roadmaps : {};
       
-      const rawRoadmap = roadmaps[activeSub] || {
-        title: 'Artificial Intelligence & Deep Learning Pathway',
-        nodes: [
-          { id: 'node-1', title: '1. Python for AI & Data Wrangling', status: 'completed', desc: 'NumPy arrays, Pandas & Matrix operations', resourceId: 'res-1' },
-          { id: 'node-2', title: '2. Artificial Intelligence Core', status: 'in-progress', desc: 'Perceptrons, Gradient Descent & Backpropagation', resourceId: 'res-5' },
-          { id: 'node-3', title: '3. Deep Learning & CNNs', status: 'locked', desc: 'Convolutional neural nets & Computer Vision', resourceId: 'res-2' },
-          { id: 'node-4', title: '4. Transformers & LLM Architectures', status: 'locked', desc: 'Attention mechanism, BERT, GPT & NLP Models', resourceId: 'res-3' }
-        ]
-      };
+      const subCourses = ((state.data && state.data.courses) || []).filter(c => c.subjectId === activeSub);
+      const subObj = subjects.find(s => s.id === activeSub) || { name: 'Subject' };
+      
+      let rawRoadmap = roadmaps[activeSub];
+      if (!rawRoadmap && subCourses.length > 0) {
+        rawRoadmap = {
+          title: `${subObj.name} Mastery Pathway`,
+          nodes: subCourses.map((c, idx) => ({
+            id: `node-${c.id}`,
+            title: `${idx + 1}. ${c.title}`,
+            status: idx === 0 ? 'in-progress' : 'locked',
+            desc: c.description || 'Course milestone curriculum & quizzes',
+            resourceId: c.id
+          }))
+        };
+      }
 
       const completedResourceIds = (state.currentUser && state.currentUser.completedResourceIds) || [];
-      const nodes = RoadmapMachine.calculateNodes(rawRoadmap, completedResourceIds);
+      const nodes = rawRoadmap ? RoadmapMachine.calculateNodes(rawRoadmap, completedResourceIds) : [];
 
       return `
         <div class="page-header">
@@ -72,12 +79,19 @@
         </div>
 
         <div class="roadmap-box-container">
-          <div class="roadmap-box-title">${rawRoadmap.title || 'Artificial Intelligence & Deep Learning Pathway'}</div>
+          <div class="roadmap-box-title">${(rawRoadmap && rawRoadmap.title) || (subObj.name + ' Learning Pathway')}</div>
 
-          <div class="roadmap-steps-vertical">
-            ${nodes.map(node => `
-              <div class="roadmap-step-row">
-                <div class="step-node-circle ${node.status}">
+          ${nodes.length === 0 ? `
+            <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+              <div style="font-size:2.2rem; margin-bottom:8px;">🗺️</div>
+              <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:6px;">No Roadmap Milestones Yet</h3>
+              <p style="font-size:0.88rem; max-width:400px; margin:0 auto;">Publish courses under this subject in the Admin panel to automatically generate this learning pathway.</p>
+            </div>
+          ` : `
+            <div class="roadmap-steps-vertical">
+              ${nodes.map(node => `
+                <div class="roadmap-step-row">
+                  <div class="step-node-circle ${node.status}">
                   ${node.status === 'completed' ? window.renderIcon('check') : (node.status === 'in-progress' ? window.renderIcon('play') : window.renderIcon('lock'))}
                 </div>
                 <div class="step-card-box ${node.status === 'in-progress' ? 'in-progress-border' : ''}">
@@ -103,7 +117,8 @@
                 </div>
               </div>
             `).join('')}
-          </div>
+            </div>
+          `}
         </div>
       `;
     }

@@ -27,59 +27,35 @@ window.AppState = {
     if (savedData) {
       try {
         this.data = JSON.parse(savedData);
-        if (window.INITIAL_DATA) {
-          for (let key in window.INITIAL_DATA) {
-            if (!this.data[key]) {
-              this.data[key] = window.INITIAL_DATA[key];
-            }
-          }
-        }
       } catch (e) {
-        this.data = window.INITIAL_DATA || {};
+        this.data = null;
       }
-    } else {
-      this.data = window.INITIAL_DATA || {};
+    }
+    if (!this.data) {
+      this.data = {
+        courses: [],
+        resources: [],
+        quizzes: [],
+        assignments: [],
+        submissions: [],
+        subjects: (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [],
+        defaultUsers: [],
+        roadmaps: {}
+      };
       this.saveData();
     }
 
-    // Sync complete courses, resources, roadmaps & quizzes for ALL subjects without wiping dynamic additions
-    if (window.INITIAL_DATA) {
-      if (!this.data.courses) {
-        this.data.courses = window.INITIAL_DATA.courses;
-      } else {
-        window.INITIAL_DATA.courses.forEach(c => {
-          if (!this.data.courses.some(dc => dc.id === c.id)) {
-            this.data.courses.push(c);
-          }
-        });
-      }
-      if (!this.data.resources) {
-        this.data.resources = window.INITIAL_DATA.resources;
-      } else {
-        window.INITIAL_DATA.resources.forEach(r => {
-          if (!this.data.resources.some(dr => dr.id === r.id)) {
-            this.data.resources.push(r);
-          }
-        });
-      }
-      if (window.INITIAL_DATA.roadmaps) this.data.roadmaps = window.INITIAL_DATA.roadmaps;
-      if (window.INITIAL_DATA.quizzes) this.data.quizzes = window.INITIAL_DATA.quizzes;
-      if (window.INITIAL_DATA.defaultUsers) {
-        if (!this.data.defaultUsers) {
-          this.data.defaultUsers = window.INITIAL_DATA.defaultUsers;
-        } else {
-          window.INITIAL_DATA.defaultUsers.forEach(u => {
-            if (!this.data.defaultUsers.some(du => du.id === u.id)) {
-              this.data.defaultUsers.push(u);
-            }
-          });
-        }
-      }
-    }
+    if (!Array.isArray(this.data.courses)) this.data.courses = [];
+    if (!Array.isArray(this.data.resources)) this.data.resources = [];
+    if (!Array.isArray(this.data.quizzes)) this.data.quizzes = [];
+    if (!Array.isArray(this.data.assignments)) this.data.assignments = [];
+    if (!Array.isArray(this.data.submissions)) this.data.submissions = [];
+    if (!Array.isArray(this.data.subjects)) this.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
+    if (!this.data.roadmaps) this.data.roadmaps = {};
 
     // Ensure admin user always exists with role: 'admin' and never gets purged
     if (!this.data.defaultUsers) this.data.defaultUsers = [];
-    let existingAdmin = this.data.defaultUsers.find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com'));
+    let existingAdmin = this.data.defaultUsers.find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin');
     if (!existingAdmin) {
       existingAdmin = {
         id: 'u-admin',
@@ -112,58 +88,6 @@ window.AppState = {
         if (legacyMockIds.includes(u.id) || (u.email && mockEmails.includes(u.email.toLowerCase()))) return false;
         return true;
       });
-    }
-
-    if (!this.data.assignments || this.data.assignments.length === 0) {
-      this.data.assignments = [
-        {
-          id: 'assign-ai-mcq-1',
-          courseId: 'course-ai-101',
-          title: 'AI & Machine Learning Foundations Assignment',
-          description: 'Assess your foundational understanding of Artificial Intelligence concepts, neural network mechanics, and supervised learning.',
-          points: 100,
-          questions: [
-            {
-              id: 'q-ai-1',
-              text: 'What is AI?',
-              options: [
-                'Artificial Ice',
-                'Artificial Intelligence',
-                'Artificial Internet',
-                'Automatic Input'
-              ],
-              correctAnswer: 1
-            },
-            {
-              id: 'q-ai-2',
-              text: 'Which type of learning uses labeled input and output training pairs?',
-              options: [
-                'Supervised Learning',
-                'Unsupervised Learning',
-                'Clustering Algorithms',
-                'Random Initialization'
-              ],
-              correctAnswer: 0
-            },
-            {
-              id: 'q-ai-3',
-              text: 'What is the role of backpropagation in deep neural networks?',
-              options: [
-                'To delete unused dataset features',
-                'To compute gradients and update connection weights',
-                'To format training data into text files',
-                'To increase screen resolution'
-              ],
-              correctAnswer: 1
-            }
-          ],
-          createdAt: new Date().toISOString()
-        }
-      ];
-    }
-
-    if (!this.data || !this.data.courses) {
-      this.data = window.INITIAL_DATA || {};
     }
 
     const savedTheme = localStorage.getItem('plr_theme');
@@ -584,11 +508,21 @@ window.AppState = {
 
     this.currentUser = userProfile;
     if (!this.data.defaultUsers) this.data.defaultUsers = [];
-    const existingIdx = this.data.defaultUsers.findIndex(u => u.id === userId || (u.email && u.email.toLowerCase() === registeredEmail.toLowerCase()));
+    const existingIdx = this.data.defaultUsers.findIndex(u => u.id === userId || (registeredEmail && u.email && u.email.toLowerCase() === registeredEmail.toLowerCase()));
     if (existingIdx >= 0) {
       this.data.defaultUsers[existingIdx] = userProfile;
     } else {
       this.data.defaultUsers.push(userProfile);
+    }
+
+    if (userRole !== 'admin') {
+      if (!this.data.students) this.data.students = [];
+      const stuIdx = this.data.students.findIndex(u => u.id === userId || (registeredEmail && u.email && u.email.toLowerCase() === registeredEmail.toLowerCase()));
+      if (stuIdx >= 0) {
+        this.data.students[stuIdx] = userProfile;
+      } else {
+        this.data.students.push(userProfile);
+      }
     }
 
     this.isAuthenticated = true;
@@ -866,6 +800,52 @@ window.AppState = {
           .catch(e => console.error("Error deleting assignment from Firestore:", e));
       } catch (e) {
         console.error("Firestore delete error:", e);
+      }
+    }
+  },
+
+  addQuiz: function(quizObj) {
+    if (!quizObj.id) quizObj.id = 'quiz-' + Date.now();
+    if (!this.data.quizzes) this.data.quizzes = [];
+    this.data.quizzes.unshift(quizObj);
+    this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.saveQuiz) {
+      window.FirebaseDB.saveQuiz(quizObj);
+    }
+    return quizObj;
+  },
+
+  updateQuiz: function(quizId, updatedData) {
+    if (!this.data.quizzes) return null;
+    const idx = this.data.quizzes.findIndex(q => q.id === quizId);
+    if (idx >= 0) {
+      this.data.quizzes[idx] = {
+        ...this.data.quizzes[idx],
+        ...updatedData,
+        updatedAt: new Date().toISOString()
+      };
+      this.saveData();
+      if (window.FirebaseDB && window.FirebaseDB.saveQuiz) {
+        window.FirebaseDB.saveQuiz(this.data.quizzes[idx]);
+      }
+      return this.data.quizzes[idx];
+    }
+    return null;
+  },
+
+  deleteQuiz: function(quizId) {
+    if (!this.data.quizzes) return;
+    this.data.quizzes = this.data.quizzes.filter(q => q.id !== quizId);
+    this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.deleteQuiz) {
+      window.FirebaseDB.deleteQuiz(quizId);
+    } else if (window.FirebaseDB && window.FirebaseDB.db) {
+      try {
+        window.FirebaseDB.db.collection('quizzes').doc(quizId).delete()
+          .then(() => console.log("Quiz deleted from Firestore"))
+          .catch(e => console.error("Error deleting quiz from Firestore:", e));
+      } catch (e) {
+        console.error("Firestore quiz delete error:", e);
       }
     }
   },

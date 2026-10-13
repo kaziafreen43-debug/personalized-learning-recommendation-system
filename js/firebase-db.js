@@ -14,31 +14,13 @@ window.FirebaseDB = {
     }
   },
 
-  // Seed Firestore with default data if empty
+  // Seed Firestore with admin user only if users collection is empty
   seedInitialDataIfEmpty: async function(initialData) {
     if (!this.isInitialized) return;
     try {
-      const coursesSnapshot = await this.db.collection('courses').limit(1).get();
-      if (coursesSnapshot.empty) {
-        console.log("Firestore courses collection is empty. Seeding initial courses...");
-        // Seed Courses
-        if (initialData.courses && Array.isArray(initialData.courses)) {
-          for (const course of initialData.courses) {
-            await this.db.collection('courses').doc(course.id).set(course);
-          }
-        }
-        // Seed Resources (videos, articles, labs, etc.)
-        if (initialData.resources && Array.isArray(initialData.resources)) {
-          for (const res of initialData.resources) {
-            await this.db.collection('resources').doc(res.id).set(res);
-          }
-        }
-        console.log("Firestore seeded successfully with default courses and resources.");
-      }
-
       const usersSnapshot = await this.db.collection('users').limit(1).get();
       if (usersSnapshot.empty) {
-        console.log("Firestore users collection is empty. Seeding admin account only...");
+        console.log("Firestore users collection is empty. Ensuring default admin account...");
         const adminUser = (initialData.defaultUsers || []).find(u => u.role === 'admin') || {
           id: 'u-admin',
           name: 'Admin Instructor',
@@ -57,7 +39,7 @@ window.FirebaseDB = {
           recentActivity: []
         };
         await this.db.collection('users').doc(adminUser.id).set(adminUser);
-        console.log("Firestore seeded successfully with default admin.");
+        console.log("Default admin account verified in Firestore.");
       }
 
       // Purge any legacy static mock students so table starts empty
@@ -67,19 +49,8 @@ window.FirebaseDB = {
           await this.db.collection('users').doc(mid).delete();
         } catch (_) {}
       }
-
-      const subjectsSnapshot = await this.db.collection('subjects').limit(1).get();
-      if (subjectsSnapshot.empty) {
-        console.log("Firestore subjects collection is empty. Seeding initial default subjects...");
-        if (initialData.subjects && Array.isArray(initialData.subjects)) {
-          for (const subject of initialData.subjects) {
-            await this.db.collection('subjects').doc(subject.id).set(subject);
-          }
-        }
-        console.log("Firestore seeded successfully with default subjects.");
-      }
     } catch (e) {
-      console.error("Error seeding initial data to Firestore:", e);
+      console.error("Error checking admin user in Firestore:", e);
     }
   },
 
@@ -114,19 +85,7 @@ window.FirebaseDB = {
       coursesSnap.forEach(doc => {
         courses.push(doc.data());
       });
-      if (courses.length > 0) {
-        if (!appState.data.courses) {
-          appState.data.courses = [];
-        }
-        courses.forEach(c => {
-          const idx = appState.data.courses.findIndex(dc => dc.id === c.id);
-          if (idx >= 0) {
-            appState.data.courses[idx] = c;
-          } else {
-            appState.data.courses.push(c);
-          }
-        });
-      }
+      appState.data.courses = courses;
     } catch (e) {
       console.error("Error fetching courses from Firestore:", e);
     }
@@ -138,19 +97,7 @@ window.FirebaseDB = {
       resourcesSnap.forEach(doc => {
         resources.push(doc.data());
       });
-      if (resources.length > 0) {
-        if (!appState.data.resources) {
-          appState.data.resources = [];
-        }
-        resources.forEach(r => {
-          const idx = appState.data.resources.findIndex(dr => dr.id === r.id);
-          if (idx >= 0) {
-            appState.data.resources[idx] = r;
-          } else {
-            appState.data.resources.push(r);
-          }
-        });
-      }
+      appState.data.resources = resources;
     } catch (e) {
       console.error("Error fetching resources from Firestore:", e);
     }
@@ -163,17 +110,9 @@ window.FirebaseDB = {
         subjects.push(doc.data());
       });
       if (subjects.length > 0) {
-        if (!appState.data.subjects) {
-          appState.data.subjects = [];
-        }
-        subjects.forEach(s => {
-          const idx = appState.data.subjects.findIndex(ds => ds.id === s.id);
-          if (idx >= 0) {
-            appState.data.subjects[idx] = s;
-          } else {
-            appState.data.subjects.push(s);
-          }
-        });
+        appState.data.subjects = subjects;
+      } else if (!appState.data.subjects || appState.data.subjects.length === 0) {
+        appState.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
       }
     } catch (e) {
       console.error("Error fetching subjects from Firestore:", e);
@@ -186,21 +125,21 @@ window.FirebaseDB = {
       assignmentsSnap.forEach(doc => {
         assignments.push(doc.data());
       });
-      if (assignments.length > 0) {
-        if (!appState.data.assignments) {
-          appState.data.assignments = [];
-        }
-        assignments.forEach(a => {
-          const idx = appState.data.assignments.findIndex(da => da.id === a.id);
-          if (idx >= 0) {
-            appState.data.assignments[idx] = a;
-          } else {
-            appState.data.assignments.push(a);
-          }
-        });
-      }
+      appState.data.assignments = assignments;
     } catch (e) {
       console.error("Error fetching assignments from Firestore:", e);
+    }
+
+    // 4.5 Fetch Quizzes (independent block)
+    try {
+      const quizzesSnap = await this.db.collection('quizzes').get();
+      const quizzes = [];
+      quizzesSnap.forEach(doc => {
+        quizzes.push(doc.data());
+      });
+      appState.data.quizzes = quizzes;
+    } catch (e) {
+      console.error("Error fetching quizzes from Firestore:", e);
     }
 
     // 5. Fetch all Users to sync dynamic register logins (independent block)
@@ -408,6 +347,34 @@ window.FirebaseDB = {
       console.log(`Subject ${subject.id} saved to Firestore.`);
     } catch (e) {
       console.error("Error saving subject to Firestore:", e);
+    }
+  },
+
+  // Save/Update Quiz
+  saveQuiz: async function(quiz) {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.isInitialized) return;
+    try {
+      await this.db.collection('quizzes').doc(quiz.id).set(quiz);
+      console.log(`Quiz ${quiz.id} saved to Firestore.`);
+    } catch (e) {
+      console.error("Error saving quiz to Firestore:", e);
+    }
+  },
+
+  // Delete Quiz
+  deleteQuiz: async function(quizId) {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.isInitialized) return;
+    try {
+      await this.db.collection('quizzes').doc(quizId).delete();
+      console.log(`Quiz ${quizId} deleted from Firestore.`);
+    } catch (e) {
+      console.error("Error deleting quiz from Firestore:", e);
     }
   }
 };

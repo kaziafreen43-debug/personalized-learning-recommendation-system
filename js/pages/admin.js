@@ -103,6 +103,136 @@
   };
 
   // ==========================================================================
+  // DYNAMIC QUIZ BUILDER & HANDLERS (Admin Side)
+  // ==========================================================================
+  window.quizSubView = 'list';
+  window.quizBuilder = {
+    title: '',
+    subjectId: '',
+    level: 'Beginner',
+    timeLimitMinutes: 10,
+    questions: [
+      {
+        id: 'q-1',
+        question: '',
+        options: ['', '', '', ''],
+        correctIndex: 0,
+        explanation: ''
+      }
+    ]
+  };
+
+  window.initQuizBuilderState = function() {
+    window.quizBuilder = {
+      title: '',
+      subjectId: (window.AppState && window.AppState.data && window.AppState.data.subjects && window.AppState.data.subjects[0]) ? window.AppState.data.subjects[0].id : 'ds',
+      level: 'Beginner',
+      timeLimitMinutes: 10,
+      questions: [
+        {
+          id: 'q-' + Date.now() + '-1',
+          question: '',
+          options: ['', '', '', ''],
+          correctIndex: 0,
+          explanation: ''
+        }
+      ]
+    };
+  };
+
+  window.addQuizQuestionField = function() {
+    if (!window.quizBuilder) window.initQuizBuilderState();
+    window.quizBuilder.questions.push({
+      id: 'q-' + Date.now() + '-' + (window.quizBuilder.questions.length + 1),
+      question: '',
+      options: ['', '', '', ''],
+      correctIndex: 0,
+      explanation: ''
+    });
+    AppState.notify();
+  };
+
+  window.removeQuizQuestionField = function(index) {
+    if (!window.quizBuilder || window.quizBuilder.questions.length <= 1) {
+      alert("A quiz must have at least one question.");
+      return;
+    }
+    window.quizBuilder.questions.splice(index, 1);
+    AppState.notify();
+  };
+
+  window.handleCreateQuizSubmit = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const title = form.quizTitle.value.trim();
+    const subjectId = form.quizSubjectId.value;
+    const level = form.quizLevel.value;
+    const timeLimit = parseInt(form.quizTimeLimit.value) || 10;
+
+    if (!title || !subjectId) {
+      alert("Please fill in Quiz Title and select a valid Subject.");
+      return;
+    }
+
+    const questions = [];
+    const qCards = form.querySelectorAll('.admin-quiz-q-card');
+    qCards.forEach((card, idx) => {
+      const qInput = card.querySelector(`input[name="q_text_${idx}"]`);
+      const qText = qInput ? qInput.value.trim() : '';
+      const opt0 = (card.querySelector(`input[name="q_opt_${idx}_0"]`)?.value || '').trim();
+      const opt1 = (card.querySelector(`input[name="q_opt_${idx}_1"]`)?.value || '').trim();
+      const opt2 = (card.querySelector(`input[name="q_opt_${idx}_2"]`)?.value || '').trim();
+      const opt3 = (card.querySelector(`input[name="q_opt_${idx}_3"]`)?.value || '').trim();
+      const corrSel = card.querySelector(`select[name="q_correct_${idx}"]`);
+      const corrIdx = corrSel ? parseInt(corrSel.value) : 0;
+      const expInput = card.querySelector(`input[name="q_exp_${idx}"]`);
+      const explanation = expInput ? expInput.value.trim() : '';
+
+      if (qText) {
+        questions.push({
+          id: `q_${Date.now()}_${idx}`,
+          question: qText,
+          options: [opt0 || 'Option 1', opt1 || 'Option 2', opt2 || 'Option 3', opt3 || 'Option 4'],
+          correctIndex: corrIdx,
+          explanation: explanation || 'Correct answer assessment.'
+        });
+      }
+    });
+
+    if (questions.length === 0) {
+      alert("Please enter at least one question with text.");
+      return;
+    }
+
+    const quizObj = {
+      id: 'quiz-' + Date.now(),
+      title: title,
+      subjectId: subjectId,
+      level: level,
+      questionCount: questions.length,
+      timeLimitMinutes: timeLimit,
+      questions: questions,
+      createdAt: new Date().toISOString()
+    };
+
+    AppState.addQuiz(quizObj);
+    alert(`Quiz "${title}" created and synced dynamically to Firebase!`);
+    window.initQuizBuilderState();
+    window.quizSubView = 'list';
+    AppState.notify();
+  };
+
+  window.handleDeleteQuiz = function(quizId) {
+    const quizzes = (AppState.data && AppState.data.quizzes) ? AppState.data.quizzes : [];
+    const q = quizzes.find(item => item.id === quizId);
+    const title = q ? q.title : 'this quiz';
+    if (confirm(`Are you sure you want to permanently delete quiz "${title}"?`)) {
+      AppState.deleteQuiz(quizId);
+      AppState.notify();
+    }
+  };
+
+  // ==========================================================================
   // DYNAMIC MCQ ASSIGNMENT BUILDER (Admin Side)
   // ==========================================================================
   window.assignmentBuilder = {
@@ -1971,6 +2101,210 @@
             </div>
           </div>
         `;
+      } else if (window.activeAdminTab === 'quizzes') {
+        const quizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
+        window.quizSubView = window.quizSubView || 'list';
+        if (!window.quizBuilder) window.initQuizBuilderState();
+
+        if (window.quizSubView === 'create') {
+          activeTabContent = `
+            <div class="widget-card" style="max-width:800px; margin:0 auto; width:100%;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+                <div>
+                  <h2 style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:8px; margin:0;">
+                    ${window.renderIcon('plus-circle')} Create Dynamic Quiz
+                  </h2>
+                  <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px; margin-bottom:0;">
+                    Design subject-based assessments with multiple-choice questions for students.
+                  </p>
+                </div>
+                <button type="button" class="btn-table-action" style="padding:7px 14px; font-weight:700; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main); display:inline-flex; align-items:center; gap:6px;" onclick="window.quizSubView='list'; AppState.notify();">
+                  ${window.renderIcon('list', 'small-icon')} View Quizzes (${quizzes.length})
+                </button>
+              </div>
+
+              <form onsubmit="window.handleCreateQuizSubmit(event)">
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <div>
+                    <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Quiz Title</label>
+                    <input type="text" name="quizTitle" required placeholder="e.g. Artificial Intelligence Fundamentals Quiz" value="${window.escapeHtmlAttr(window.quizBuilder.title || '')}" oninput="window.quizBuilder.title=this.value" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                  </div>
+
+                  <div class="admin-form-grid-3" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                    <div>
+                      <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Subject</label>
+                      <select name="quizSubjectId" required style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="window.quizBuilder.subjectId=this.value">
+                        <option value="" disabled ${!window.quizBuilder.subjectId ? 'selected' : ''}>Select Subject</option>
+                        ${subjects.map(s => `<option value="${s.id}" ${window.quizBuilder.subjectId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Tier / Category</label>
+                      <select name="quizLevel" required style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="window.quizBuilder.level=this.value">
+                        <option value="Beginner" ${window.quizBuilder.level === 'Beginner' ? 'selected' : ''}>Beginner (5 Questions)</option>
+                        <option value="Intermediate" ${window.quizBuilder.level === 'Intermediate' ? 'selected' : ''}>Intermediate (10 Questions)</option>
+                        <option value="Advanced" ${window.quizBuilder.level === 'Advanced' ? 'selected' : ''}>Advanced (15 Questions)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Time Limit (Minutes)</label>
+                      <input type="number" name="quizTimeLimit" min="1" max="120" value="${window.quizBuilder.timeLimitMinutes || 10}" oninput="window.quizBuilder.timeLimitMinutes=parseInt(this.value)||10" required style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                    </div>
+                  </div>
+
+                  <div style="margin-top:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                      <h3 style="font-size:1.05rem; font-weight:800; margin:0;">Quiz Questions (${window.quizBuilder.questions.length})</h3>
+                      <button type="button" class="btn-table-action" style="padding:6px 12px; font-weight:700; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--color-teal-light); color:var(--color-teal-action); display:inline-flex; align-items:center; gap:5px;" onclick="window.addQuizQuestionField()">
+                        ${window.renderIcon('plus', 'small-icon')} Add Question
+                      </button>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                      ${window.quizBuilder.questions.map((q, qIdx) => `
+                        <div class="admin-quiz-q-card" style="padding:16px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-surface);">
+                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-weight:700; font-size:0.9rem; color:var(--primary-500);">Question #${qIdx + 1}</span>
+                            ${window.quizBuilder.questions.length > 1 ? `
+                              <button type="button" style="background:#fee2e2; border:1px solid #fca5a5; color:#ef4444; border-radius:var(--radius-xs); padding:4px 8px; font-size:0.75rem; font-weight:700; cursor:pointer;" onclick="window.removeQuizQuestionField(${qIdx})">
+                                ${window.renderIcon('trash-2', 'small-icon')} Remove
+                              </button>
+                            ` : ''}
+                          </div>
+
+                          <div style="margin-bottom:10px;">
+                            <input type="text" name="q_text_${qIdx}" placeholder="Enter question text here..." required value="${window.escapeHtmlAttr(q.question || '')}" oninput="window.quizBuilder.questions[${qIdx}].question=this.value" style="width:100%; padding:9px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.9rem;">
+                          </div>
+
+                          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                              <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Option A</label>
+                              <input type="text" name="q_opt_${qIdx}_0" required placeholder="Option A" value="${window.escapeHtmlAttr((q.options && q.options[0]) || '')}" oninput="window.quizBuilder.questions[${qIdx}].options[0]=this.value" style="width:100%; padding:8px 10px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.85rem;">
+                            </div>
+                            <div>
+                              <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Option B</label>
+                              <input type="text" name="q_opt_${qIdx}_1" required placeholder="Option B" value="${window.escapeHtmlAttr((q.options && q.options[1]) || '')}" oninput="window.quizBuilder.questions[${qIdx}].options[1]=this.value" style="width:100%; padding:8px 10px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.85rem;">
+                            </div>
+                            <div>
+                              <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Option C</label>
+                              <input type="text" name="q_opt_${qIdx}_2" required placeholder="Option C" value="${window.escapeHtmlAttr((q.options && q.options[2]) || '')}" oninput="window.quizBuilder.questions[${qIdx}].options[2]=this.value" style="width:100%; padding:8px 10px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.85rem;">
+                            </div>
+                            <div>
+                              <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Option D</label>
+                              <input type="text" name="q_opt_${qIdx}_3" required placeholder="Option D" value="${window.escapeHtmlAttr((q.options && q.options[3]) || '')}" oninput="window.quizBuilder.questions[${qIdx}].options[3]=this.value" style="width:100%; padding:8px 10px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.85rem;">
+                            </div>
+                          </div>
+
+                          <div style="display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center;">
+                            <div>
+                              <label style="font-size:0.75rem; font-weight:700; color:var(--color-emerald); display:block; margin-bottom:2px;">Correct Answer</label>
+                              <select name="q_correct_${qIdx}" style="width:100%; padding:8px 10px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.85rem; font-weight:700;" onchange="window.quizBuilder.questions[${qIdx}].correctIndex=parseInt(this.value)">
+                                <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>Option A</option>
+                                <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>Option B</option>
+                                <option value="2" ${q.correctIndex === 2 ? 'selected' : ''}>Option C</option>
+                                <option value="3" ${q.correctIndex === 3 ? 'selected' : ''}>Option D</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:2px;">Explanation (Optional)</label>
+                              <input type="text" name="q_exp_${qIdx}" placeholder="Explanation for correct answer..." value="${window.escapeHtmlAttr(q.explanation || '')}" oninput="window.quizBuilder.questions[${qIdx}].explanation=this.value" style="width:100%; padding:8px 10px; border-radius:var(--radius-xs); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.85rem;">
+                            </div>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+
+                  <div style="display:flex; gap:12px; margin-top:8px;">
+                    <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; padding:12px; justify-content:center; font-size:0.95rem; font-weight:800; border-radius:var(--radius-md);">
+                      ${window.renderIcon('check-circle')} Save & Publish Quiz to Firebase
+                    </button>
+                    <button type="button" class="btn-table-action" style="padding:12px 20px; font-weight:700; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main);" onclick="window.quizSubView='list'; AppState.notify();">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          `;
+        } else {
+          activeTabContent = `
+            <div class="widget-card" style="width:100%;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <h2 style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:8px; margin:0;">
+                    ${window.renderIcon('award')} Skill Quizzes Directory (${quizzes.length})
+                  </h2>
+                  <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px; margin-bottom:0;">
+                    All dynamic quizzes created and synced with Firebase Firestore.
+                  </p>
+                </div>
+                <button type="button" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:9px 18px; border-radius:var(--radius-md); font-weight:800; display:inline-flex; align-items:center; gap:6px;" onclick="window.quizSubView='create'; AppState.notify();">
+                  ${window.renderIcon('plus-circle')} Create New Quiz
+                </button>
+              </div>
+
+              ${quizzes.length === 0 ? `
+                <div style="text-align:center; padding:48px 20px; background:var(--bg-surface); border-radius:var(--radius-md); border:1px dashed var(--border-color);">
+                  <div style="font-size:2.5rem; margin-bottom:12px;">🏆</div>
+                  <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:6px;">No Quizzes Created Yet</h3>
+                  <p style="color:var(--text-muted); font-size:0.88rem; max-width:380px; margin:0 auto 16px;">Create quizzes dynamically with custom questions and tier levels for your students.</p>
+                  <button type="button" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:9px 18px; border-radius:var(--radius-md); font-weight:800; display:inline-flex; align-items:center; gap:6px;" onclick="window.quizSubView='create'; AppState.notify();">
+                    ${window.renderIcon('plus-circle')} Create First Quiz
+                  </button>
+                </div>
+              ` : `
+                <div class="table-responsive-wrapper">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Quiz Title</th>
+                        <th>Subject</th>
+                        <th>Tier / Category</th>
+                        <th style="text-align:center;">Questions</th>
+                        <th style="text-align:center;">Time Limit</th>
+                        <th style="text-align:right;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${quizzes.map(q => {
+                        const sub = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId || 'General' };
+                        const qCount = q.questions ? q.questions.length : (q.questionCount || 0);
+                        return `
+                          <tr>
+                            <td>
+                              <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">${q.title}</div>
+                              <div style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">ID: ${q.id}</div>
+                            </td>
+                            <td>
+                              <span style="font-size:0.82rem; font-weight:600; color:var(--text-main);">${sub.name}</span>
+                            </td>
+                            <td>
+                              <span class="quiz-tier-badge ${(q.level || 'beginner').toLowerCase()}" style="font-size:0.78rem;">
+                                ${q.level || 'Beginner'}
+                              </span>
+                            </td>
+                            <td style="text-align:center; font-weight:700;">
+                              ${qCount}
+                            </td>
+                            <td style="text-align:center; font-size:0.85rem; color:var(--text-muted);">
+                              ${q.timeLimitMinutes || 10} Mins
+                            </td>
+                            <td style="text-align:right;">
+                              <button type="button" class="btn-table-action" style="padding:6px 12px; border-radius:var(--radius-xs); border:1px solid #fca5a5; background:#fee2e2; color:#ef4444; font-size:0.8rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" onclick="window.handleDeleteQuiz('${q.id}')" title="Delete Quiz">
+                                ${window.renderIcon('trash-2', 'small-icon')} Delete
+                              </button>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              `}
+            </div>
+          `;
+        }
       } else {
         activeTabContent = '';
       }
@@ -2000,13 +2334,13 @@
               <div class="stat-label">Total Active Students</div>
             </div>
           </div>
-          <div class="stat-card admin-stat-card amber clickable-stat-card" onclick="window.activeAdminTab='submissions'; AppState.notify();" title="View New Students">
+          <div class="stat-card admin-stat-card amber clickable-stat-card" onclick="window.activeAdminTab='quizzes'; AppState.notify();" title="View Quizzes">
             <div class="admin-stat-icon-wrapper amber">
-              ${window.renderIcon('user-plus')}
+              ${window.renderIcon('award')}
             </div>
             <div class="admin-stat-info">
-              <div class="stat-value" data-count="${totalNewStudents}">${totalNewStudents.toLocaleString()}</div>
-              <div class="stat-label">Total New Students</div>
+              <div class="stat-value" data-count="${(state.data && state.data.quizzes) ? state.data.quizzes.length : 0}">${((state.data && state.data.quizzes) ? state.data.quizzes.length : 0).toLocaleString()}</div>
+              <div class="stat-label">Active Quizzes</div>
             </div>
           </div>
           <div class="stat-card admin-stat-card purple clickable-stat-card" onclick="window.activeAdminTab='course-directory'; AppState.notify();" title="View Course Directory">
@@ -2030,6 +2364,9 @@
           </button>
           <button class="tab-btn ${window.activeAdminTab === 'videos' ? 'active' : ''}" onclick="window.activeAdminTab='videos'; AppState.notify();">
             ${window.renderIcon('video')} Add Video Lessons
+          </button>
+          <button class="tab-btn ${window.activeAdminTab === 'quizzes' ? 'active' : ''}" onclick="window.activeAdminTab='quizzes'; AppState.notify();">
+            ${window.renderIcon('award')} Skill Quizzes <span class="tab-count-badge">${(state.data && state.data.quizzes) ? state.data.quizzes.length : 0}</span>
           </button>
           <button class="tab-btn ${window.activeAdminTab === 'assignments' ? 'active' : ''}" onclick="window.activeAdminTab='assignments'; AppState.notify();">
             ${window.renderIcon('file-text')} Course Assignments
