@@ -45,7 +45,7 @@ window.INITIAL_DATA = {
   courses: [],
   resources: [],
   roadmaps: {},
-  quizzes: [],
+  quizzes: (typeof window !== 'undefined' && window.ALL_SUBJECT_QUIZZES && window.ALL_SUBJECT_QUIZZES.length > 0) ? window.ALL_SUBJECT_QUIZZES : [],
 
   badges: [
     { id: 'b-1', title: 'Quick Starter', icon: 'zap', desc: 'Completed initial profile onboarding assessment', unlocked: true, date: '2026-07-20' },

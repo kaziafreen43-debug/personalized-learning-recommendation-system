@@ -25,6 +25,19 @@
       const state = window.AppState || {};
       const user = state.currentUser || {};
       const courses = (state.data && state.data.courses) ? state.data.courses : [];
+      const enrolledIds = user.enrolledCourseIds || [];
+      const fallbackCourses = [
+        { id: 'course-ai-101', title: 'Artificial Intelligence & Neural Networks Masterclass', subjectId: 'ds', level: 'Advanced' },
+        { id: 'course-cs-101', title: 'Computer Science & Full-Stack Development', subjectId: 'cs', level: 'Intermediate' },
+        { id: 'course-math-101', title: 'Mathematics & Advanced Analytics', subjectId: 'math', level: 'Intermediate' },
+        { id: 'course-physics-101', title: 'Physics & Quantum Systems', subjectId: 'physics', level: 'Advanced' }
+      ];
+      const sourceCourses = (courses && courses.length > 0) ? courses : fallbackCourses;
+      const certCourses = [...sourceCourses].sort((a, b) => {
+        const aEnrolled = enrolledIds.includes(a.id) ? 1 : 0;
+        const bEnrolled = enrolledIds.includes(b.id) ? 1 : 0;
+        return bEnrolled - aEnrolled;
+      });
 
       return `
         <div class="page-header">
@@ -72,43 +85,34 @@
           </div>
         </div>
 
-        <!-- Section 2: Course Certificates (Matches 6.PNG) -->
-        <div style="margin-bottom: 16px;">
-          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Course Certificates</h2>
+        <!-- Section 2: Course Certificates -->
+        <div class="cert-widget-header" style="margin-top: 24px; margin-bottom: 16px;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin-bottom:4px;">Course Certificates</h2>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:0;">Generate and download a professional Certificate of Completion for your active courses.</p>
+          </div>
+          <span class="cert-count-pill">${certCourses.length} ${certCourses.length === 1 ? 'Certificate' : 'Certificates'}</span>
         </div>
 
-        <div class="course-certs-list">
-          <div class="course-cert-row">
-            <div class="cert-left-box">
-              <div class="cert-code-icon-sq">&lt;&gt;</div>
-              <div>
-                <div class="cert-row-title">Introduction to Python Programming</div>
-                <div class="cert-row-meta">
-                  Completed on October 12, 2023 • Grade: 98%
-                  <span class="cert-verified-tag">Verified</span>
+        <div class="course-certs-list cert-scroll-list">
+          ${certCourses.map(c => `
+            <div class="cert-card-item">
+              <div class="cert-card-info">
+                <h4 class="cert-card-title" title="${c.title || c.name || 'Certified Course Pathway'}">
+                  ${c.title || c.name || 'Certified Course Pathway'}
+                </h4>
+                <div class="cert-card-meta">
+                  <span class="cert-badge-verified">
+                    ${window.renderIcon('check-circle-2', 'cert-verified-icon')} Verified Pathway
+                  </span>
+                  ${c.level ? `<span class="cert-meta-divider">&bull;</span><span class="cert-meta-level">${c.level}</span>` : ''}
                 </div>
               </div>
+              <button class="btn-cert-action" onclick="AppState.openModal('certificate', { courseId: '${c.id}' })" title="Generate and Download Certificate">
+                ${window.renderIcon('file-text')} Certificate
+              </button>
             </div>
-            <button class="btn-cert-download" onclick="AppState.openModal('certificate', { courseId: 'course-cs-101' })">
-              ${window.renderIcon('download')} Certificate
-            </button>
-          </div>
-
-          <div class="course-cert-row">
-            <div class="cert-left-box">
-              <div class="cert-code-icon-sq">{}</div>
-              <div>
-                <div class="cert-row-title">Data Structures and Algorithms</div>
-                <div class="cert-row-meta">
-                  Completed on November 05, 2023 • Grade: 92%
-                  <span class="cert-verified-tag">Verified</span>
-                </div>
-              </div>
-            </div>
-            <button class="btn-cert-download" onclick="AppState.openModal('certificate', { courseId: 'course-ai-101' })">
-              ${window.renderIcon('download')} Certificate
-            </button>
-          </div>
+          `).join('')}
         </div>
       `;
     }

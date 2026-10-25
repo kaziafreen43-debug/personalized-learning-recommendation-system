@@ -105,15 +105,29 @@ window.FirebaseDB = {
     // 3.5 Fetch Subjects (independent block)
     try {
       const subjectsSnap = await this.db.collection('subjects').get();
-      const subjects = [];
+      const dbSubjects = [];
       subjectsSnap.forEach(doc => {
-        subjects.push(doc.data());
+        dbSubjects.push(doc.data());
       });
-      if (subjects.length > 0) {
-        appState.data.subjects = subjects;
-      } else if (!appState.data.subjects || appState.data.subjects.length === 0) {
-        appState.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
+      if (!Array.isArray(appState.data.subjects)) appState.data.subjects = [];
+      if (dbSubjects.length > 0) {
+        dbSubjects.forEach(s => {
+          const idx = appState.data.subjects.findIndex(sub => sub.id === s.id);
+          if (idx >= 0) {
+            appState.data.subjects[idx] = s;
+          } else {
+            appState.data.subjects.push(s);
+          }
+        });
       }
+      // Ensure all 6 core subjects are always present
+      const coreSubs = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
+      coreSubs.forEach(cs => {
+        if (!appState.data.subjects.some(s => s.id === cs.id)) {
+          appState.data.subjects.push(cs);
+          try { this.saveSubject(cs); } catch(_) {}
+        }
+      });
     } catch (e) {
       console.error("Error fetching subjects from Firestore:", e);
     }
@@ -133,11 +147,33 @@ window.FirebaseDB = {
     // 4.5 Fetch Quizzes (independent block)
     try {
       const quizzesSnap = await this.db.collection('quizzes').get();
-      const quizzes = [];
+      const dbQuizzes = [];
       quizzesSnap.forEach(doc => {
-        quizzes.push(doc.data());
+        dbQuizzes.push(doc.data());
       });
-      appState.data.quizzes = quizzes;
+      if (!Array.isArray(appState.data.quizzes)) appState.data.quizzes = [];
+      if (dbQuizzes.length > 0) {
+        dbQuizzes.forEach(q => {
+          const idx = appState.data.quizzes.findIndex(quiz => quiz.id === q.id);
+          if (idx >= 0) {
+            appState.data.quizzes[idx] = q;
+          } else {
+            appState.data.quizzes.push(q);
+          }
+        });
+      }
+      // Ensure all 18 core subject category quizzes (Beginner, Intermediate, Advanced) are always present
+      const coreQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+      coreQuizzes.forEach(cq => {
+        const idx = appState.data.quizzes.findIndex(q => q.id === cq.id || (q.subjectId === cq.subjectId && q.level === cq.level));
+        if (idx === -1) {
+          appState.data.quizzes.push(cq);
+          try { this.saveQuiz(cq); } catch(_) {}
+        } else if (!appState.data.quizzes[idx].questions || appState.data.quizzes[idx].questions.length === 0) {
+          appState.data.quizzes[idx] = cq;
+          try { this.saveQuiz(cq); } catch(_) {}
+        }
+      });
     } catch (e) {
       console.error("Error fetching quizzes from Firestore:", e);
     }
@@ -185,8 +221,29 @@ window.FirebaseDB = {
         }
       }
     } catch (e) {
-      console.error("Error fetching users from Firestore:", e);
+      console.warn("Notice: Fetching users from remote Firestore, checking local storage fallback:", e);
+      try {
+        const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+        const localUsers = mockDB.users ? Object.values(mockDB.users) : [];
+        if (localUsers.length > 0) {
+          const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
+          localUsers.forEach(u => {
+            if (legacyMockIds.includes(u.id) && u.role !== 'admin') return;
+            const idx = appState.data.defaultUsers.findIndex(du => du.id === u.id);
+            if (idx >= 0) {
+              appState.data.defaultUsers[idx] = u;
+            } else {
+              appState.data.defaultUsers.push(u);
+            }
+          });
+        }
+      } catch (_) {}
     }
+
+    // Ensure appState.data.students is always populated with non-admin registered students
+    const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
+    const validStudents = (appState.data.defaultUsers || []).filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
+    appState.data.students = validStudents;
 
     // 6. Fetch Submissions (admin gets all, students get user-specific) (independent block)
     try {
@@ -295,45 +352,130 @@ window.FirebaseDB = {
     if (!this.isInitialized) {
       this.init();
     }
-    if (!this.isInitialized) return;
-    try {
+    if (user && user.id) {
       user.updatedAt = new Date().toISOString();
+      // Always persist to local mock storage as a dependable safety net
+      try {
+        let mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+        if (!mockDB.users) mockDB.users = {};
+        mockDB.users[user.id] = user;
+        localStorage.setItem('plr_firestore_mock', JSON.stringify(mockDB));
+      } catch (_) {}
+
+      // If backend Flask server is running, also backup to local firestore API
+      try {
+        const apiBase = (window.location && window.location.port === '5000') ? '' : 'http://127.0.0.1:5000';
+        fetch(`${apiBase}/api/firestore/users/${user.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user)
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
+    if (!this.isInitialized || !this.db) return;
+    try {
       await this.db.collection('users').doc(user.id).set(user);
       console.log(`User profile ${user.id} saved to Firestore.`);
     } catch (e) {
-      console.error("Error saving user to Firestore:", e);
+      console.warn("Could not sync user to remote Firestore (using local fallback):", e);
     }
   },
 
-  // Real-time listener for enrolled/registered students (onSnapshot)
+  // Real-time listener for enrolled/registered students (onSnapshot with resilient local fallback)
   listenToStudents: function(callback, errorCallback) {
     if (!this.isInitialized) {
       this.init();
     }
-    if (!this.isInitialized || !this.db) {
-      if (errorCallback) errorCallback(new Error("Database not initialized"));
-      return null;
+
+    const getLocalStudents = () => {
+      const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
+      let list = [];
+      try {
+        const appData = JSON.parse(localStorage.getItem('plr_app_data') || '{}');
+        const raw = (appData.students && appData.students.length > 0)
+          ? appData.students
+          : (appData.defaultUsers || []);
+        list = raw.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
+      } catch (_) {}
+
+      if (list.length === 0) {
+        try {
+          const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+          if (mockDB.users) {
+            list = Object.values(mockDB.users).filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
+          }
+        } catch (_) {}
+      }
+      return list;
+    };
+
+    // Immediately deliver cached students if available so UI renders dynamic data instantly
+    const initialList = getLocalStudents();
+    if (initialList.length > 0) {
+      try { callback(initialList); } catch (_) {}
     }
-    try {
-      return this.db.collection('users').onSnapshot(snapshot => {
-        const students = [];
-        snapshot.forEach(doc => {
-          const data = doc.data() || {};
-          if (data.role !== 'admin') {
-            data.id = data.id || doc.id;
-            students.push(data);
+
+    // Cross-tab real-time storage event listener so logins/registrations in another tab sync live
+    const handleStorageChange = (e) => {
+      if (e.key === 'plr_app_data' || e.key === 'plr_firestore_mock') {
+        const updated = getLocalStudents();
+        if (updated.length > 0) {
+          try { callback(updated); } catch (_) {}
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    let unsubFirestore = null;
+    if (this.isInitialized && this.db) {
+      try {
+        unsubFirestore = this.db.collection('users').onSnapshot(snapshot => {
+          const students = [];
+          snapshot.forEach(doc => {
+            const data = doc.data() || {};
+            if (data.role !== 'admin' && data.id !== 'u-admin' && (data.email || '').toLowerCase() !== 'admin@gmail.com') {
+              data.id = data.id || doc.id;
+              students.push(data);
+            }
+          });
+          if (students.length > 0) {
+            callback(students);
+          } else {
+            const fallback = getLocalStudents();
+            callback(fallback.length > 0 ? fallback : students);
+          }
+        }, error => {
+          console.warn("Firestore real-time student listener note (using local cache fallback):", error);
+          const fallback = getLocalStudents();
+          if (fallback.length > 0) {
+            callback(fallback);
+          } else if (errorCallback) {
+            errorCallback(error);
           }
         });
-        callback(students);
-      }, error => {
-        console.error("Firestore onSnapshot error:", error);
-        if (errorCallback) errorCallback(error);
-      });
-    } catch (e) {
-      console.error("Error attaching Firestore onSnapshot listener:", e);
-      if (errorCallback) errorCallback(e);
-      return null;
+      } catch (e) {
+        console.warn("Error attaching Firestore onSnapshot listener, falling back:", e);
+        const fallback = getLocalStudents();
+        if (fallback.length > 0) {
+          callback(fallback);
+        } else if (errorCallback) {
+          errorCallback(e);
+        }
+      }
+    } else {
+      const fallback = getLocalStudents();
+      if (fallback.length > 0) {
+        callback(fallback);
+      }
     }
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (typeof unsubFirestore === 'function') {
+        try { unsubFirestore(); } catch (_) {}
+      }
+    };
   },
 
   // Save/Update Subject

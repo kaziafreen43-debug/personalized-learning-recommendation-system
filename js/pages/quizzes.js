@@ -32,8 +32,37 @@
   const QuizzesView = {
     render: function() {
       const state = window.AppState || {};
-      let quizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
-      const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+      let quizzes = (state.data && state.data.quizzes && state.data.quizzes.length > 0)
+        ? state.data.quizzes
+        : (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+      let subjects = (state.data && state.data.subjects && state.data.subjects.length > 0)
+        ? state.data.subjects
+        : (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
+
+      // Guarantee all 6 core subjects are always present in the filter pills
+      const coreSubjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects && window.INITIAL_DATA.subjects.length > 0)
+        ? window.INITIAL_DATA.subjects
+        : [
+            { id: 'cs', name: 'Computer Science & Software', icon: 'code', color: '#6366f1' },
+            { id: 'ds', name: 'Artificial Intelligence & Data Science', icon: 'cpu', color: '#8b5cf6' },
+            { id: 'math', name: 'Mathematics & Analytics', icon: 'calculator', color: '#ec4899' },
+            { id: 'physics', name: 'Physics & Quantum Systems', icon: 'zap', color: '#f59e0b' },
+            { id: 'bio', name: 'Biology & Biotechnology', icon: 'dna', color: '#10b981' },
+            { id: 'chem', name: 'Chemistry & Molecules', icon: 'flask-conical', color: '#06b6d4' }
+          ];
+      coreSubjects.forEach(cs => {
+        if (!subjects.some(s => s.id === cs.id)) {
+          subjects.push(cs);
+        }
+      });
+
+      // Guarantee all 18 core subject category quizzes are present in quizzes array
+      const defaultQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+      defaultQuizzes.forEach(dq => {
+        if (!quizzes.some(q => q.id === dq.id || (q.subjectId === dq.subjectId && q.level === dq.level))) {
+          quizzes.push(dq);
+        }
+      });
 
       if (window.activeQuizSubjectFilter && window.activeQuizSubjectFilter !== 'all') {
         quizzes = quizzes.filter(q => q.subjectId === window.activeQuizSubjectFilter);
@@ -84,12 +113,13 @@
             <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 48px 20px;">
               <div style="font-size: 2.5rem; margin-bottom: 12px;">🏆</div>
               <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No Quizzes Available Yet</h3>
-              <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto;">There are no quizzes published for this selection yet. Quizzes created in the Admin panel will appear here.</p>
+              <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto;">There are no quizzes published for this selection yet.</p>
             </div>
           ` : quizzes.map(q => {
-            const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId || 'General' };
+            const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId || 'General', icon: 'book' };
             const qCount = q.questionCount || (q.questions ? q.questions.length : (q.level === 'Beginner' ? 5 : (q.level === 'Intermediate' ? 10 : 15)));
             const tierClass = (q.level || 'beginner').toLowerCase();
+            const timeLimit = q.timeLimitMinutes || (qCount === 5 ? 8 : (qCount === 10 ? 15 : 25));
 
             return `
               <div class="quiz-card-clean">
@@ -98,12 +128,14 @@
                     ${q.level} • ${qCount} Questions
                   </div>
                   <div class="quiz-card-duration">
-                    ${window.renderIcon('clock')} ${q.timeLimitMinutes || (qCount === 5 ? 8 : (qCount === 10 ? 15 : 25))} Mins
+                    ${window.renderIcon('clock')} ${timeLimit} Mins
                   </div>
                 </div>
 
                 <div class="quiz-card-title">${q.title}</div>
-                <div class="quiz-card-subject">Subject: ${subject.name} • ${qCount} Questions Assessment</div>
+                <div class="quiz-card-subject" style="display:flex; align-items:center; gap:6px;">
+                  ${window.renderIcon(subject.icon || 'book')} Subject: <strong>${subject.name}</strong> • ${qCount} Questions Assessment
+                </div>
 
                 <button class="btn-start-quiz-navy" onclick="AppState.openModal('quiz', '${q.id}')">
                   ${window.renderIcon('play-circle')} Start ${qCount}-Question Quiz

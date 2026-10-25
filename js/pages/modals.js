@@ -128,25 +128,39 @@
     window.AppState.submitQuestionnaire(formData);
   };
 
+  window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+
+  window.resetQuizState = function() {
+    window.quizState = { currentQuizStep: 0, quizAnswers: {} };
+    currentQuizStep = 0;
+    quizAnswers = {};
+  };
+
   window.submitQuizAnswer = function(quizId, qId, selectedIdx, correctIdx) {
+    window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+    window.quizState.quizAnswers[qId] = selectedIdx;
     quizAnswers[qId] = selectedIdx;
     window.AppState.notify();
   };
 
   window.nextQuizStep = function(quizId, total) {
-    if (currentQuizStep < total - 1) {
-      currentQuizStep++;
+    window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+    if (window.quizState.currentQuizStep < total - 1) {
+      window.quizState.currentQuizStep++;
+      currentQuizStep = window.quizState.currentQuizStep;
     } else {
-      const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : [];
+      const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
       const quiz = quizzes.find(q => q.id === quizId) || quizzes[0];
       let correct = 0;
       if (quiz && quiz.questions) {
         quiz.questions.forEach(q => {
-          if (quizAnswers[q.id] === q.correctIndex) correct++;
+          if (window.quizState.quizAnswers[q.id] === q.correctIndex) correct++;
         });
       }
       const scorePct = Math.round((correct / (quiz && quiz.questions ? quiz.questions.length : 1)) * 100);
 
+      window.quizState.currentQuizStep = 0;
+      window.quizState.quizAnswers = {};
       currentQuizStep = 0;
       quizAnswers = {};
       
@@ -519,7 +533,7 @@
     },
 
     renderQuizModalContent: function(quizId) {
-      const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : [];
+      const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
       const quiz = quizzes.find(q => q.id === quizId) || quizzes[0];
       if (!quiz || !quiz.questions || quiz.questions.length === 0) {
         return `
@@ -533,40 +547,61 @@
           </div>
         `;
       }
-      const q = (quiz.questions && quiz.questions[currentQuizStep]) ? quiz.questions[currentQuizStep] : quiz.questions[0];
+
+      window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+      let step = window.quizState.currentQuizStep || 0;
+      const answers = window.quizState.quizAnswers || {};
+
+      const totalQs = quiz.questions ? quiz.questions.length : 1;
+      if (step >= totalQs) {
+        step = 0;
+        window.quizState.currentQuizStep = 0;
+      }
+      const q = quiz.questions[step] || quiz.questions[0];
+      const isLastQuestion = step === totalQs - 1;
+      const progressPct = Math.round(((step + 1) / totalQs) * 100);
+      const timeLimit = quiz.timeLimitMinutes || (totalQs === 5 ? 8 : (totalQs === 10 ? 15 : 25));
+      const tierClass = (quiz.level || 'beginner').toLowerCase();
 
       return `
         <div class="quiz-container" style="border:none; padding:0;">
-          <div class="quiz-header">
+          <div class="quiz-header" style="margin-bottom:16px;">
             <div>
-              <h2 style="font-size:1.3rem; font-weight:800;">${quiz.title}</h2>
-              <p style="font-size:0.85rem; color:var(--text-muted);">Question ${currentQuizStep + 1} of ${quiz.questions ? quiz.questions.length : 1}</p>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span class="quiz-tier-badge ${tierClass}">${quiz.level} • ${totalQs} Questions</span>
+              </div>
+              <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:4px;">${quiz.title}</h2>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Question ${step + 1} of ${totalQs}</p>
             </div>
-            <div class="quiz-timer">
-              ${window.renderIcon('clock')} 09:45
+            <div class="quiz-timer" style="display:flex; align-items:center; gap:6px; font-weight:700; font-size:0.88rem; color:var(--color-teal-action); background:var(--color-teal-light); padding:6px 12px; border-radius:var(--radius-full);">
+              ${window.renderIcon('clock')} ${timeLimit} Mins
             </div>
           </div>
 
+          <div style="width:100%; height:6px; background:var(--border-color); border-radius:var(--radius-full); margin-bottom:20px; overflow:hidden;">
+            <div style="width:${progressPct}%; height:100%; background:var(--primary-gradient); transition:width 0.3s ease;"></div>
+          </div>
+
           <div class="question-box">
-            <div class="question-text">${q.question}</div>
+            <div class="question-text" style="font-size:1.05rem; font-weight:700; line-height:1.5; margin-bottom:16px;">${q.question}</div>
             <div class="options-list">
               ${(q.options || []).map((opt, idx) => `
-                <button class="option-btn ${quizAnswers[q.id] === idx ? (idx === q.correctIndex ? 'correct' : 'wrong') : ''}" onclick="window.submitQuizAnswer('${quiz.id}', '${q.id}', ${idx}, ${q.correctIndex})">
+                <button class="option-btn ${answers[q.id] === idx ? (idx === q.correctIndex ? 'correct' : 'wrong') : ''}" onclick="window.submitQuizAnswer('${quiz.id}', '${q.id}', ${idx}, ${q.correctIndex})">
                   <span>${opt}</span>
                 </button>
               `).join('')}
             </div>
 
-            ${quizAnswers[q.id] !== undefined ? `
-              <div class="explanation-banner">
+            ${answers[q.id] !== undefined ? `
+              <div class="explanation-banner" style="margin-top:16px;">
                 <strong>AI Explanation:</strong> ${q.explanation || 'Correct concept applied!'}
               </div>
             ` : ''}
           </div>
 
           <div style="display:flex; justify-content:space-between; margin-top:20px;">
-            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; justify-content:center;" onclick="window.nextQuizStep('${quiz.id}', ${quiz.questions ? quiz.questions.length : 1})">
-              Next Question ${window.renderIcon('arrow-right')}
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; justify-content:center; padding:12px;" onclick="window.nextQuizStep('${quiz.id}', ${totalQs})">
+              ${isLastQuestion ? `${window.renderIcon('check-circle')} Submit Quiz & View Results` : `Next Question ${window.renderIcon('arrow-right')}`}
             </button>
           </div>
         </div>

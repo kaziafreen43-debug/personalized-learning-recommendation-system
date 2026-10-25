@@ -123,7 +123,7 @@
           </div>
 
           ${(() => {
-            const allQuizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
+            const allQuizzes = (state.data && state.data.quizzes && state.data.quizzes.length > 0) ? state.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
             const matchedQuiz = allQuizzes.find(q => q.id === currentCatData.quizId || (q.subjectId === course.subjectId && q.level === currentCategory)) || allQuizzes[0];
             if (!matchedQuiz) {
               return `

@@ -53,6 +53,25 @@ window.AppState = {
     if (!Array.isArray(this.data.subjects)) this.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
     if (!this.data.roadmaps) this.data.roadmaps = {};
 
+    // Ensure all 6 core subjects are always present
+    const coreSubjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
+    coreSubjects.forEach(s => {
+      if (!this.data.subjects.some(existing => existing.id === s.id)) {
+        this.data.subjects.push(s);
+      }
+    });
+
+    // Ensure all 18 core subject category quizzes (Beginner, Intermediate, Advanced) are always present
+    const defaultQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+    defaultQuizzes.forEach(dq => {
+      const idx = this.data.quizzes.findIndex(q => q.id === dq.id || (q.subjectId === dq.subjectId && q.level === dq.level));
+      if (idx === -1) {
+        this.data.quizzes.push(dq);
+      } else if (!this.data.quizzes[idx].questions || this.data.quizzes[idx].questions.length === 0) {
+        this.data.quizzes[idx] = dq;
+      }
+    });
+
     // Ensure admin user always exists with role: 'admin' and never gets purged
     if (!this.data.defaultUsers) this.data.defaultUsers = [];
     let existingAdmin = this.data.defaultUsers.find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin');
@@ -89,6 +108,12 @@ window.AppState = {
         return true;
       });
     }
+
+    // Ensure state.data.students is initialized with registered students
+    if (!this.data.students || this.data.students.length === 0) {
+      this.data.students = (this.data.defaultUsers || []).filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com');
+    }
+    this.studentLoadError = null;
 
     const savedTheme = localStorage.getItem('plr_theme');
     this.theme = savedTheme || 'light';
@@ -229,9 +254,44 @@ window.AppState = {
           this.notify();
         },
         (error) => {
-          console.error("Error in real-time student listener:", error);
+          console.warn("Notice: Real-time student listener fallback active:", error);
           this.isLoadingStudents = false;
-          this.studentLoadError = "Unable to load student data. Please try again.";
+
+          // Check if we already have valid registered students in memory or storage
+          const existingStudents = (this.data && this.data.students && this.data.students.length > 0)
+            ? this.data.students
+            : ((this.data && this.data.defaultUsers) ? this.data.defaultUsers.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com') : []);
+
+          if (existingStudents.length > 0) {
+            this.studentLoadError = null;
+            this.data.students = existingStudents;
+          } else {
+            // Check localStorage plr_app_data and plr_firestore_mock
+            let recovered = [];
+            try {
+              const rawData = localStorage.getItem('plr_app_data');
+              if (rawData) {
+                const parsed = JSON.parse(rawData);
+                const candidates = parsed.students || parsed.defaultUsers || [];
+                recovered = candidates.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com');
+              }
+              if (recovered.length === 0) {
+                const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+                if (mockDB.users) {
+                  recovered = Object.values(mockDB.users).filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com');
+                }
+              }
+            } catch (_) {}
+
+            if (recovered.length > 0) {
+              this.studentLoadError = null;
+              this.data.students = recovered;
+              const admin = (this.data.defaultUsers || []).find(u => u.role === 'admin' || u.id === 'u-admin');
+              this.data.defaultUsers = admin ? [admin, ...recovered] : recovered;
+            } else {
+              this.studentLoadError = "Unable to load student data. Please try again.";
+            }
+          }
           this.notify();
         }
       );
@@ -317,6 +377,20 @@ window.AppState = {
       localStorage.setItem('plr_is_auth', 'true');
       localStorage.setItem('plr_user_id', user.id);
     } catch(e) {}
+
+    // Keep state.data.students updated with this student
+    if (user.role !== 'admin' && user.id !== 'u-admin') {
+      if (!this.data.students) this.data.students = [];
+      const sIdx = this.data.students.findIndex(s => s.id === user.id || (s.email && s.email.toLowerCase() === (user.email || '').toLowerCase()));
+      if (sIdx >= 0) {
+        this.data.students[sIdx] = user;
+      } else {
+        this.data.students.push(user);
+      }
+      this.studentLoadError = null;
+      this.saveData();
+    }
+
     this.closeModal();
     if (window.FirebaseDB) {
       window.FirebaseDB.syncAppState(this);
@@ -416,6 +490,11 @@ window.AppState = {
   },
 
   openModal: function(modalName, data = null) {
+    if (modalName === 'quiz') {
+      if (typeof window.resetQuizState === 'function') {
+        window.resetQuizState();
+      }
+    }
     this.activeModal = modalName;
     this.modalData = data;
     if (window.closeMobileSidebar) window.closeMobileSidebar();
@@ -523,6 +602,7 @@ window.AppState = {
       } else {
         this.data.students.push(userProfile);
       }
+      this.studentLoadError = null;
     }
 
     this.isAuthenticated = true;
@@ -600,6 +680,14 @@ window.AppState = {
     if (window.AIEngine) {
       this.currentUser = window.AIEngine.recalibrateSkill(this.currentUser, quiz, scorePercentage);
     }
+
+    if (!this.currentUser.quizScores) this.currentUser.quizScores = [];
+    this.currentUser.quizScores.push({
+      quizId: quizId,
+      subjectId: quiz.subjectId,
+      score: scorePercentage,
+      date: new Date().toISOString()
+    });
 
     let interestText = 'High Interest & Great Comprehension (95%)';
     if (scorePercentage < 60) {

@@ -520,7 +520,7 @@
       case 'course-hub': return renderCourseHub();
       case 'roadmap': return renderRoadmap();
       case 'catalog': return renderCatalog();
-      case 'quizzes': return renderQuizzes();
+      case 'quizzes': return (window.QuizzesView && typeof window.QuizzesView.render === 'function') ? window.QuizzesView.render() : renderQuizzes();
       case 'notes': return renderNotesView();
       case 'evaluation': return renderEvaluationView();
       case 'analytics': return renderAnalytics();
@@ -1039,24 +1039,30 @@
           </div>
         </div>
 
-        <h3 class="resource-title" style="margin-top: 8px;">${res.title}</h3>
-        <p class="resource-desc">${res.description || res.summary}</p>
+        <h3 class="resource-title" title="${res.title}">${res.title}</h3>
+        <p class="resource-desc" title="${res.description || res.summary || ''}">${res.description || res.summary || 'Adaptive multimedia course lesson designed for your skill pathway.'}</p>
 
-        <div style="font-size:0.75rem; color:var(--color-purple); font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:4px;">
-          ${renderIcon('info')} ${res.reason || 'Adapted for your grade class & style'}
+        <div class="resource-style-tag" title="${res.reason || 'Adapted for your grade class & style'}">
+          ${renderIcon('info')} <span>${res.reason || 'Adapted for your grade class & style'}</span>
         </div>
 
-        <div class="resource-meta" style="margin-bottom: 20px;">
-          <div class="resource-meta-item">${renderIcon('clock')} ${res.duration}</div>
-          <div class="resource-meta-item">${renderIcon('graduation-cap')} ${res.suitableClass || 'Grade 11-12'}</div>
-          <div class="resource-meta-item">${renderIcon('bar-chart')} ${res.level}</div>
+        <div class="resource-meta">
+          <div class="resource-meta-item" title="Duration: ${res.duration || '45 mins'}">
+            ${renderIcon('clock')} <span class="meta-text">${res.duration || '45 mins'}</span>
+          </div>
+          <div class="resource-meta-item" title="Grade Level: ${res.suitableClass || 'Grade 11-12'}">
+            ${renderIcon('graduation-cap')} <span class="meta-text">${res.suitableClass || 'Grade 11-12'}</span>
+          </div>
+          <div class="resource-meta-item" title="Difficulty Level: ${res.level || 'Intermediate'}">
+            ${renderIcon('bar-chart')} <span class="meta-text">${res.level || 'Intermediate'}</span>
+          </div>
         </div>
 
         <div class="resource-actions">
-          <button class="btn-launch-resource" onclick="AppState.openModal('resource-viewer', '${res.id}')">
+          <button class="btn-launch-resource" onclick="AppState.openModal('resource-viewer', '${res.id}')" title="Start Lesson">
             ${res.isCompleted ? renderIcon('check-circle-2') + ' Review' : renderIcon('play-circle') + ' Start Lesson'}
           </button>
-          <button class="btn-bookmark ${res.isBookmarked ? 'active' : ''}" onclick="AppState.toggleBookmark('${res.id}')" title="Bookmark">
+          <button class="btn-bookmark ${res.isBookmarked ? 'active' : ''}" onclick="AppState.toggleBookmark('${res.id}')" title="${res.isBookmarked ? 'Remove Bookmark' : 'Bookmark Lesson'}">
             ${renderIcon('bookmark')}
           </button>
         </div>
@@ -1065,30 +1071,50 @@
   }
 
   // 6. QUIZZES VIEW (FILTERABLE BY SUBJECT & 3 CATEGORIES: BEGINNER 5 Qs, INTERMEDIATE 10 Qs, ADVANCED 15 Qs)
-  let activeQuizCategoryFilter = 'all';
-  let activeQuizSubjectFilter = 'all';
-
   function renderQuizzes() {
-    const state = window.AppState;
-    let quizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
-    const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
-
-    const userInterests = (state.currentUser && state.currentUser.interests) ? state.currentUser.interests : [];
-    
-    // Filter quizzes to match student interests only
-    if (userInterests.length > 0) {
-      quizzes = quizzes.filter(q => userInterests.includes(q.subjectId));
+    if (window.QuizzesView && typeof window.QuizzesView.render === 'function') {
+      return window.QuizzesView.render();
     }
-    
-    // Filter subject tabs to match student interests only
-    const filteredSubjects = userInterests.length > 0 ? subjects.filter(s => userInterests.includes(s.id)) : subjects;
+    const state = window.AppState || {};
+    let quizzes = (state.data && state.data.quizzes && state.data.quizzes.length > 0)
+      ? state.data.quizzes
+      : (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+    let subjects = (state.data && state.data.subjects && state.data.subjects.length > 0)
+      ? state.data.subjects
+      : (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
 
-    if (activeQuizSubjectFilter && activeQuizSubjectFilter !== 'all') {
-      quizzes = quizzes.filter(q => q.subjectId === activeQuizSubjectFilter);
+    const coreSubjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects && window.INITIAL_DATA.subjects.length > 0)
+      ? window.INITIAL_DATA.subjects
+      : [
+          { id: 'cs', name: 'Computer Science & Software', icon: 'code' },
+          { id: 'ds', name: 'Artificial Intelligence & Data Science', icon: 'cpu' },
+          { id: 'math', name: 'Mathematics & Analytics', icon: 'calculator' },
+          { id: 'physics', name: 'Physics & Quantum Systems', icon: 'zap' },
+          { id: 'bio', name: 'Biology & Biotechnology', icon: 'dna' },
+          { id: 'chem', name: 'Chemistry & Molecules', icon: 'flask-conical' }
+        ];
+    coreSubjects.forEach(cs => {
+      if (!subjects.some(s => s.id === cs.id)) {
+        subjects.push(cs);
+      }
+    });
+
+    const defaultQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+    defaultQuizzes.forEach(dq => {
+      if (!quizzes.some(q => q.id === dq.id || (q.subjectId === dq.subjectId && q.level === dq.level))) {
+        quizzes.push(dq);
+      }
+    });
+
+    const activeSub = window.activeQuizSubjectFilter || 'all';
+    const activeCat = window.activeQuizCategoryFilter || 'all';
+
+    if (activeSub !== 'all') {
+      quizzes = quizzes.filter(q => q.subjectId === activeSub);
     }
 
-    if (activeQuizCategoryFilter && activeQuizCategoryFilter !== 'all') {
-      quizzes = quizzes.filter(q => q.level === activeQuizCategoryFilter);
+    if (activeCat !== 'all') {
+      quizzes = quizzes.filter(q => q.level === activeCat);
     }
 
     return `
@@ -1099,50 +1125,54 @@
 
       <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
         <!-- Subject Filter Tabs -->
-        <div class="subject-tabs">
-          <button class="tab-btn ${activeQuizSubjectFilter === 'all' ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='all'; AppState.notify();">All Subjects</button>
-          ${filteredSubjects.map(s => `
-            <button class="tab-btn ${activeQuizSubjectFilter === s.id ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='${s.id}'; AppState.notify();">${s.name}</button>
+        <div class="filter-pills-bar" style="margin-bottom:0;">
+          <button class="pill-filter-btn ${activeSub === 'all' ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='all'; AppState.notify();">All Subjects</button>
+          ${subjects.map(s => `
+            <button class="pill-filter-btn ${activeSub === s.id ? 'active' : ''}" onclick="window.activeQuizSubjectFilter='${s.id}'; AppState.notify();">${s.name}</button>
           `).join('')}
         </div>
 
         <!-- Category Tier Filter Tabs -->
-        <div class="subject-tabs">
-          <button class="tab-btn ${activeQuizCategoryFilter === 'all' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='all'; AppState.notify();">All Categories</button>
-          <button class="tab-btn ${activeQuizCategoryFilter === 'Beginner' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Beginner'; AppState.notify();">🟢 Beginner (5 Questions)</button>
-          <button class="tab-btn ${activeQuizCategoryFilter === 'Intermediate' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Intermediate'; AppState.notify();">🟡 Intermediate (10 Questions)</button>
-          <button class="tab-btn ${activeQuizCategoryFilter === 'Advanced' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Advanced'; AppState.notify();">🔴 Advanced (15 Questions)</button>
+        <div class="filter-pills-bar" style="margin-bottom:0;">
+          <button class="pill-filter-btn ${activeCat === 'all' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='all'; AppState.notify();">All Categories</button>
+          <button class="pill-filter-btn ${activeCat === 'Beginner' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Beginner'; AppState.notify();">
+            <span class="category-dot teal"></span> Beginner (5 Questions)
+          </button>
+          <button class="pill-filter-btn ${activeCat === 'Intermediate' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Intermediate'; AppState.notify();">
+            <span class="category-dot yellow"></span> Intermediate (10 Questions)
+          </button>
+          <button class="pill-filter-btn ${activeCat === 'Advanced' ? 'active' : ''}" onclick="window.activeQuizCategoryFilter='Advanced'; AppState.notify();">
+            <span class="category-dot red"></span> Advanced (15 Questions)
+          </button>
         </div>
       </div>
 
-      <div class="resource-grid">
+      <div class="quizzes-grid-2x2">
         ${quizzes.map(q => {
-          const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId };
+          const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId, icon: 'book' };
           const qCount = q.questionCount || (q.questions ? q.questions.length : (q.level === 'Beginner' ? 5 : (q.level === 'Intermediate' ? 10 : 15)));
-          
-          let levelBadgeClass = 'color:var(--color-indigo); background:rgba(190,24,93,0.15);';
-          if (q.level === 'Intermediate') levelBadgeClass = 'color:var(--color-purple); background:rgba(157,23,77,0.15);';
-          if (q.level === 'Advanced') levelBadgeClass = 'color:var(--color-rose); background:rgba(239,68,68,0.15);';
+          const tierClass = (q.level || 'beginner').toLowerCase();
+          const timeLimit = q.timeLimitMinutes || (qCount === 5 ? 8 : (qCount === 10 ? 15 : 25));
 
           return `
-            <div class="resource-card">
-              <div class="resource-top-bar">
-                <div class="format-badge" style="${levelBadgeClass}">
+            <div class="quiz-card-clean">
+              <div class="quiz-card-top-row">
+                <div class="quiz-tier-badge ${tierClass}">
                   ${q.level} • ${qCount} Questions
                 </div>
-                <div style="font-size:0.8rem; font-weight:700; color:var(--text-subtle);">
-                  ${renderIcon('clock')} ${q.timeLimitMinutes} Mins
+                <div class="quiz-card-duration">
+                  ${renderIcon('clock')} ${timeLimit} Mins
                 </div>
               </div>
 
-              <h3 class="resource-title">${q.title}</h3>
-              <p class="resource-desc">Subject: <strong>${subject.name}</strong> • ${qCount} Questions Assessment</p>
-
-              <div class="resource-actions" style="margin-top:20px;">
-                <button class="btn-launch-resource" onclick="AppState.openModal('quiz', '${q.id}')">
-                  ${renderIcon('play')} Start ${qCount}-Question Quiz
-                </button>
+              <div class="quiz-card-title">${q.title}</div>
+              <div class="quiz-card-subject" style="display:flex; align-items:center; gap:6px;">
+                ${renderIcon(subject.icon || 'book')} Subject: <strong>${subject.name}</strong> • ${qCount} Questions Assessment
               </div>
+
+              <button class="btn-start-quiz-navy" onclick="AppState.openModal('quiz', '${q.id}')">
+                ${renderIcon('play-circle')} Start ${qCount}-Question Quiz
+              </button>
             </div>
           `;
         }).join('')}
@@ -1203,7 +1233,23 @@
     const user = state.currentUser || {};
     const badges = (state.data && state.data.badges) ? state.data.badges : [];
     const courses = (state.data && state.data.courses) ? state.data.courses : [];
-    const enrolledCourses = courses.filter(c => (user.enrolledCourseIds || []).includes(c.id));
+    const enrolledIds = user.enrolledCourseIds || [];
+    const enrolledCourses = courses.filter(c => enrolledIds.includes(c.id));
+
+    // Gather all eligible certificates in a compact, scrollable list (enrolled courses prioritized)
+    const fallbackCourses = [
+      { id: 'course-ai-101', title: 'Artificial Intelligence & Neural Networks Masterclass', subjectId: 'ds', level: 'Advanced' },
+      { id: 'course-cs-101', title: 'Computer Science & Full-Stack Development', subjectId: 'cs', level: 'Intermediate' },
+      { id: 'course-math-101', title: 'Mathematics & Advanced Analytics', subjectId: 'math', level: 'Intermediate' },
+      { id: 'course-physics-101', title: 'Physics & Quantum Systems', subjectId: 'physics', level: 'Advanced' }
+    ];
+
+    const sourceCourses = (courses && courses.length > 0) ? courses : fallbackCourses;
+    const certCourses = [...sourceCourses].sort((a, b) => {
+      const aEnrolled = enrolledIds.includes(a.id) ? 1 : 0;
+      const bEnrolled = enrolledIds.includes(b.id) ? 1 : 0;
+      return bEnrolled - aEnrolled;
+    });
 
     return `
       <div class="page-header">
@@ -1229,17 +1275,30 @@
         </div>
 
         <!-- Right: Certificates List -->
-        <div class="widget-card">
-          <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:16px;">Course Certificates</h2>
-          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Generate and download a professional Certificate of Completion for your active courses.</p>
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            ${enrolledCourses.map(c => `
-              <div style="padding:14px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                <div style="min-width:0; flex:1;">
-                  <h4 style="font-size:0.9rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.title}</h4>
-                  <span style="font-size:0.75rem; color:var(--primary-500); font-weight:700;">Verified Pathway</span>
+        <div class="widget-card cert-widget-card">
+          <div class="cert-widget-header">
+            <div>
+              <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:4px; color:var(--text-main);">Course Certificates</h2>
+              <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:0;">Generate and download a professional Certificate of Completion for your active courses.</p>
+            </div>
+            <span class="cert-count-pill">${certCourses.length} ${certCourses.length === 1 ? 'Certificate' : 'Certificates'}</span>
+          </div>
+
+          <div class="cert-scroll-list">
+            ${certCourses.map(c => `
+              <div class="cert-card-item">
+                <div class="cert-card-info">
+                  <h4 class="cert-card-title" title="${c.title || c.name || 'Certified Course Pathway'}">
+                    ${c.title || c.name || 'Certified Course Pathway'}
+                  </h4>
+                  <div class="cert-card-meta">
+                    <span class="cert-badge-verified">
+                      ${renderIcon('check-circle-2', 'cert-verified-icon')} Verified Pathway
+                    </span>
+                    ${c.level ? `<span class="cert-meta-divider">&bull;</span><span class="cert-meta-level">${c.level}</span>` : ''}
+                  </div>
                 </div>
-                <button class="btn-launch-resource" style="padding:6px 12px; font-size:0.8rem; flex-shrink:0; background:var(--primary-gradient); color:#fff;" onclick="AppState.openModal('certificate', { courseId: '${c.id}' })">
+                <button class="btn-cert-action" onclick="AppState.openModal('certificate', { courseId: '${c.id}' })" title="Generate and Download Certificate">
                   ${renderIcon('file-text')} Certificate
                 </button>
               </div>
@@ -1915,9 +1974,13 @@
     } else if (state.activeModal === 'questionnaire') {
       content = renderQuestionnaireModalContent();
     } else if (state.activeModal === 'quiz') {
-      content = renderQuizModalContent(state.modalData);
+      content = (window.ModalsView && typeof window.ModalsView.renderQuizModalContent === 'function') 
+        ? window.ModalsView.renderQuizModalContent(state.modalData) 
+        : renderQuizModalContent(state.modalData);
     } else if (state.activeModal === 'quiz-result-interest') {
-      content = renderQuizResultInterestModalContent(state.modalData);
+      content = (window.ModalsView && typeof window.ModalsView.renderQuizResultInterestModalContent === 'function') 
+        ? window.ModalsView.renderQuizResultInterestModalContent(state.modalData) 
+        : renderQuizResultInterestModalContent(state.modalData);
     } else if (state.activeModal === 'resource-viewer') {
       content = renderResourceViewerModalContent(state.modalData);
     } else if (state.activeModal === 'certificate') {
@@ -2241,42 +2304,65 @@
   let currentQuizStep = 0;
   let quizAnswers = {};
   function renderQuizModalContent(quizId) {
-    const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : [];
+    if (window.ModalsView && typeof window.ModalsView.renderQuizModalContent === 'function') {
+      return window.ModalsView.renderQuizModalContent(quizId);
+    }
+    window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+    let step = window.quizState.currentQuizStep || 0;
+    const answers = window.quizState.quizAnswers || {};
+
+    const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
     const quiz = quizzes.find(q => q.id === quizId) || quizzes[0] || { title: 'Quiz', questions: [] };
-    const q = (quiz.questions && quiz.questions[currentQuizStep]) ? quiz.questions[currentQuizStep] : (quiz.questions ? quiz.questions[0] : { question: 'Question?', options: ['Option 1', 'Option 2'], correctIndex: 0 });
+    const totalQs = quiz.questions ? quiz.questions.length : 1;
+    if (step >= totalQs) {
+      step = 0;
+      window.quizState.currentQuizStep = 0;
+    }
+    const q = (quiz.questions && quiz.questions[step]) ? quiz.questions[step] : (quiz.questions ? quiz.questions[0] : { question: 'Question?', options: ['Option 1', 'Option 2'], correctIndex: 0 });
+    const isLastQuestion = step === totalQs - 1;
+    const progressPct = Math.round(((step + 1) / totalQs) * 100);
+    const timeLimit = quiz.timeLimitMinutes || (totalQs === 5 ? 8 : (totalQs === 10 ? 15 : 25));
+    const tierClass = (quiz.level || 'beginner').toLowerCase();
 
     return `
       <div class="quiz-container" style="border:none; padding:0;">
-        <div class="quiz-header">
+        <div class="quiz-header" style="margin-bottom:16px;">
           <div>
-            <h2 style="font-size:1.3rem; font-weight:800;">${quiz.title}</h2>
-            <p style="font-size:0.85rem; color:var(--text-muted);">Question ${currentQuizStep + 1} of ${quiz.questions ? quiz.questions.length : 1}</p>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span class="quiz-tier-badge ${tierClass}">${quiz.level || 'Assessment'} • ${totalQs} Questions</span>
+            </div>
+            <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:4px;">${quiz.title}</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted);">Question ${step + 1} of ${totalQs}</p>
           </div>
-          <div class="quiz-timer">
-            ${renderIcon('clock')} 09:45
+          <div class="quiz-timer" style="display:flex; align-items:center; gap:6px; font-weight:700; font-size:0.88rem; color:var(--color-teal-action); background:var(--color-teal-light); padding:6px 12px; border-radius:var(--radius-full);">
+            ${renderIcon('clock')} ${timeLimit} Mins
           </div>
         </div>
 
+        <div style="width:100%; height:6px; background:var(--border-color); border-radius:var(--radius-full); margin-bottom:20px; overflow:hidden;">
+          <div style="width:${progressPct}%; height:100%; background:var(--primary-gradient); transition:width 0.3s ease;"></div>
+        </div>
+
         <div class="question-box">
-          <div class="question-text">${q.question}</div>
+          <div class="question-text" style="font-size:1.05rem; font-weight:700; line-height:1.5; margin-bottom:16px;">${q.question}</div>
           <div class="options-list">
             ${(q.options || []).map((opt, idx) => `
-              <button class="option-btn ${quizAnswers[q.id] === idx ? (idx === q.correctIndex ? 'correct' : 'wrong') : ''}" onclick="window.submitQuizAnswer('${quiz.id}', '${q.id}', ${idx}, ${q.correctIndex})">
+              <button class="option-btn ${answers[q.id] === idx ? (idx === q.correctIndex ? 'correct' : 'wrong') : ''}" onclick="window.submitQuizAnswer('${quiz.id}', '${q.id}', ${idx}, ${q.correctIndex})">
                 <span>${opt}</span>
               </button>
             `).join('')}
           </div>
 
-          ${quizAnswers[q.id] !== undefined ? `
-            <div class="explanation-banner">
+          ${answers[q.id] !== undefined ? `
+            <div class="explanation-banner" style="margin-top:16px;">
               <strong>AI Explanation:</strong> ${q.explanation || 'Correct concept applied!'}
             </div>
           ` : ''}
         </div>
 
         <div style="display:flex; justify-content:space-between; margin-top:20px;">
-          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; justify-content:center;" onclick="window.nextQuizStep('${quiz.id}', ${quiz.questions ? quiz.questions.length : 1})">
-            Next Question ${renderIcon('arrow-right')}
+          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; flex:1; justify-content:center; padding:12px;" onclick="window.nextQuizStep('${quiz.id}', ${totalQs})">
+            ${isLastQuestion ? `${renderIcon('check-circle')} Submit Quiz & View Results` : `Next Question ${renderIcon('arrow-right')}`}
           </button>
         </div>
       </div>
@@ -2284,24 +2370,30 @@
   }
 
   window.submitQuizAnswer = function(quizId, qId, selectedIdx, correctIdx) {
+    window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+    window.quizState.quizAnswers[qId] = selectedIdx;
     quizAnswers[qId] = selectedIdx;
     window.AppState.notify();
   };
 
   window.nextQuizStep = function(quizId, total) {
-    if (currentQuizStep < total - 1) {
-      currentQuizStep++;
+    window.quizState = window.quizState || { currentQuizStep: 0, quizAnswers: {} };
+    if (window.quizState.currentQuizStep < total - 1) {
+      window.quizState.currentQuizStep++;
+      currentQuizStep = window.quizState.currentQuizStep;
     } else {
-      const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : [];
+      const quizzes = (window.AppState.data && window.AppState.data.quizzes) ? window.AppState.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
       const quiz = quizzes.find(q => q.id === quizId) || quizzes[0];
       let correct = 0;
       if (quiz && quiz.questions) {
         quiz.questions.forEach(q => {
-          if (quizAnswers[q.id] === q.correctIndex) correct++;
+          if (window.quizState.quizAnswers[q.id] === q.correctIndex) correct++;
         });
       }
       const scorePct = Math.round((correct / (quiz && quiz.questions ? quiz.questions.length : 1)) * 100);
 
+      window.quizState.currentQuizStep = 0;
+      window.quizState.quizAnswers = {};
       currentQuizStep = 0;
       quizAnswers = {};
       

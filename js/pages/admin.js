@@ -696,12 +696,21 @@
       const assignments = (state.data && state.data.assignments) ? state.data.assignments : [];
       
       // Students list fetched dynamically from Firebase Firestore / state
-      const rawStudents = (state.data && state.data.students && state.data.students.length > 0)
+      let rawStudents = (state.data && state.data.students && state.data.students.length > 0)
         ? state.data.students
         : ((state.data && state.data.defaultUsers) ? state.data.defaultUsers : []);
+
+      if (!rawStudents || rawStudents.length <= 1) {
+        try {
+          const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+          if (mockDB.users && Object.keys(mockDB.users).length > 0) {
+            rawStudents = [...(rawStudents || []), ...Object.values(mockDB.users)];
+          }
+        } catch (_) {}
+      }
       
       const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
-      const students = rawStudents.filter(u => u && u.role !== 'admin' && !legacyMockIds.includes(u.id));
+      const students = rawStudents.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
 
       // Dynamic metrics calculation
       const totalRegisteredStudents = students.length;
@@ -1264,6 +1273,7 @@
       } else if (window.activeAdminTab === 'submissions') {
         const allSubmissions = state.data.submissions || [];
         const enrolledStudents = students.filter(s => s.enrolledCourseIds && Array.isArray(s.enrolledCourseIds) && s.enrolledCourseIds.length > 0);
+        const displayStudents = (students && students.length > 0) ? students : enrolledStudents;
 
         activeTabContent = `
           <div style="display:flex; flex-direction:column; gap:28px;">
@@ -1274,7 +1284,7 @@
                   <h2 style="font-size:1.2rem; font-weight:800; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;">
                     ${window.renderIcon('users')} Registered Students Profile & Onboarding
                     <span class="tag-pill" style="background:rgba(139,92,246,0.12); color:var(--color-purple); font-size:0.75rem; font-weight:800;">
-                      ${enrolledStudents.length} Students
+                      ${displayStudents.length} Students
                     </span>
                   </h2>
                   <p style="font-size:0.85rem; color:var(--text-muted); margin:0;">
@@ -1291,20 +1301,20 @@
                 </div>
               </div>
 
-              ${state.isLoadingStudents ? `
+              ${(state.isLoadingStudents && displayStudents.length === 0) ? `
                 <div style="text-align:center; padding:32px; color:var(--text-muted);">
                   <div style="display:inline-flex; align-items:center; gap:10px; font-size:0.95rem; font-weight:600;">
                     <span class="loading-spinner" style="display:inline-block; width:18px; height:18px; border:2px solid var(--border-color); border-top-color:var(--color-purple); border-radius:50%; animation:spin 0.8s linear infinite;"></span>
                     Loading registered students...
                   </div>
                 </div>
-              ` : (state.studentLoadError ? `
+              ` : (displayStudents.length === 0 && state.studentLoadError ? `
                 <div style="text-align:center; padding:28px; color:var(--color-rose); font-weight:600; font-size:0.95rem;">
                   Unable to load student data. Please try again.
                 </div>
-              ` : (enrolledStudents.length === 0 ? `
+              ` : (displayStudents.length === 0 ? `
                 <div style="text-align:center; color:var(--text-muted); padding:32px; font-size:0.95rem;">
-                  No students enrolled yet.
+                  No students registered yet.
                 </div>
               ` : (window.studentDirectoryViewMode === 'table' ? `
                 <!-- Compact Table Mode -->
@@ -1321,7 +1331,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      ${enrolledStudents.map(s => {
+                      ${displayStudents.map(s => {
                         const studentEnrolledCourses = courses.filter(c => (s.enrolledCourseIds || []).includes(c.id));
                         let totalLessons = 0;
                         studentEnrolledCourses.forEach(c => {
@@ -1371,7 +1381,7 @@
               ` : `
                 <!-- Premium Scroll-Free Responsive Cards Mode (Default) -->
                 <div class="student-cards-list">
-                  ${enrolledStudents.map(s => {
+                  ${displayStudents.map(s => {
                     const studentEnrolledCourses = courses.filter(c => (s.enrolledCourseIds || []).includes(c.id));
                     let totalLessons = 0;
                     studentEnrolledCourses.forEach(c => {
@@ -2102,7 +2112,7 @@
           </div>
         `;
       } else if (window.activeAdminTab === 'quizzes') {
-        const quizzes = (state.data && state.data.quizzes) ? state.data.quizzes : [];
+        const quizzes = (state.data && state.data.quizzes && state.data.quizzes.length > 0) ? state.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
         window.quizSubView = window.quizSubView || 'list';
         if (!window.quizBuilder) window.initQuizBuilderState();
 

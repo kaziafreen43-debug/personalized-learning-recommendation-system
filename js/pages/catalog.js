@@ -58,24 +58,30 @@
             </div>
           </div>
 
-          <h3 class="resource-title" style="margin-top: 8px;">${res.title}</h3>
-          <p class="resource-desc">${res.description || res.summary}</p>
+          <h3 class="resource-title" title="${res.title}">${res.title}</h3>
+          <p class="resource-desc" title="${res.description || res.summary || ''}">${res.description || res.summary || 'Adaptive multimedia course lesson designed for your skill pathway.'}</p>
 
-          <div style="font-size:0.75rem; color:var(--color-purple); font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:4px;">
-            ${window.renderIcon('info')} ${res.reason || 'Adapted for your grade class & style'}
+          <div class="resource-style-tag" title="${res.reason || 'Adapted for your grade class & style'}">
+            ${window.renderIcon('info')} <span>${res.reason || 'Adapted for your grade class & style'}</span>
           </div>
 
-          <div class="resource-meta" style="margin-bottom: 20px;">
-            <div class="resource-meta-item">${window.renderIcon('clock')} ${res.duration}</div>
-            <div class="resource-meta-item">${window.renderIcon('graduation-cap')} ${res.suitableClass || 'Grade 11-12'}</div>
-            <div class="resource-meta-item">${window.renderIcon('bar-chart')} ${res.level}</div>
+          <div class="resource-meta">
+            <div class="resource-meta-item" title="Duration: ${res.duration || '45 mins'}">
+              ${window.renderIcon('clock')} <span class="meta-text">${res.duration || '45 mins'}</span>
+            </div>
+            <div class="resource-meta-item" title="Grade Level: ${res.suitableClass || 'Grade 11-12'}">
+              ${window.renderIcon('graduation-cap')} <span class="meta-text">${res.suitableClass || 'Grade 11-12'}</span>
+            </div>
+            <div class="resource-meta-item" title="Difficulty Level: ${res.level || 'Intermediate'}">
+              ${window.renderIcon('bar-chart')} <span class="meta-text">${res.level || 'Intermediate'}</span>
+            </div>
           </div>
 
           <div class="resource-actions">
-            <button class="btn-launch-resource" onclick="AppState.openModal('resource-viewer', '${res.id}')">
+            <button class="btn-launch-resource" onclick="AppState.openModal('resource-viewer', '${res.id}')" title="Start Lesson">
               ${res.isCompleted ? window.renderIcon('check-circle-2') + ' Review' : window.renderIcon('play-circle') + ' Start Lesson'}
             </button>
-            <button class="btn-bookmark ${res.isBookmarked ? 'active' : ''}" onclick="AppState.toggleBookmark('${res.id}')" title="Bookmark">
+            <button class="btn-bookmark ${res.isBookmarked ? 'active' : ''}" onclick="AppState.toggleBookmark('${res.id}')" title="${res.isBookmarked ? 'Remove Bookmark' : 'Bookmark Lesson'}">
               ${window.renderIcon('bookmark')}
             </button>
           </div>
