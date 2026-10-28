@@ -1006,7 +1006,7 @@ body.sidebar-drawer-open {
 }
 
 .course-card-banner {
-  height: 140px;
+  height: 125px;
   position: relative;
   background-color: #f1f5f9;
   background-size: cover;
@@ -1101,20 +1101,21 @@ body.sidebar-drawer-open {
 }
 
 .course-card-content {
-  padding: 18px 20px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .course-card-title {
-  font-size: 1.08rem;
+  font-size: 1rem;
   font-weight: 800;
   margin-bottom: 6px;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 /* Resource Card Title: Uniform 2-Line Clamp with Min-Height */
@@ -1134,15 +1135,15 @@ body.sidebar-drawer-open {
 }
 
 .course-card-desc {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin-bottom: 16px;
-  line-height: 1.45;
+  margin-bottom: 12px;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 38px;
+  min-height: 34px;
 }
 
 /* Resource Card Description: Uniform 2-Line Clamp with Min-Height (Prevents Overlap) */
@@ -1195,10 +1196,11 @@ body.sidebar-drawer-open {
 .course-card-meta {
   display: flex;
   align-items: center;
-  gap: 14px;
-  font-size: 0.78rem;
-  color: var(--text-subtle);
-  margin-bottom: 18px;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
 }
 
 /* Resource Card Metadata: Single-Line, Balanced Widths, No Collision */
@@ -1215,9 +1217,11 @@ body.sidebar-drawer-open {
 }
 
 .course-card-meta-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  font-size: 0.74rem;
 }
 
 .resource-meta-item {
@@ -1368,11 +1372,11 @@ body.sidebar-drawer-open {
 
 .btn-enroll-dark {
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #0f172a !important;
   color: #ffffff !important;
   border-radius: var(--radius-sm);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1388,11 +1392,11 @@ body.sidebar-drawer-open {
 
 .btn-study-hub-clean {
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #0f766e;
   color: #ffffff !important;
   border-radius: var(--radius-sm);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
   display: flex;
   align-items: center;

@@ -1,6 +1,51 @@
 import math
 from datetime import datetime
 
+CATEGORY_TAXONOMY = {
+    'ds': ['ai machine learning', 'computer science', 'artificial intelligence & data science', 'data science', 'ds', 'ai'],
+    'cs': ['computer science', 'computer science & software', 'software', 'programming', 'cs'],
+    'math': ['mathematics', 'mathematics & analytics', 'analytics', 'math'],
+    'physics': ['physics', 'physics & quantum systems', 'quantum', 'physics'],
+    'bio': ['biology', 'biology & biotechnology', 'biotechnology', 'bio'],
+    'chem': ['chemistry', 'chemistry & molecules', 'molecules', 'chem']
+}
+
+def item_matches_interests(item, interests):
+    if not interests:
+        return True
+    if not item or not isinstance(item, dict):
+        return False
+    
+    item_tokens = set()
+    for field in ['subjectId', 'category']:
+        val = item.get(field)
+        if val and isinstance(val, str):
+            item_tokens.add(val.strip().lower())
+    for list_field in ['categories', 'tags']:
+        vals = item.get(list_field)
+        if isinstance(vals, list):
+            for v in vals:
+                if isinstance(v, str):
+                    item_tokens.add(v.strip().lower())
+
+    for raw_int in interests:
+        if not raw_int or not isinstance(raw_int, str):
+            continue
+        int_lower = raw_int.strip().lower()
+        if int_lower in item_tokens:
+            return True
+        for sub_id, aliases in CATEGORY_TAXONOMY.items():
+            if int_lower == sub_id or int_lower in aliases:
+                if item.get('subjectId') == sub_id:
+                    return True
+                for alias in aliases:
+                    if alias in item_tokens:
+                        return True
+                for token in item_tokens:
+                    if token in aliases:
+                        return True
+    return False
+
 def calculate_match_score(resource, user):
     if not user:
         return 70
@@ -43,7 +88,7 @@ def calculate_match_score(resource, user):
     # 3. Subject Interest Match (up to 20 points)
     interests = user.get('interests', [])
     resource_subject_id = resource.get('subjectId', '')
-    if resource_subject_id in interests:
+    if item_matches_interests(resource, interests):
         score += 20
 
     # 4. Career Goal Alignment (up to 15 points)
@@ -82,7 +127,7 @@ def get_recommendations(resources, user, filter_subject='all', limit=10):
     # Filter to keep only subjects of interest to the user
     if user and user.get('interests') and len(user.get('interests', [])) > 0:
         interests = user.get('interests', [])
-        filtered_resources = [res for res in filtered_resources if res.get('subjectId') in interests]
+        filtered_resources = [res for res in filtered_resources if item_matches_interests(res, interests)]
 
     result_list = []
     for res in filtered_resources:

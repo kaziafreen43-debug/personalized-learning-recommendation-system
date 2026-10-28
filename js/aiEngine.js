@@ -116,7 +116,7 @@ window.AIEngine = {
 
     // 3. Subject Interest Match (up to 20 points)
     const interests = user.interests || [];
-    if (interests.includes(resource.subjectId)) {
+    if (window.itemMatchesInterests ? window.itemMatchesInterests(resource, interests) : (interests.includes(resource.subjectId) || interests.includes(resource.category))) {
       score += 20;
     }
 
@@ -152,7 +152,7 @@ window.AIEngine = {
 
     // Filter to keep only subjects of interest to the user
     if (user && user.interests && user.interests.length > 0) {
-      resources = resources.filter(res => user.interests.includes(res.subjectId));
+      resources = resources.filter(res => window.itemMatchesInterests ? window.itemMatchesInterests(res, user.interests) : (user.interests.includes(res.subjectId) || user.interests.includes(res.category)));
     }
 
     let list = resources.map(res => {

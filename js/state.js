@@ -1,9 +1,205 @@
 // App State Management & Persistence
 
+// --------------------------------------------------------------------------
+// Multi-Category & Recommendation Taxonomy Engine
+// --------------------------------------------------------------------------
+window.CATEGORY_TAXONOMY = {
+  ds: {
+    id: 'ds',
+    name: 'Artificial Intelligence & Data Science',
+    category: 'AI Machine Learning',
+    tags: ['AI Machine Learning', 'Computer science', 'Artificial Intelligence', 'Data Science', 'Machine Learning'],
+    aliases: ['ds', 'ai', 'aiml', 'ai machine learning', 'ai & machine learning', 'artificial intelligence', 'artificial intelligence & data science', 'data science', 'machine learning', 'deep learning']
+  },
+  cs: {
+    id: 'cs',
+    name: 'Computer Science & Software',
+    category: 'Computer science',
+    tags: ['Computer science', 'Software Engineering', 'Algorithms', 'Web Development'],
+    aliases: ['cs', 'computer science', 'computer science & software', 'software', 'programming', 'software engineering', 'web dev', 'python']
+  },
+  math: {
+    id: 'math',
+    name: 'Mathematics & Analytics',
+    category: 'Mathematics',
+    tags: ['Mathematics', 'Analytics', 'Calculus', 'Algebra', 'Statistics'],
+    aliases: ['math', 'mathematics', 'mathematics & analytics', 'algebra', 'calculus', 'analytics', 'statistics', 'discrete math']
+  },
+  physics: {
+    id: 'physics',
+    name: 'Physics & Quantum Systems',
+    category: 'Physics',
+    tags: ['Physics', 'Quantum Systems', 'Mechanics', 'Electromagnetism'],
+    aliases: ['physics', 'physics & quantum systems', 'quantum systems', 'quantum', 'mechanics', 'electromagnetism']
+  },
+  bio: {
+    id: 'bio',
+    name: 'Biology & Biotechnology',
+    category: 'Biology',
+    tags: ['Biology', 'Biotechnology', 'Genetics', 'Cell Biology'],
+    aliases: ['bio', 'biology', 'biology & biotechnology', 'biotechnology', 'genetics', 'cell biology', 'bioinformatics']
+  },
+  chem: {
+    id: 'chem',
+    name: 'Chemistry & Molecules',
+    category: 'Chemistry',
+    tags: ['Chemistry', 'Molecular Science', 'Organic Synthesis', 'Chemical Reactions'],
+    aliases: ['chem', 'chemistry', 'chemistry & molecules', 'molecules', 'chemical', 'organic chemistry', 'chemical reactions']
+  }
+};
+
+window.normalizeCategoryKey = function(cat) {
+  if (!cat || typeof cat !== 'string') return '';
+  const clean = cat.trim().toLowerCase();
+  if (window.CATEGORY_TAXONOMY) {
+    for (const [key, meta] of Object.entries(window.CATEGORY_TAXONOMY)) {
+      if (key === clean) return key;
+      if (meta.aliases && meta.aliases.some(a => a === clean || clean.includes(a) || a.includes(clean))) {
+        return key;
+      }
+    }
+  }
+  return clean;
+};
+
+window.getSubjectCategoryName = function(subId) {
+  if (!subId) return 'General';
+  const norm = window.normalizeCategoryKey(subId);
+  if (window.CATEGORY_TAXONOMY && window.CATEGORY_TAXONOMY[norm]) {
+    return window.CATEGORY_TAXONOMY[norm].category;
+  }
+  return subId;
+};
+
+window.getItemCategories = function(item) {
+  const cats = new Set();
+  if (!item || typeof item !== 'object') return [];
+  if (item.category) {
+    if (Array.isArray(item.category)) item.category.forEach(c => cats.add(c));
+    else if (typeof item.category === 'string') cats.add(item.category);
+  }
+  if (Array.isArray(item.categories)) {
+    item.categories.forEach(c => {
+      if (typeof c === 'string') cats.add(c);
+    });
+  }
+  if (Array.isArray(item.tags)) {
+    item.tags.forEach(t => {
+      if (typeof t === 'string') cats.add(t);
+    });
+  }
+  if (item.subjectId) {
+    cats.add(item.subjectId);
+  }
+  if (item.courseId && window.AppState && window.AppState.data && window.AppState.data.courses) {
+    const parent = window.AppState.data.courses.find(c => c.id === item.courseId);
+    if (parent) {
+      window.getItemCategories(parent).forEach(c => cats.add(c));
+    }
+  }
+  return Array.from(cats);
+};
+
+window.itemMatchesInterests = function(item, userInterests) {
+  if (!item) return false;
+  if (!userInterests || !Array.isArray(userInterests) || userInterests.length === 0) {
+    return false;
+  }
+  const itemCats = window.getItemCategories(item);
+  if (itemCats.length === 0) return false;
+
+  const normalizedUserInterests = userInterests.map(i => window.normalizeCategoryKey(i));
+
+  for (const rawCat of itemCats) {
+    const norm = window.normalizeCategoryKey(rawCat);
+    if (normalizedUserInterests.includes(norm)) {
+      return true;
+    }
+    for (const rawInterest of userInterests) {
+      if (typeof rawInterest === 'string' && typeof rawCat === 'string') {
+        const a = rawInterest.trim().toLowerCase();
+        const b = rawCat.trim().toLowerCase();
+        if (a === b || a.includes(b) || b.includes(a)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+window.autoCategorizeItem = function(item, type = 'item') {
+  if (!item || typeof item !== 'object') return item;
+  
+  const subId = item.subjectId || (item.courseId && window.AppState && window.AppState.data && window.AppState.data.courses && (window.AppState.data.courses.find(c => c.id === item.courseId) || {}).subjectId) || '';
+  const tax = (window.CATEGORY_TAXONOMY && subId && window.CATEGORY_TAXONOMY[subId]) || null;
+  
+  let cats = Array.isArray(item.categories) ? [...item.categories] : [];
+  if (item.category && typeof item.category === 'string' && !cats.includes(item.category)) {
+    cats.push(item.category);
+  }
+  let tags = Array.isArray(item.tags) ? [...item.tags] : [];
+
+  if (tax) {
+    if (!item.category) item.category = tax.category;
+    if (cats.length === 0) cats.push(tax.category);
+    if (tax.tags) {
+      tax.tags.forEach(t => {
+        if (!tags.includes(t)) tags.push(t);
+      });
+    }
+    if (!tags.includes(tax.category)) tags.push(tax.category);
+    if (!tags.includes(tax.name)) tags.push(tax.name);
+    if (!tags.includes(tax.id)) tags.push(tax.id);
+  }
+
+  const text = ((item.title || '') + ' ' + (item.description || '')).toLowerCase();
+  if (window.CATEGORY_TAXONOMY) {
+    Object.values(window.CATEGORY_TAXONOMY).forEach(t => {
+      if (t.aliases.some(a => text.includes(a))) {
+        if (!cats.includes(t.category)) cats.push(t.category);
+        if (!tags.includes(t.category)) tags.push(t.category);
+      }
+    });
+  }
+
+  if (cats.length === 0) cats.push(subId || 'General');
+  if (tags.length === 0) tags.push(subId || 'General');
+
+  item.categories = cats;
+  item.tags = Array.from(new Set(tags));
+  if (!item.category) item.category = cats[0];
+
+  return item;
+};
+
+window.autoCategorizeAllData = function(data) {
+  if (!data) return;
+  if (Array.isArray(data.courses)) {
+    data.courses.forEach(c => window.autoCategorizeItem(c, 'course'));
+  }
+  if (Array.isArray(data.resources)) {
+    data.resources.forEach(r => window.autoCategorizeItem(r, 'resource'));
+  }
+  if (data.roadmaps && typeof data.roadmaps === 'object') {
+    Object.entries(data.roadmaps).forEach(([k, rm]) => {
+      rm.subjectId = rm.subjectId || k;
+      window.autoCategorizeItem(rm, 'roadmap');
+    });
+  }
+  if (Array.isArray(data.quizzes)) {
+    data.quizzes.forEach(q => window.autoCategorizeItem(q, 'quiz'));
+  }
+  if (Array.isArray(data.assignments)) {
+    data.assignments.forEach(a => window.autoCategorizeItem(a, 'assignment'));
+  }
+};
+
 window.AppState = {
   data: null,
   currentUser: null,
   isAuthenticated: false,
+  showAllCourses: false,
   theme: 'light',
   currentView: 'dashboard',
   activeSubjectFilter: 'all',
@@ -19,10 +215,12 @@ window.AppState = {
   isLoadingStudents: true,
   studentLoadError: null,
   realtimeUnsubscribe: null,
+  _userProfileUnsubscribe: null,
   
   listeners: [],
 
   init: function() {
+    this.showAllCourses = false;
     const savedData = localStorage.getItem('plr_app_data');
     if (savedData) {
       try {
@@ -33,14 +231,14 @@ window.AppState = {
     }
     if (!this.data) {
       this.data = {
-        courses: [],
-        resources: [],
-        quizzes: [],
-        assignments: [],
+        courses: (window.INITIAL_DATA && window.INITIAL_DATA.courses) ? [...window.INITIAL_DATA.courses] : [],
+        resources: (window.INITIAL_DATA && window.INITIAL_DATA.resources) ? [...window.INITIAL_DATA.resources] : [],
+        quizzes: (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) ? [...window.INITIAL_DATA.quizzes] : [],
+        assignments: (window.INITIAL_DATA && window.INITIAL_DATA.assignments) ? [...window.INITIAL_DATA.assignments] : [],
         submissions: [],
         subjects: (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [],
-        defaultUsers: [],
-        roadmaps: {}
+        defaultUsers: (window.INITIAL_DATA && window.INITIAL_DATA.defaultUsers) || [],
+        roadmaps: (window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) || {}
       };
       this.saveData();
     }
@@ -51,7 +249,31 @@ window.AppState = {
     if (!Array.isArray(this.data.assignments)) this.data.assignments = [];
     if (!Array.isArray(this.data.submissions)) this.data.submissions = [];
     if (!Array.isArray(this.data.subjects)) this.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
-    if (!this.data.roadmaps) this.data.roadmaps = {};
+    if (!this.data.roadmaps) this.data.roadmaps = (window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) || {};
+
+    // Guarantee full content from INITIAL_DATA if local storage cache is empty
+    if (this.data.courses.length === 0 && window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses)) {
+      this.data.courses = [...window.INITIAL_DATA.courses];
+    }
+    if (this.data.resources.length === 0 && window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources)) {
+      this.data.resources = [...window.INITIAL_DATA.resources];
+    }
+    if (Object.keys(this.data.roadmaps).length === 0 && window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) {
+      this.data.roadmaps = { ...window.INITIAL_DATA.roadmaps };
+    }
+    if (this.data.assignments.length === 0 && window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.assignments)) {
+      this.data.assignments = [...window.INITIAL_DATA.assignments];
+    }
+
+    // Always maintain master repository for instant category switching
+    this.data._masterCourses = [...this.data.courses];
+    this.data._masterResources = [...this.data.resources];
+    this.data._masterAssignments = [...this.data.assignments];
+
+    // Automatically assign multiple categories & tags to any content missing them
+    if (window.autoCategorizeAllData) {
+      window.autoCategorizeAllData(this.data);
+    }
 
     // Ensure all 6 core subjects are always present
     const coreSubjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
@@ -145,28 +367,23 @@ window.AppState = {
     }
 
     if (this.currentUser && this.currentUser.role !== 'admin') {
-      if (!this.currentUser.interests) {
+      if (!this.currentUser.interests || this.currentUser.interests.length === 0) {
         this.currentUser.interests = ['ds', 'math'];
       }
-      const interestToCourseMap = {
-        'ds': 'course-ai-101',
-        'cs': 'course-cs-101',
-        'math': 'course-math-101',
-        'physics': 'course-physics-101',
-        'bio': 'course-bio-101',
-        'chem': 'course-chem-101'
-      };
-      const enrolledIds = (this.currentUser.interests || []).map(id => interestToCourseMap[id]).filter(Boolean);
+      const enrolledIds = [];
       const dbCourses = (this.data && this.data.courses) ? this.data.courses : [];
       dbCourses.forEach(c => {
-        if ((this.currentUser.interests || []).includes(c.subjectId) && !enrolledIds.includes(c.id)) {
-          enrolledIds.push(c.id);
+        if (window.itemMatchesInterests(c, this.currentUser.interests)) {
+          if (!enrolledIds.includes(c.id)) enrolledIds.push(c.id);
         }
       });
       this.currentUser.enrolledCourseIds = enrolledIds;
       if (!this.currentUser.completedResourceIds) this.currentUser.completedResourceIds = [];
       if (!this.currentUser.bookmarkedResourceIds) this.currentUser.bookmarkedResourceIds = [];
       if (!this.currentUser.careerGoal) this.currentUser.careerGoal = 'AI & Machine Learning Engineer';
+      if (!this.currentUser.learningStyle) this.currentUser.learningStyle = this.currentUser.preferredStyle || 'visual';
+      if (!this.currentUser.preferredStyle) this.currentUser.preferredStyle = this.currentUser.learningStyle || 'visual';
+      if (!this.currentUser.skillLevel) this.currentUser.skillLevel = 'Intermediate';
     }
 
     // Initialize Firestore dynamic sync
@@ -176,6 +393,9 @@ window.AppState = {
     }
 
     this.setupStudentListener();
+    if (this.currentUser && this.currentUser.id) {
+      this.setupRealtimeProfileListener(this.currentUser.id);
+    }
   },
 
   saveData: function() {
@@ -243,7 +463,14 @@ window.AppState = {
           if (this.currentUser && this.currentUser.role !== 'admin') {
             const updatedProfile = validStudents.find(s => s.id === this.currentUser.id || (s.email && s.email.toLowerCase() === (this.currentUser.email || '').toLowerCase()));
             if (updatedProfile) {
+              const prevInterests = JSON.stringify(this.currentUser.interests || []);
+              const newInterests = JSON.stringify(updatedProfile.interests || []);
               Object.assign(this.currentUser, updatedProfile);
+              if (prevInterests !== newInterests) {
+                if (window.FirebaseDB && typeof window.FirebaseDB.syncPersonalizedContent === 'function') {
+                  window.FirebaseDB.syncPersonalizedContent(this);
+                }
+              }
             }
           }
 
@@ -297,6 +524,46 @@ window.AppState = {
       );
     } else {
       this.isLoadingStudents = false;
+    }
+  },
+
+  setupRealtimeProfileListener: function(userId) {
+    if (this._userProfileUnsubscribe) {
+      try { this._userProfileUnsubscribe(); } catch (_) {}
+      this._userProfileUnsubscribe = null;
+    }
+    if (!window.db || !userId) return;
+    try {
+      const userRef = window.db.collection('users').doc(userId);
+      if (typeof userRef.onSnapshot === 'function') {
+        this._userProfileUnsubscribe = userRef.onSnapshot(doc => {
+          if (!doc) return;
+          const data = typeof doc.data === 'function' ? doc.data() : doc;
+          if (!data || !this.currentUser || (this.currentUser.id !== userId && this.currentUser.email !== data.email)) return;
+          
+          const prevInterests = JSON.stringify(this.currentUser.interests || []);
+          const newInterests = JSON.stringify(data.interests || []);
+          const prevGoal = this.currentUser.careerGoal;
+          const prevSkill = this.currentUser.skillLevel;
+          const prevStyle = this.currentUser.learningStyle || this.currentUser.preferredStyle;
+
+          Object.assign(this.currentUser, data);
+          if (data.preferredStyle && !this.currentUser.learningStyle) this.currentUser.learningStyle = data.preferredStyle;
+          if (data.learningStyle && !this.currentUser.preferredStyle) this.currentUser.preferredStyle = data.learningStyle;
+
+          if (prevInterests !== newInterests || prevGoal !== data.careerGoal || prevSkill !== data.skillLevel || prevStyle !== (data.learningStyle || data.preferredStyle)) {
+            console.log("Real-time profile change detected via Firestore listener. Refreshing recommendations in-place...");
+            if (window.FirebaseDB && typeof window.FirebaseDB.syncPersonalizedContent === 'function') {
+              window.FirebaseDB.syncPersonalizedContent(this);
+            }
+            this.notify();
+          }
+        }, err => {
+          console.warn("Real-time user profile listener error:", err);
+        });
+      }
+    } catch (e) {
+      console.warn("Could not attach real-time profile listener:", e);
     }
   },
 
@@ -393,7 +660,8 @@ window.AppState = {
 
     this.closeModal();
     if (window.FirebaseDB) {
-      window.FirebaseDB.syncAppState(this);
+      await window.FirebaseDB.syncAppState(this);
+      await window.FirebaseDB.syncPersonalizedContent(this);
     }
     this.setView('dashboard');
     return true;
@@ -441,6 +709,9 @@ window.AppState = {
       } catch(e) {}
       if (window.FirebaseDB) {
         window.FirebaseDB.syncAppState(this);
+        if (!this.isAdmin(user)) {
+          window.FirebaseDB.syncPersonalizedContent(this);
+        }
       }
       if (this.isAdmin(user)) {
         this.setView('admin');
@@ -542,20 +813,16 @@ window.AppState = {
       }
     }
 
-    const interestToCourseMap = {
-      'ds': 'course-ai-101',
-      'cs': 'course-cs-101',
-      'math': 'course-math-101',
-      'physics': 'course-physics-101',
-      'bio': 'course-bio-101',
-      'chem': 'course-chem-101'
-    };
-    const selectedInterests = formData.interests || [];
-    const enrolledIds = selectedInterests.map(id => interestToCourseMap[id]).filter(Boolean);
-    const dbCourses = (this.data && this.data.courses) ? this.data.courses : [];
-    dbCourses.forEach(c => {
-      if (selectedInterests.includes(c.subjectId) && !enrolledIds.includes(c.id)) {
-        enrolledIds.push(c.id);
+    const selectedInterests = Array.isArray(formData.interests) ? formData.interests : [];
+    const masterCourses = (this.data && Array.isArray(this.data._masterCourses) && this.data._masterCourses.length > 0)
+      ? this.data._masterCourses
+      : ((this.data && Array.isArray(this.data.courses)) ? this.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+    
+    // Auto-enroll ONLY in courses matching newly selected interests
+    let enrolledIds = [];
+    masterCourses.forEach(c => {
+      if (window.itemMatchesInterests(c, selectedInterests)) {
+        if (!enrolledIds.includes(c.id)) enrolledIds.push(c.id);
       }
     });
 
@@ -571,18 +838,21 @@ window.AppState = {
       avatar: (this.currentUser && this.currentUser.avatar) ? this.currentUser.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       gradeClass: isActuallyAdmin ? 'Administrator' : (formData.gradeClass || 'Grade 11'),
       skillLevel: formData.skillLevel || 'Intermediate',
-      preferredStyle: formData.preferredStyle || 'visual',
+      learningStyle: formData.learningStyle || formData.preferredStyle || 'visual',
+      preferredStyle: formData.preferredStyle || formData.learningStyle || 'visual',
       careerGoal: formData.careerGoal || 'AI & Machine Learning Engineer',
       interests: selectedInterests,
       enrolledCourseIds: enrolledIds,
       completedResourceIds: (this.currentUser && !isNewRegistration && this.currentUser.completedResourceIds) ? this.currentUser.completedResourceIds : [],
       bookmarkedResourceIds: (this.currentUser && !isNewRegistration && this.currentUser.bookmarkedResourceIds) ? this.currentUser.bookmarkedResourceIds : [],
-      dailyGoalMinutes: 30,
-      todayStudiedMinutes: 0,
-      streakDays: 1,
+      dailyGoalMinutes: (this.currentUser && this.currentUser.dailyGoalMinutes) ? this.currentUser.dailyGoalMinutes : 30,
+      todayStudiedMinutes: (this.currentUser && this.currentUser.todayStudiedMinutes) ? this.currentUser.todayStudiedMinutes : 0,
+      streakDays: (this.currentUser && this.currentUser.streakDays) ? this.currentUser.streakDays : 1,
       createdAt: (this.currentUser && !isNewRegistration && this.currentUser.createdAt) ? this.currentUser.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      recentActivity: [{ title: 'Registered & Completed Onboarding Questionnaire', time: 'Just now', icon: 'check-circle' }]
+      recentActivity: (this.currentUser && this.currentUser.recentActivity && !isNewRegistration)
+        ? [{ title: 'Updated Questionnaire & Learning Preferences', time: 'Just now', icon: 'edit-3' }, ...this.currentUser.recentActivity]
+        : [{ title: 'Registered & Completed Onboarding Questionnaire', time: 'Just now', icon: 'check-circle' }]
     };
 
     this.currentUser = userProfile;
@@ -612,11 +882,129 @@ window.AppState = {
     } catch(e) {}
 
     this.saveData();
+
     if (window.FirebaseDB) {
       await window.FirebaseDB.saveUser(userProfile);
+      // Read latest profile fields directly from Firestore
+      try {
+        const latestDoc = await window.FirebaseDB.getUser(userId);
+        if (latestDoc) {
+          Object.assign(userProfile, latestDoc);
+          this.currentUser = userProfile;
+        }
+      } catch (_) {}
+      // Immediately run dynamic Firestore queries to refresh all recommendations in-place
+      await window.FirebaseDB.syncPersonalizedContent(this);
     }
+
+    this.setupRealtimeProfileListener(userId);
+    this.showAllCourses = false;
+    this.activeSubjectFilter = 'all';
+
     this.closeModal();
-    this.setView('dashboard');
+
+    if (isNewRegistration) {
+      this.setView('dashboard');
+    } else {
+      // Live in-place update without requiring logout, re-registration or page reload
+      this.notify();
+    }
+  },
+
+  // Helper getters for dynamic personalization across all pages
+  getPersonalizedCourses: function() {
+    const master = (this.data && Array.isArray(this.data._masterCourses) && this.data._masterCourses.length > 0)
+      ? this.data._masterCourses
+      : ((this.data && Array.isArray(this.data.courses)) ? this.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+    if (!this.currentUser || this.isAdmin(this.currentUser)) {
+      return master;
+    }
+    if (this.showAllCourses) {
+      return master;
+    }
+    const interests = this.currentUser.interests || [];
+    if (interests.length === 0) return [];
+    return master.filter(c => window.itemMatchesInterests(c, interests));
+  },
+
+  getPersonalizedResources: function(format = 'all') {
+    const master = (this.data && Array.isArray(this.data._masterResources) && this.data._masterResources.length > 0)
+      ? this.data._masterResources
+      : ((this.data && Array.isArray(this.data.resources)) ? this.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
+    let resources = master;
+    if (this.currentUser && !this.isAdmin(this.currentUser)) {
+      const interests = this.currentUser.interests || [];
+      if (interests.length === 0) return [];
+      resources = master.filter(r => window.itemMatchesInterests(r, interests));
+    }
+    if (format !== 'all') {
+      resources = resources.filter(r => r.format === format);
+    }
+    return resources;
+  },
+
+  getPersonalizedQuizzes: function() {
+    let quizzes = (this.data && Array.isArray(this.data.quizzes) && this.data.quizzes.length > 0)
+      ? this.data.quizzes
+      : (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+    if (!this.currentUser || this.isAdmin(this.currentUser)) {
+      const allQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+      if (allQuizzes.length > 0 && quizzes.length < allQuizzes.length) {
+        return allQuizzes;
+      }
+      return quizzes;
+    }
+    const interests = this.currentUser.interests || [];
+    if (interests.length === 0) return [];
+    return quizzes.filter(q => window.itemMatchesInterests(q, interests));
+  },
+
+  getPersonalizedSubjects: function() {
+    const subjects = (this.data && Array.isArray(this.data.subjects)) ? this.data.subjects : ((window.INITIAL_DATA && window.INITIAL_DATA.subjects) || []);
+    if (!this.currentUser || this.isAdmin(this.currentUser)) {
+      return subjects;
+    }
+    if (this.showAllCourses) {
+      return subjects;
+    }
+    const interests = this.currentUser.interests || [];
+    if (interests.length === 0) return [];
+    return subjects.filter(s => {
+      return interests.some(i => window.normalizeCategoryKey(i) === s.id || s.name.toLowerCase().includes(i.toLowerCase()) || window.normalizeCategoryKey(s.name) === window.normalizeCategoryKey(i));
+    });
+  },
+
+  getPersonalizedRoadmaps: function() {
+    const roadmaps = (this.data && this.data.roadmaps) ? this.data.roadmaps : ((window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) || {});
+    if (!this.currentUser || this.isAdmin(this.currentUser)) {
+      return roadmaps;
+    }
+    const interests = this.currentUser.interests || [];
+    if (interests.length === 0) return {};
+    const filtered = {};
+    Object.entries(roadmaps).forEach(([key, rm]) => {
+      if (window.itemMatchesInterests({ ...rm, subjectId: rm.subjectId || key }, interests)) {
+        filtered[key] = rm;
+      }
+    });
+    return filtered;
+  },
+
+  getPersonalizedAssignments: function() {
+    const master = (this.data && Array.isArray(this.data._masterAssignments) && this.data._masterAssignments.length > 0)
+      ? this.data._masterAssignments
+      : ((this.data && Array.isArray(this.data.assignments)) ? this.data.assignments : ((window.INITIAL_DATA && window.INITIAL_DATA.assignments) || []));
+    if (!this.currentUser || this.isAdmin(this.currentUser)) {
+      return master;
+    }
+    const interests = this.currentUser.interests || [];
+    if (interests.length === 0) return [];
+    const matchedCourses = this.getPersonalizedCourses();
+    const matchedCourseIds = matchedCourses.map(c => c.id);
+    return master.filter(a => {
+      if (a.courseId && matchedCourseIds.includes(a.courseId)) return true;
+      return window.itemMatchesInterests(a, interests);
+    });
   },
 
   enrollInCourse: function(courseId) {
@@ -756,19 +1144,30 @@ window.AppState = {
   },
 
   addCourse: function(courseObj) {
-    courseObj.id = 'course-' + Date.now();
+    courseObj.id = courseObj.id || ('course-' + Date.now());
     courseObj.rating = 5.0;
     courseObj.enrolledCount = 0;
     courseObj.matchScore = 95;
-    if (!courseObj.categories) {
+    
+    // Ensure tiers object exists for study hub
+    if (!courseObj.categories || Array.isArray(courseObj.categories)) {
+      const catList = Array.isArray(courseObj.categories) ? courseObj.categories : [courseObj.category || window.getSubjectCategoryName(courseObj.subjectId)];
+      courseObj.categoryList = catList;
       courseObj.categories = {
-        Beginner: { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId}-beginner` },
-        Intermediate: { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId}-intermediate` },
-        Advanced: { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId}-advanced` }
+        Beginner: { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId || 'ds'}-beginner` },
+        Intermediate: { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId || 'ds'}-intermediate` },
+        Advanced: { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${courseObj.subjectId || 'ds'}-advanced` }
       };
     }
+    
+    if (window.autoCategorizeItem) {
+      window.autoCategorizeItem(courseObj, 'course');
+    }
+
     if (!this.data.courses) this.data.courses = [];
     this.data.courses.unshift(courseObj);
+    if (!this.data._masterCourses) this.data._masterCourses = [];
+    this.data._masterCourses.unshift(courseObj);
     this.saveData();
     if (window.FirebaseDB) {
       window.FirebaseDB.saveCourse(courseObj);
@@ -778,6 +1177,9 @@ window.AppState = {
   deleteCourse: function(courseId) {
     if (!this.data.courses) return;
     this.data.courses = this.data.courses.filter(c => c.id !== courseId);
+    if (this.data._masterCourses) {
+      this.data._masterCourses = this.data._masterCourses.filter(c => c.id !== courseId);
+    }
     this.saveData();
     if (window.FirebaseDB && window.FirebaseDB.deleteCourse) {
       window.FirebaseDB.deleteCourse(courseId);
@@ -792,10 +1194,14 @@ window.AppState = {
     }
   },
 
-  addVideoToCourse: function(courseId, tier, title, description, contentUrl, duration) {
-    const course = this.data.courses.find(c => c.id === courseId);
+  addVideoToCourse: function(courseId, tier, title, description, contentUrl, duration, extraCategories = [], extraTags = []) {
+    const course = (this.data.courses || []).find(c => c.id === courseId);
     if (!course) return;
     const resId = 'res-vid-' + Date.now();
+    const courseCats = window.getItemCategories ? window.getItemCategories(course) : [course.category || course.subjectId];
+    const combinedCats = Array.from(new Set([...courseCats, ...(Array.isArray(extraCategories) ? extraCategories : [extraCategories])]));
+    const combinedTags = Array.from(new Set([...(course.tags || []), ...combinedCats, ...(Array.isArray(extraTags) ? extraTags : [extraTags])]));
+
     const resource = {
       id: resId,
       title: title,
@@ -805,6 +1211,9 @@ window.AppState = {
       summary: description,
       description: description,
       subjectId: course.subjectId,
+      category: course.category || combinedCats[0] || window.getSubjectCategoryName(course.subjectId),
+      categories: combinedCats,
+      tags: combinedTags,
       level: tier,
       vark: ['visual', 'auditory'],
       rating: 5.0,
@@ -812,10 +1221,22 @@ window.AppState = {
       suitableClass: course.suitableClass || 'Grade 11-12'
     };
 
+    if (window.autoCategorizeItem) {
+      window.autoCategorizeItem(resource, 'resource');
+    }
+
     if (!this.data.resources) this.data.resources = [];
     this.data.resources.unshift(resource);
+    if (!this.data._masterResources) this.data._masterResources = [];
+    this.data._masterResources.unshift(resource);
 
-    if (!course.categories) course.categories = {};
+    if (!course.categories || Array.isArray(course.categories)) {
+      course.categories = {
+        Beginner: { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-beginner` },
+        Intermediate: { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-intermediate` },
+        Advanced: { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-advanced` }
+      };
+    }
     if (!course.categories[tier]) {
       course.categories[tier] = {
         title: `${tier} Category`,
@@ -840,18 +1261,32 @@ window.AppState = {
     }
   },
 
-  addAssignment: function(courseId, title, description, points, questions) {
+  addAssignment: function(courseId, title, description, points, questions, extraCategories = [], extraTags = []) {
+    const course = (this.data.courses || []).find(c => c.id === courseId) || {};
+    const courseCats = window.getItemCategories ? window.getItemCategories(course) : (course.category ? [course.category] : []);
+    const combinedCats = Array.from(new Set([...courseCats, ...(Array.isArray(extraCategories) ? extraCategories : [extraCategories])]));
+    const combinedTags = Array.from(new Set([...(course.tags || []), ...combinedCats, ...(Array.isArray(extraTags) ? extraTags : [extraTags])]));
+
     const assignment = {
       id: 'assign-' + Date.now(),
       courseId: courseId,
+      subjectId: course.subjectId || 'ds',
+      category: course.category || combinedCats[0] || window.getSubjectCategoryName(course.subjectId),
+      categories: combinedCats.length > 0 ? combinedCats : [course.category || 'General'],
+      tags: combinedTags.length > 0 ? combinedTags : [course.category || 'General'],
       title: title,
       description: description,
       points: Number(points) || 100,
       questions: Array.isArray(questions) ? questions : [],
       createdAt: new Date().toISOString()
     };
+    if (window.autoCategorizeItem) {
+      window.autoCategorizeItem(assignment, 'assignment');
+    }
     if (!this.data.assignments) this.data.assignments = [];
     this.data.assignments.unshift(assignment);
+    if (!this.data._masterAssignments) this.data._masterAssignments = [];
+    this.data._masterAssignments.unshift(assignment);
     this.saveData();
     if (window.FirebaseDB) {
       window.FirebaseDB.saveAssignment(assignment);

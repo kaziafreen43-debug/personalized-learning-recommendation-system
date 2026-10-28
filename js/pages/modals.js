@@ -122,6 +122,7 @@
       gradeClass: document.getElementById('gradeClassSelect').value,
       skillLevel: document.getElementById('skillLevelSelect').value,
       preferredStyle: form.preferredStyle.value,
+      learningStyle: form.preferredStyle.value,
       careerGoal: form.careerGoal.value,
       interests: selectedInterests
     };
@@ -433,15 +434,24 @@
     renderQuestionnaireModalContent: function() {
       const state = window.AppState || {};
       const data = state.data || window.INITIAL_DATA || {};
+      const currentUser = state.currentUser;
+      const isNewReg = state.modalData && state.modalData.isNewRegistration;
 
       let defaultName = '';
       if (state.modalData && state.modalData.name) {
         defaultName = state.modalData.name;
-      } else if (state.currentUser && state.currentUser.name) {
-        defaultName = state.currentUser.name;
+      } else if (currentUser && currentUser.name) {
+        defaultName = currentUser.name;
       }
 
-      const isNewReg = state.modalData && state.modalData.isNewRegistration;
+      const currentGrade = (currentUser && !isNewReg) ? (currentUser.gradeClass || '') : '';
+      const currentSkill = (currentUser && !isNewReg) ? (currentUser.skillLevel || '') : '';
+      const currentStyle = (currentUser && !isNewReg) ? (currentUser.learningStyle || currentUser.preferredStyle || 'visual') : 'visual';
+      const currentGoal = (currentUser && !isNewReg) ? (currentUser.careerGoal || '') : '';
+      const currentInterests = (currentUser && !isNewReg && Array.isArray(currentUser.interests) && currentUser.interests.length > 0)
+        ? currentUser.interests
+        : ['ds', 'cs'];
+
       const welcomeHtml = isNewReg ? `
         <div class="welcome-banner" style="background:rgba(190,24,93,0.08); border:1px solid rgba(190,24,93,0.25); padding:16px; border-radius:var(--radius-md); text-align:center; margin-bottom:20px; font-weight:700; color:var(--color-indigo); line-height:1.5; font-size:0.95rem;">
           Welcome${defaultName ? `, ${defaultName}` : ''}! Please complete your assessment to receive personalized AI learning recommendations.
@@ -455,8 +465,8 @@
             <div style="display:inline-flex; align-items:center; gap:6px; background:var(--color-teal-light); color:var(--color-teal-action); padding:4px 12px; border-radius:var(--radius-full); font-size:0.8rem; font-weight:700; margin-bottom:8px;">
               ${window.renderIcon('cpu')} AI PROFILING QUESTIONNAIRE
             </div>
-            <h2 style="font-size:1.6rem; font-weight:800;">Student Assessment Questionnaire</h2>
-            <p style="color:var(--text-muted); font-size:0.9rem;">Fill out your learning preferences so our AI can generate personalized recommendations.</p>
+            <h2 style="font-size:1.6rem; font-weight:800;">${isNewReg ? 'Student Assessment Questionnaire' : 'Edit Assessment Questionnaire'}</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">${isNewReg ? 'Fill out your learning preferences so our AI can generate personalized recommendations.' : 'Update your preferences below. All recommendations across courses, videos, roadmaps, and quizzes will refresh instantly.'}</p>
           </div>
 
           <div id="questionnaire-error-banner" style="display:none; background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); padding:12px; border-radius:var(--radius-md); color:var(--color-rose); font-weight:600; text-align:center; margin-bottom:16px; font-size:0.9rem;">
@@ -474,8 +484,8 @@
                 <div>
                   <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Class / Grade Level</label>
                   <select name="gradeClass" id="gradeClassSelect" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
-                    <option value="" disabled selected>Select Grade</option>
-                    ${(data.classesList || []).map(c => `<option value="${c}">${c}</option>`).join('')}
+                    <option value="" disabled ${!currentGrade ? 'selected' : ''}>Select Grade</option>
+                    ${(data.classesList || []).map(c => `<option value="${c}" ${currentGrade === c ? 'selected' : ''}>${c}</option>`).join('')}
                   </select>
                   <div id="gradeClassError" style="color:var(--color-rose); font-size:0.78rem; font-weight:600; margin-top:4px; display:none;">Please select your grade.</div>
                 </div>
@@ -485,20 +495,20 @@
                 <div>
                   <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Current Skill Level</label>
                   <select name="skillLevel" id="skillLevelSelect" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
-                    <option value="" disabled selected>Select Skill Level</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
+                    <option value="" disabled ${!currentSkill ? 'selected' : ''}>Select Skill Level</option>
+                    <option value="Beginner" ${currentSkill === 'Beginner' ? 'selected' : ''}>Beginner</option>
+                    <option value="Intermediate" ${currentSkill === 'Intermediate' ? 'selected' : ''}>Intermediate</option>
+                    <option value="Advanced" ${currentSkill === 'Advanced' ? 'selected' : ''}>Advanced</option>
                   </select>
                   <div id="skillLevelError" style="color:var(--color-rose); font-size:0.78rem; font-weight:600; margin-top:4px; display:none;">Please select your current skill level.</div>
                 </div>
                 <div>
                   <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Preferred Learning Style (VARK)</label>
                   <select name="preferredStyle" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                    <option value="visual" selected>Visual (Diagrams & Videos)</option>
-                    <option value="auditory">Auditory (Lectures & Audio)</option>
-                    <option value="reading">Reading / Writing (Articles & Notes)</option>
-                    <option value="kinesthetic">Kinesthetic (Hands-on Practice Labs)</option>
+                    <option value="visual" ${currentStyle === 'visual' ? 'selected' : ''}>Visual (Diagrams & Videos)</option>
+                    <option value="auditory" ${currentStyle === 'auditory' ? 'selected' : ''}>Auditory (Lectures & Audio)</option>
+                    <option value="reading" ${currentStyle === 'reading' ? 'selected' : ''}>Reading / Writing (Articles & Notes)</option>
+                    <option value="kinesthetic" ${currentStyle === 'kinesthetic' ? 'selected' : ''}>Kinesthetic (Hands-on Practice Labs)</option>
                   </select>
                 </div>
               </div>
@@ -506,25 +516,28 @@
               <div>
                 <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Target Career Goal</label>
                 <select name="careerGoal" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                  ${(data.careerGoals || []).map(cg => `<option value="${cg}">${cg}</option>`).join('')}
+                  ${(data.careerGoals || []).map(cg => `<option value="${cg}" ${currentGoal === cg ? 'selected' : ''}>${cg}</option>`).join('')}
                 </select>
               </div>
 
               <div>
                 <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">Subjects of Interest (Select All That Apply)</label>
                 <div class="responsive-form-grid-2" style="gap:8px;">
-                  ${(data.subjects || []).map(s => `
-                    <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); cursor:pointer;">
-                      <input type="checkbox" name="interests" value="${s.id}" checked>
-                      <span>${s.name}</span>
-                    </label>
-                  `).join('')}
+                  ${(data.subjects || []).map(s => {
+                    const isChecked = currentInterests.includes(s.id);
+                    return `
+                      <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); cursor:pointer;">
+                        <input type="checkbox" name="interests" value="${s.id}" ${isChecked ? 'checked' : ''}>
+                        <span>${s.name}</span>
+                      </label>
+                    `;
+                  }).join('')}
                 </div>
                 <div id="interestsError" style="color:var(--color-rose); font-size:0.78rem; font-weight:600; margin-top:4px; display:none;">Please select at least one subject of interest.</div>
               </div>
 
               <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; justify-content:center; padding:12px; margin-top:8px; min-height:48px; width:100%;">
-                ${window.renderIcon('sparkles')} Generate AI Recommendations
+                ${isNewReg ? (window.renderIcon('sparkles') + ' Generate AI Recommendations') : (window.renderIcon('check') + ' Update Profile & Refresh Recommendations')}
               </button>
             </div>
           </form>

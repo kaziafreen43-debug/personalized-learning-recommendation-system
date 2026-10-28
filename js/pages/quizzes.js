@@ -32,6 +32,10 @@
   const QuizzesView = {
     render: function() {
       const state = window.AppState || {};
+      const user = state.currentUser || {};
+      const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+      const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
+
       let quizzes = (state.data && state.data.quizzes && state.data.quizzes.length > 0)
         ? state.data.quizzes
         : (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
@@ -39,7 +43,7 @@
         ? state.data.subjects
         : (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
 
-      // Guarantee all 6 core subjects are always present in the filter pills
+      // Guarantee all 6 core subjects are always present in the pool
       const coreSubjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects && window.INITIAL_DATA.subjects.length > 0)
         ? window.INITIAL_DATA.subjects
         : [
@@ -56,7 +60,7 @@
         }
       });
 
-      // Guarantee all 18 core subject category quizzes are present in quizzes array
+      // Guarantee all 18 core subject category quizzes are present in quizzes pool
       const defaultQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
       defaultQuizzes.forEach(dq => {
         if (!quizzes.some(q => q.id === dq.id || (q.subjectId === dq.subjectId && q.level === dq.level))) {
@@ -64,18 +68,36 @@
         }
       });
 
+      // For students: dynamically personalize by user's current selected interests (queried from Firestore)
+      if (isStudent && userInterests.length > 0) {
+        quizzes = quizzes.filter(q => window.itemMatchesInterests ? window.itemMatchesInterests(q, userInterests) : (userInterests.includes(q.subjectId) || userInterests.includes(q.category)));
+        subjects = subjects.filter(s => window.itemMatchesInterests ? window.itemMatchesInterests(s, userInterests) : userInterests.includes(s.id));
+
+        if (window.activeQuizSubjectFilter && window.activeQuizSubjectFilter !== 'all') {
+          const matchesFilter = window.itemMatchesInterests ? window.itemMatchesInterests({ subjectId: window.activeQuizSubjectFilter, id: window.activeQuizSubjectFilter }, userInterests) : userInterests.includes(window.activeQuizSubjectFilter);
+          if (!matchesFilter) {
+            window.activeQuizSubjectFilter = 'all';
+          }
+        }
+      }
+
       if (window.activeQuizSubjectFilter && window.activeQuizSubjectFilter !== 'all') {
-        quizzes = quizzes.filter(q => q.subjectId === window.activeQuizSubjectFilter);
+        quizzes = quizzes.filter(q => window.itemMatchesInterests ? window.itemMatchesInterests(q, [window.activeQuizSubjectFilter]) : (q.subjectId === window.activeQuizSubjectFilter || q.category === window.activeQuizSubjectFilter));
       }
 
       if (window.activeQuizCategoryFilter && window.activeQuizCategoryFilter !== 'all') {
         quizzes = quizzes.filter(q => q.level === window.activeQuizCategoryFilter);
       }
 
+      if (state.searchQuery && state.searchQuery.trim() !== '') {
+        const q = state.searchQuery.toLowerCase().trim();
+        quizzes = quizzes.filter(quiz => (quiz.title && quiz.title.toLowerCase().includes(q)) || (quiz.level && quiz.level.toLowerCase().includes(q)));
+      }
+
       return `
         <div class="page-header">
           <h1 class="page-title">${window.renderIcon('award')} Skill Assessment & Interest Quizzes</h1>
-          <p class="page-subtitle">3 Category Tiers for ALL Subjects: <strong>Beginner (5 Questions)</strong>, <strong>Intermediate (10 Questions)</strong>, and <strong>Advanced (15 Questions)</strong>.</p>
+          <p class="page-subtitle">${isStudent ? 'Skill assessment quizzes personalized to your selected subject interests.' : '3 Category Tiers for ALL Subjects: <strong>Beginner (5 Questions)</strong>, <strong>Intermediate (10 Questions)</strong>, and <strong>Advanced (15 Questions)</strong>.'}</p>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
@@ -112,14 +134,26 @@
           ${quizzes.length === 0 ? `
             <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 48px 20px;">
               <div style="font-size: 2.5rem; margin-bottom: 12px;">🏆</div>
-              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No Quizzes Available Yet</h3>
-              <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto;">There are no quizzes published for this selection yet.</p>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No quizzes available for your selected interests yet</h3>
+              <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 18px;">${isStudent ? `No quizzes match your current selected interests (${userInterests.map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ')}). Update your preferences below to discover quizzes.` : 'There are no quizzes published for this selection yet.'}</p>
+              ${isStudent ? `
+                <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                  <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
+                    ${window.renderIcon('edit-3')} Edit Interests
+                  </button>
+                  <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="window.activeQuizSubjectFilter='all'; window.activeQuizCategoryFilter='all'; AppState.notify();">
+                    Browse All Quizzes
+                  </button>
+                </div>
+              ` : ''}
             </div>
           ` : quizzes.map(q => {
             const subject = subjects.find(s => s.id === q.subjectId) || { name: q.subjectId || 'General', icon: 'book' };
             const qCount = q.questionCount || (q.questions ? q.questions.length : (q.level === 'Beginner' ? 5 : (q.level === 'Intermediate' ? 10 : 15)));
             const tierClass = (q.level || 'beginner').toLowerCase();
             const timeLimit = q.timeLimitMinutes || (qCount === 5 ? 8 : (qCount === 10 ? 15 : 25));
+            const qTags = window.getItemCategories ? window.getItemCategories(q) : (q.categories || (q.category ? [q.category] : []));
+            const qTagsHtml = (qTags || []).map(t => `<span style="font-size:0.68rem; font-weight:700; padding:2px 7px; border-radius:10px; background:rgba(99, 102, 241, 0.1); color:var(--primary-600); border:1px solid rgba(99, 102, 241, 0.2);">${t}</span>`).join(' ');
 
             return `
               <div class="quiz-card-clean">
@@ -130,6 +164,10 @@
                   <div class="quiz-card-duration">
                     ${window.renderIcon('clock')} ${timeLimit} Mins
                   </div>
+                </div>
+
+                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+                  ${qTagsHtml}
                 </div>
 
                 <div class="quiz-card-title">${q.title}</div>

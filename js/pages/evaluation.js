@@ -25,14 +25,18 @@
       const state = window.AppState || {};
       const user = state.currentUser || {};
 
-      const concepts = [
-        { id: 'c-1', subject: 'Artificial Intelligence', name: 'Neural Nets & Backpropagation', score: 92, level: 'Excellent', tips: 'Mastered gradients and feedforward logic. Ready for Transformer attention-mechanism architectures.' },
-        { id: 'c-2', subject: 'Computer Science', name: 'Algorithm Complexity & Big-O Notation', score: 85, level: 'Proficient', tips: 'Solid sorting analysis. We suggest reviewing distributed database hash partitioning.' },
-        { id: 'c-3', subject: 'Mathematics', name: 'Multivariable Calculus & Gradients', score: 76, level: 'Proficient', tips: 'Understand rates of change. Practice partial derivatives to optimize loss functions faster.' },
-        { id: 'c-4', subject: 'Physics', name: 'Quantum Mechanics & Schrödinger Wave', score: 48, level: 'Needs Review', tips: 'Conceptual gap in wave-particle duality. Watch the double-slit simulation in Roadmap.' },
-        { id: 'c-5', subject: 'Biology', name: 'Genetics & CRISPR-Cas9 Gene Cuts', score: 64, level: 'Basic', tips: 'Familiar with DNA helix replication. Re-study guide RNA targeting mechanisms.' },
-        { id: 'c-6', subject: 'Chemistry', name: 'Gibbs Free Energy & Kinetics Rate Laws', score: 88, level: 'Proficient', tips: 'Excellent understanding of enthalpy. Review Arrhenius activation equations.' }
+      const rawConcepts = [
+        { id: 'c-1', subjectId: 'ds', subject: 'Artificial Intelligence', name: 'Neural Nets & Backpropagation', score: 92, level: 'Excellent', tips: 'Mastered gradients and feedforward logic. Ready for Transformer attention-mechanism architectures.' },
+        { id: 'c-2', subjectId: 'cs', subject: 'Computer Science', name: 'Algorithm Complexity & Big-O Notation', score: 85, level: 'Proficient', tips: 'Solid sorting analysis. We suggest reviewing distributed database hash partitioning.' },
+        { id: 'c-3', subjectId: 'math', subject: 'Mathematics', name: 'Multivariable Calculus & Gradients', score: 76, level: 'Proficient', tips: 'Understand rates of change. Practice partial derivatives to optimize loss functions faster.' },
+        { id: 'c-4', subjectId: 'physics', subject: 'Physics', name: 'Quantum Mechanics & Schrödinger Wave', score: 48, level: 'Needs Review', tips: 'Conceptual gap in wave-particle duality. Watch the double-slit simulation in Roadmap.' },
+        { id: 'c-5', subjectId: 'bio', subject: 'Biology', name: 'Genetics & CRISPR-Cas9 Gene Cuts', score: 64, level: 'Basic', tips: 'Familiar with DNA helix replication. Re-study guide RNA targeting mechanisms.' },
+        { id: 'c-6', subjectId: 'chem', subject: 'Chemistry', name: 'Gibbs Free Energy & Kinetics Rate Laws', score: 88, level: 'Proficient', tips: 'Excellent understanding of enthalpy. Review Arrhenius activation equations.' }
       ];
+      const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
+      const concepts = (user.role !== 'admin' && userInterests.length > 0)
+        ? rawConcepts.filter(item => userInterests.includes(item.subjectId))
+        : rawConcepts;
 
       return `
         <div class="page-header">

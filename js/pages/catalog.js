@@ -49,6 +49,8 @@
       const state = window.AppState || {};
       const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
       const subject = subjects.find(s => s.id === res.subjectId) || { name: res.subjectId || 'Subject', color: '#6366f1' };
+      const tags = window.getItemCategories ? window.getItemCategories(res) : (res.categories || (res.category ? [res.category] : []));
+      const tagsHtml = (tags || []).map(t => `<span style="font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:12px; background:rgba(99, 102, 241, 0.1); color:var(--primary-600); border:1px solid rgba(99, 102, 241, 0.2);">${t}</span>`).join(' ');
 
       return `
         <div class="resource-card">
@@ -56,6 +58,10 @@
             <div class="ai-match-badge">
               ${window.renderIcon('cpu')} ${res.matchScore || 95}% AI Match
             </div>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+            ${tagsHtml}
           </div>
 
           <h3 class="resource-title" title="${res.title}">${res.title}</h3>
@@ -94,17 +100,37 @@
       const user = state.currentUser || {};
       const filterSub = state.activeSubjectFilter;
       const filterFmt = state.activeFormatFilter;
-      const resources = (state.data && state.data.resources) ? state.data.resources : [];
-      const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+      const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+      const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
 
-      const userInterests = (state.currentUser && state.currentUser.interests) ? state.currentUser.interests : [];
-      const filteredSubjects = userInterests.length > 0 ? subjects.filter(s => userInterests.includes(s.id)) : subjects;
+      let resources = (isStudent && state.getPersonalizedResources)
+        ? state.getPersonalizedResources()
+        : ((state.data && state.data.resources) ? state.data.resources : []);
+
+      let subjects = (isStudent && state.getPersonalizedSubjects)
+        ? state.getPersonalizedSubjects()
+        : ((state.data && state.data.subjects) ? state.data.subjects : []);
+
+      const filteredSubjects = (isStudent && userInterests.length > 0)
+        ? subjects.filter(s => window.itemMatchesInterests ? window.itemMatchesInterests(s, userInterests) : userInterests.includes(s.id))
+        : subjects;
+
+      if (isStudent && userInterests.length > 0 && filterSub && filterSub !== 'all') {
+        const matchesSub = window.itemMatchesInterests ? window.itemMatchesInterests({ subjectId: filterSub, id: filterSub }, userInterests) : userInterests.includes(filterSub);
+        if (!matchesSub) {
+          filterSub = 'all';
+          state.activeSubjectFilter = 'all';
+        }
+      }
 
       let items = window.AIEngine ? window.AIEngine.getRecommendations(resources, user, filterSub, 50) : resources;
+      if (isStudent && userInterests.length > 0) {
+        items = items.filter(i => window.itemMatchesInterests ? window.itemMatchesInterests(i, userInterests) : (userInterests.includes(i.subjectId) || userInterests.includes(i.category)));
+      }
 
       if (state.searchQuery && state.searchQuery.trim() !== '') {
-        const q = state.searchQuery.toLowerCase();
-        items = items.filter(i => i.title.toLowerCase().includes(q) || (i.description && i.description.toLowerCase().includes(q)));
+        const q = state.searchQuery.toLowerCase().trim();
+        items = items.filter(i => (i.title && i.title.toLowerCase().includes(q)) || (i.description && i.description.toLowerCase().includes(q)));
       }
       if (filterFmt && filterFmt !== 'all') {
         items = items.filter(i => i.format === filterFmt);
@@ -135,11 +161,18 @@
         <div class="resource-grid">
           ${items.length > 0 ? items.map(res => CatalogView.renderCard(res)).join('') : `
             <div style="grid-column: 1 / -1; padding:40px; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border-color);">
-              <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">No materials found for this exact filter combination</h3>
-              <p style="font-size:0.88rem; margin-bottom:16px;">Click below to reset filters and view all available study materials.</p>
-              <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex;" onclick="AppState.activeSubjectFilter='all'; AppState.activeFormatFilter='all'; AppState.notify();">
-                Reset Filters
-              </button>
+              <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">No study materials available for your selected interests yet</h3>
+              <p style="font-size:0.88rem; margin-bottom:16px;">Modify your interests or reset filters to discover available learning resources.</p>
+              <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                ${isStudent ? `
+                  <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
+                    ${window.renderIcon('edit-3')} Edit Interests
+                  </button>
+                ` : ''}
+                <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="AppState.activeSubjectFilter='all'; AppState.activeFormatFilter='all'; AppState.notify();">
+                  Reset Filters
+                </button>
+              </div>
             </div>
           `}
         </div>

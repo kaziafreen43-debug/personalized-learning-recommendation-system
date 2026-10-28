@@ -14,7 +14,21 @@ window.FirebaseDB = {
     }
   },
 
-  // Seed Firestore with admin user only if users collection is empty
+  getUser: async function(userId) {
+    if (!this.isInitialized) this.init();
+    if (!this.db || !userId) return null;
+    try {
+      const docSnap = await this.db.collection('users').doc(userId).get();
+      if (docSnap && docSnap.exists) {
+        return typeof docSnap.data === 'function' ? docSnap.data() : docSnap;
+      }
+    } catch (e) {
+      console.warn("Notice: Error fetching user from Firestore:", e);
+    }
+    return null;
+  },
+
+  // Seed Firestore with core collections if empty and ensure all items are categorized
   seedInitialDataIfEmpty: async function(initialData) {
     if (!this.isInitialized) return;
     try {
@@ -49,8 +63,58 @@ window.FirebaseDB = {
           await this.db.collection('users').doc(mid).delete();
         } catch (_) {}
       }
+
+      // Seed Courses if empty
+      try {
+        const coursesSnap = await this.db.collection('courses').limit(1).get();
+        if (coursesSnap.empty && initialData.courses && initialData.courses.length > 0) {
+          console.log("Seeding core courses to Firestore...");
+          for (const c of initialData.courses) {
+            if (window.autoCategorizeItem) window.autoCategorizeItem(c, 'course');
+            await this.saveCourse(c);
+          }
+        }
+      } catch (_) {}
+
+      // Seed Resources if empty
+      try {
+        const resSnap = await this.db.collection('resources').limit(1).get();
+        if (resSnap.empty && initialData.resources && initialData.resources.length > 0) {
+          console.log("Seeding core resources to Firestore...");
+          for (const r of initialData.resources) {
+            if (window.autoCategorizeItem) window.autoCategorizeItem(r, 'resource');
+            await this.saveResource(r);
+          }
+        }
+      } catch (_) {}
+
+      // Seed Assignments if empty
+      try {
+        const assignSnap = await this.db.collection('assignments').limit(1).get();
+        if (assignSnap.empty && initialData.assignments && initialData.assignments.length > 0) {
+          console.log("Seeding core assignments to Firestore...");
+          for (const a of initialData.assignments) {
+            if (window.autoCategorizeItem) window.autoCategorizeItem(a, 'assignment');
+            await this.saveAssignment(a);
+          }
+        }
+      } catch (_) {}
+
+      // Seed Roadmaps if empty
+      try {
+        const roadSnap = await this.db.collection('roadmaps').limit(1).get();
+        if (roadSnap.empty && initialData.roadmaps) {
+          console.log("Seeding core roadmaps to Firestore...");
+          for (const [subId, rm] of Object.entries(initialData.roadmaps)) {
+            rm.id = rm.id || ('roadmap-' + subId);
+            rm.subjectId = rm.subjectId || subId;
+            if (window.autoCategorizeItem) window.autoCategorizeItem(rm, 'roadmap');
+            await this.saveRoadmap(rm);
+          }
+        }
+      } catch (_) {}
     } catch (e) {
-      console.error("Error checking admin user in Firestore:", e);
+      console.warn("Notice: Admin check note (using local fallback):", e.message || e);
     }
   },
 
@@ -85,9 +149,21 @@ window.FirebaseDB = {
       coursesSnap.forEach(doc => {
         courses.push(doc.data());
       });
-      appState.data.courses = courses;
+      if (courses.length > 0) {
+        appState.data.courses = courses;
+      } else if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses) && window.INITIAL_DATA.courses.length > 0) {
+        appState.data.courses = [...window.INITIAL_DATA.courses];
+        window.INITIAL_DATA.courses.forEach(c => {
+          try { this.saveCourse(c); } catch (_) {}
+        });
+      }
+      appState.data._masterCourses = [...appState.data.courses];
     } catch (e) {
-      console.error("Error fetching courses from Firestore:", e);
+      console.warn("Notice: Courses sync note (using local fallback):", e.message || e);
+      if (!appState.data.courses || appState.data.courses.length === 0) {
+        appState.data.courses = (window.INITIAL_DATA && window.INITIAL_DATA.courses) || [];
+      }
+      appState.data._masterCourses = [...appState.data.courses];
     }
 
     // 3. Fetch Resources (independent block)
@@ -97,9 +173,21 @@ window.FirebaseDB = {
       resourcesSnap.forEach(doc => {
         resources.push(doc.data());
       });
-      appState.data.resources = resources;
+      if (resources.length > 0) {
+        appState.data.resources = resources;
+      } else if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources) && window.INITIAL_DATA.resources.length > 0) {
+        appState.data.resources = [...window.INITIAL_DATA.resources];
+        window.INITIAL_DATA.resources.forEach(r => {
+          try { this.saveResource(r); } catch (_) {}
+        });
+      }
+      appState.data._masterResources = [...appState.data.resources];
     } catch (e) {
-      console.error("Error fetching resources from Firestore:", e);
+      console.warn("Notice: Resources sync note (using local fallback):", e.message || e);
+      if (!appState.data.resources || appState.data.resources.length === 0) {
+        appState.data.resources = (window.INITIAL_DATA && window.INITIAL_DATA.resources) || [];
+      }
+      appState.data._masterResources = [...appState.data.resources];
     }
 
     // 3.5 Fetch Subjects (independent block)
@@ -129,7 +217,28 @@ window.FirebaseDB = {
         }
       });
     } catch (e) {
-      console.error("Error fetching subjects from Firestore:", e);
+      console.warn("Notice: Subjects sync note (using local fallback):", e.message || e);
+    }
+
+    // 3.8 Fetch Roadmaps (independent block)
+    try {
+      const roadmapsSnap = await this.db.collection('roadmaps').get();
+      const dbRoadmaps = {};
+      roadmapsSnap.forEach(doc => {
+        const d = doc.data();
+        const key = d.subjectId || doc.id.replace('roadmap-', '');
+        dbRoadmaps[key] = d;
+      });
+      if (Object.keys(dbRoadmaps).length > 0) {
+        appState.data.roadmaps = dbRoadmaps;
+      } else if (window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) {
+        appState.data.roadmaps = { ...window.INITIAL_DATA.roadmaps };
+        Object.entries(window.INITIAL_DATA.roadmaps).forEach(([k, rm]) => {
+          try { this.saveRoadmap(rm); } catch (_) {}
+        });
+      }
+    } catch (e) {
+      console.warn("Notice: Roadmaps sync note (using local fallback):", e.message || e);
     }
 
     // 4. Fetch Assignments (independent block)
@@ -139,9 +248,21 @@ window.FirebaseDB = {
       assignmentsSnap.forEach(doc => {
         assignments.push(doc.data());
       });
-      appState.data.assignments = assignments;
+      if (assignments.length > 0) {
+        appState.data.assignments = assignments;
+      } else if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.assignments) && window.INITIAL_DATA.assignments.length > 0) {
+        appState.data.assignments = [...window.INITIAL_DATA.assignments];
+        window.INITIAL_DATA.assignments.forEach(a => {
+          try { this.saveAssignment(a); } catch (_) {}
+        });
+      }
+      appState.data._masterAssignments = [...appState.data.assignments];
     } catch (e) {
-      console.error("Error fetching assignments from Firestore:", e);
+      console.warn("Notice: Assignments sync note (using local fallback):", e.message || e);
+      if (!appState.data.assignments || appState.data.assignments.length === 0) {
+        appState.data.assignments = (window.INITIAL_DATA && window.INITIAL_DATA.assignments) || [];
+      }
+      appState.data._masterAssignments = [...appState.data.assignments];
     }
 
     // 4.5 Fetch Quizzes (independent block)
@@ -175,7 +296,7 @@ window.FirebaseDB = {
         }
       });
     } catch (e) {
-      console.error("Error fetching quizzes from Firestore:", e);
+      console.warn("Notice: Quizzes sync note (using local fallback):", e.message || e);
     }
 
     // 5. Fetch all Users to sync dynamic register logins (independent block)
@@ -207,14 +328,13 @@ window.FirebaseDB = {
             const currentEnrolled = appState.currentUser.enrolledCourseIds || [];
             let updated = false;
             appState.data.courses.forEach(c => {
-              if (appState.currentUser.interests.includes(c.subjectId) && !currentEnrolled.includes(c.id)) {
+              if (window.itemMatchesInterests && window.itemMatchesInterests(c, appState.currentUser.interests) && !currentEnrolled.includes(c.id)) {
                 currentEnrolled.push(c.id);
                 updated = true;
               }
             });
             if (updated) {
               appState.currentUser.enrolledCourseIds = currentEnrolled;
-              // Save updated user enrollment to Firestore & local storage
               appState.saveData();
             }
           }
@@ -240,6 +360,11 @@ window.FirebaseDB = {
       } catch (_) {}
     }
 
+    // Ensure all content is automatically categorized if missing
+    if (window.autoCategorizeAllData) {
+      window.autoCategorizeAllData(appState.data);
+    }
+
     // Ensure appState.data.students is always populated with non-admin registered students
     const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
     const validStudents = (appState.data.defaultUsers || []).filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
@@ -263,7 +388,19 @@ window.FirebaseDB = {
         appState.data.submissions = submissions;
       }
     } catch (e) {
-      console.error("Error fetching submissions from Firestore:", e);
+      console.warn("Notice: Submissions sync note (using local fallback):", e.message || e);
+    }
+
+    // 7. If logged in as student, perform dynamic Firestore query personalization based on interests
+    if (appState.currentUser && appState.currentUser.role !== 'admin' && appState.currentUser.id !== 'u-admin' && (appState.currentUser.email || '').toLowerCase() !== 'admin@gmail.com') {
+      try {
+        await this.syncPersonalizedContent(appState);
+      } catch (e) {
+        console.warn("Notice: Error in student dynamic personalization sync:", e);
+      }
+      if (appState.currentUser && appState.currentUser.id && appState.setupRealtimeProfileListener) {
+        appState.setupRealtimeProfileListener(appState.currentUser.id);
+      }
     }
 
     console.log("AppState dynamically synced with Firebase Firestore.", appState.data);
@@ -276,12 +413,242 @@ window.FirebaseDB = {
     }
   },
 
+  // Dynamic Firestore Query by Categories / Tags (Supports multiple selected interests)
+  queryByInterests: async function(collectionName, interests) {
+    if (!this.isInitialized) this.init();
+    if (!this.db || !interests || !Array.isArray(interests) || interests.length === 0) {
+      return [];
+    }
+    const cleanInterests = interests.filter(Boolean);
+    if (cleanInterests.length === 0) return [];
+
+    const searchTerms = new Set();
+    cleanInterests.forEach(item => {
+      searchTerms.add(item);
+      const norm = window.normalizeCategoryKey ? window.normalizeCategoryKey(item) : item;
+      searchTerms.add(norm);
+      if (window.CATEGORY_TAXONOMY && window.CATEGORY_TAXONOMY[norm]) {
+        const meta = window.CATEGORY_TAXONOMY[norm];
+        searchTerms.add(meta.name);
+        searchTerms.add(meta.category);
+        if (meta.tags) meta.tags.forEach(t => searchTerms.add(t));
+        if (meta.aliases) meta.aliases.forEach(a => searchTerms.add(a));
+      }
+    });
+    const termsArr = Array.from(searchTerms);
+    const resultsMap = new Map();
+
+    for (let i = 0; i < termsArr.length; i += 30) {
+      const batch = termsArr.slice(i, i + 30);
+
+      try {
+        const snap = await this.db.collection(collectionName).where('category', 'in', batch).get();
+        if (snap && typeof snap.forEach === 'function') {
+          snap.forEach(doc => {
+            const data = typeof doc.data === 'function' ? doc.data() : doc;
+            const id = (data && data.id) || doc.id;
+            if (data && id) resultsMap.set(id, { ...data, id });
+          });
+        }
+      } catch (_) {}
+
+      try {
+        const snap = await this.db.collection(collectionName).where('subjectId', 'in', batch).get();
+        if (snap && typeof snap.forEach === 'function') {
+          snap.forEach(doc => {
+            const data = typeof doc.data === 'function' ? doc.data() : doc;
+            const id = (data && data.id) || doc.id;
+            if (data && id) resultsMap.set(id, { ...data, id });
+          });
+        }
+      } catch (_) {}
+
+      try {
+        const snap = await this.db.collection(collectionName).where('tags', 'array-contains-any', batch).get();
+        if (snap && typeof snap.forEach === 'function') {
+          snap.forEach(doc => {
+            const data = typeof doc.data === 'function' ? doc.data() : doc;
+            const id = (data && data.id) || doc.id;
+            if (data && id) resultsMap.set(id, { ...data, id });
+          });
+        }
+      } catch (_) {}
+    }
+
+    const results = Array.from(resultsMap.values());
+    if (window.itemMatchesInterests) {
+      return results.filter(item => window.itemMatchesInterests(item, cleanInterests));
+    }
+    return results;
+  },
+
+  // Dynamic Firestore Query for Personalized Assignments (by category/subjectId or courseId)
+  queryPersonalizedAssignments: async function(interests, courseIds = []) {
+    if (!this.isInitialized) this.init();
+    if (!this.db || !interests || !Array.isArray(interests) || interests.length === 0) return [];
+    const cleanInterests = interests.filter(Boolean);
+    const resultsMap = new Map();
+
+    // Query assignments by category/subjectId
+    const byCategory = await this.queryByInterests('assignments', cleanInterests);
+    byCategory.forEach(a => {
+      if (a && a.id) resultsMap.set(a.id, a);
+    });
+
+    // Query assignments by courseId if courseIds provided
+    if (courseIds && courseIds.length > 0) {
+      for (let i = 0; i < courseIds.length; i += 30) {
+        const batch = courseIds.slice(i, i + 30);
+        try {
+          const snap = await this.db.collection('assignments').where('courseId', 'in', batch).get();
+          if (snap && typeof snap.forEach === 'function') {
+            snap.forEach(doc => {
+              const data = typeof doc.data === 'function' ? doc.data() : doc;
+              const id = (data && data.id) || doc.id;
+              if (data && id) resultsMap.set(id, { ...data, id });
+            });
+          }
+        } catch (_) {}
+      }
+    }
+
+    return Array.from(resultsMap.values());
+  },
+
+  // Sync Personalized Content based on user's selected interests via Firestore queries
+  syncPersonalizedContent: async function(appState) {
+    if (!this.isInitialized) this.init();
+    if (!appState || !appState.currentUser) return;
+    const user = appState.currentUser;
+
+    if (user.role === 'admin' || user.id === 'u-admin' || (user.email && user.email.toLowerCase() === 'admin@gmail.com')) {
+      return; // Admins maintain full visibility
+    }
+
+    const interests = user.interests || [];
+    if (!Array.isArray(interests) || interests.length === 0) {
+      appState.data.courses = [];
+      appState.data.resources = [];
+      appState.data.quizzes = [];
+      appState.data.assignments = [];
+      appState.currentUser.enrolledCourseIds = [];
+      try {
+        localStorage.setItem('plr_app_data', JSON.stringify(appState.data));
+      } catch (_) {}
+      appState.notify();
+      return;
+    }
+
+    try {
+      // 1. Query Courses from Firestore matching interests
+      let matchedCourses = await this.queryByInterests('courses', interests);
+      
+      const masterCourses = (appState.data && Array.isArray(appState.data._masterCourses) && appState.data._masterCourses.length > 0)
+        ? appState.data._masterCourses
+        : ((appState.data && Array.isArray(appState.data.courses)) ? appState.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+
+      // If Firestore query returned 0, filter master courses using itemMatchesInterests
+      if (matchedCourses.length === 0) {
+        matchedCourses = masterCourses.filter(c => window.itemMatchesInterests ? window.itemMatchesInterests(c, interests) : (interests.includes(c.subjectId) || interests.includes(c.category)));
+      }
+
+      const matchedCourseIds = matchedCourses.map(c => c.id);
+
+      // 2. Query Resources (videos, articles, labs) from Firestore matching interests
+      let matchedResources = await this.queryByInterests('resources', interests);
+      const masterResources = (appState.data && Array.isArray(appState.data._masterResources) && appState.data._masterResources.length > 0)
+        ? appState.data._masterResources
+        : ((appState.data && Array.isArray(appState.data.resources)) ? appState.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
+      
+      if (matchedResources.length === 0) {
+        matchedResources = masterResources.filter(r => window.itemMatchesInterests ? window.itemMatchesInterests(r, interests) : (interests.includes(r.subjectId) || interests.includes(r.category)));
+      }
+
+      // 3. Query Quizzes from Firestore matching interests
+      let matchedQuizzes = await this.queryByInterests('quizzes', interests);
+      const masterQuizzes = (appState.data && Array.isArray(appState.data.quizzes) && appState.data.quizzes.length > 0)
+        ? appState.data.quizzes
+        : (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
+      
+      const coreMatchedQuizzes = masterQuizzes.filter(q => window.itemMatchesInterests ? window.itemMatchesInterests(q, interests) : (interests.includes(q.subjectId) || interests.includes(q.category)));
+      coreMatchedQuizzes.forEach(cq => {
+        if (!matchedQuizzes.some(q => q.id === cq.id || (q.subjectId === cq.subjectId && q.level === cq.level))) {
+          matchedQuizzes.push(cq);
+        }
+      });
+
+      // 4. Query Assignments from Firestore matching interests or matched courses
+      let matchedAssignments = await this.queryPersonalizedAssignments(interests, matchedCourseIds);
+      const masterAssignments = (appState.data && Array.isArray(appState.data._masterAssignments) && appState.data._masterAssignments.length > 0)
+        ? appState.data._masterAssignments
+        : ((appState.data && Array.isArray(appState.data.assignments)) ? appState.data.assignments : ((window.INITIAL_DATA && window.INITIAL_DATA.assignments) || []));
+      
+      if (matchedAssignments.length === 0) {
+        matchedAssignments = masterAssignments.filter(a => {
+          if (a.courseId && matchedCourseIds.includes(a.courseId)) return true;
+          return window.itemMatchesInterests ? window.itemMatchesInterests(a, interests) : (interests.includes(a.subjectId) || interests.includes(a.category));
+        });
+      }
+
+      // 5. Update user enrolledCourseIds: remove any course that no longer matches current interests!
+      const currentEnrolled = user.enrolledCourseIds || [];
+      const updatedEnrolled = currentEnrolled.filter(cid => matchedCourseIds.includes(cid));
+
+      // Auto-enroll in matched courses
+      matchedCourses.forEach(c => {
+        if (!updatedEnrolled.includes(c.id)) {
+          updatedEnrolled.push(c.id);
+        }
+      });
+      user.enrolledCourseIds = updatedEnrolled;
+
+      // 6. Keep master collections intact while personalizing
+      if (!appState.data._masterCourses) appState.data._masterCourses = masterCourses;
+      if (!appState.data._masterResources) appState.data._masterResources = masterResources;
+      if (!appState.data._masterAssignments) appState.data._masterAssignments = masterAssignments;
+
+      appState.data.courses = matchedCourses;
+      appState.data.resources = matchedResources;
+      appState.data.quizzes = matchedQuizzes;
+      appState.data.assignments = matchedAssignments;
+
+      // 7. Re-align user roadmaps so only matched roadmaps exist
+      if (appState.data.roadmaps) {
+        const filteredRoadmaps = {};
+        interests.forEach(intId => {
+          const norm = window.normalizeCategoryKey ? window.normalizeCategoryKey(intId) : intId;
+          if (appState.data.roadmaps[norm]) {
+            filteredRoadmaps[norm] = appState.data.roadmaps[norm];
+          } else if (appState.data.roadmaps[intId]) {
+            filteredRoadmaps[intId] = appState.data.roadmaps[intId];
+          }
+        });
+        if (Object.keys(filteredRoadmaps).length > 0) {
+          appState.data.personalizedRoadmaps = filteredRoadmaps;
+        }
+      }
+
+      // Save user & state
+      this.saveUser(user);
+      try {
+        localStorage.setItem('plr_app_data', JSON.stringify(appState.data));
+      } catch (_) {}
+
+      // Notify UI
+      appState.notify();
+    } catch (e) {
+      console.error("Error in syncPersonalizedContent:", e);
+    }
+  },
+
   // Save/Update Course
   saveCourse: async function(course) {
     if (!this.isInitialized) {
       this.init();
     }
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !course) return;
+    course.category = course.category || course.subjectId;
+    course.tags = course.tags || (course.subjectId ? [course.subjectId] : []);
     try {
       await this.db.collection('courses').doc(course.id).set(course);
       console.log(`Course ${course.id} saved to Firestore.`);
@@ -309,7 +676,9 @@ window.FirebaseDB = {
     if (!this.isInitialized) {
       this.init();
     }
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !resource) return;
+    resource.category = resource.category || resource.subjectId;
+    resource.tags = resource.tags || (resource.subjectId ? [resource.subjectId] : []);
     try {
       await this.db.collection('resources').doc(resource.id).set(resource);
       console.log(`Resource ${resource.id} saved to Firestore.`);
@@ -323,7 +692,9 @@ window.FirebaseDB = {
     if (!this.isInitialized) {
       this.init();
     }
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !assignment) return;
+    assignment.category = assignment.category || assignment.subjectId;
+    assignment.tags = assignment.tags || (assignment.category ? [assignment.category] : []);
     try {
       await this.db.collection('assignments').doc(assignment.id).set(assignment);
       console.log(`Assignment ${assignment.id} saved to Firestore.`);
@@ -354,6 +725,8 @@ window.FirebaseDB = {
     }
     if (user && user.id) {
       user.updatedAt = new Date().toISOString();
+      if (!user.learningStyle && user.preferredStyle) user.learningStyle = user.preferredStyle;
+      if (!user.preferredStyle && user.learningStyle) user.preferredStyle = user.learningStyle;
       // Always persist to local mock storage as a dependable safety net
       try {
         let mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
@@ -497,12 +870,36 @@ window.FirebaseDB = {
     if (!this.isInitialized) {
       this.init();
     }
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !quiz) return;
+    if (window.autoCategorizeItem) {
+      window.autoCategorizeItem(quiz, 'quiz');
+    } else {
+      quiz.category = quiz.category || quiz.subjectId;
+      quiz.tags = quiz.tags || (quiz.subjectId ? [quiz.subjectId] : []);
+    }
     try {
       await this.db.collection('quizzes').doc(quiz.id).set(quiz);
       console.log(`Quiz ${quiz.id} saved to Firestore.`);
     } catch (e) {
       console.error("Error saving quiz to Firestore:", e);
+    }
+  },
+
+  // Save/Update Roadmap
+  saveRoadmap: async function(roadmap) {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.isInitialized || !roadmap) return;
+    if (window.autoCategorizeItem) {
+      window.autoCategorizeItem(roadmap, 'roadmap');
+    }
+    const docId = roadmap.id || ('roadmap-' + (roadmap.subjectId || 'general'));
+    try {
+      await this.db.collection('roadmaps').doc(docId).set(roadmap);
+      console.log(`Roadmap ${docId} saved to Firestore.`);
+    } catch (e) {
+      console.error("Error saving roadmap to Firestore:", e);
     }
   },
 

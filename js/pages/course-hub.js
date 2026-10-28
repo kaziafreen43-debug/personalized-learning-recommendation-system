@@ -33,7 +33,11 @@
   const CourseHubView = {
     render: function() {
       const state = window.AppState || {};
-      const courses = (state.data && state.data.courses) ? state.data.courses : [];
+      const user = state.currentUser || {};
+      const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+      const courses = (isStudent && state.getPersonalizedCourses)
+        ? state.getPersonalizedCourses()
+        : ((state.data && state.data.courses) ? state.data.courses : []);
       if (!courses.length) {
         return `
           <div style="margin-bottom:24px;">
@@ -56,16 +60,18 @@
       const course = courses.find(c => c.id === courseId) || courses[0];
       const userSkill = (state.currentUser && state.currentUser.skillLevel) || 'Intermediate';
 
-      const courseAssignments = (state.data && state.data.assignments) ? state.data.assignments.filter(a => a.courseId === course.id) : [];
+      const courseAssignments = (isStudent && state.getPersonalizedAssignments)
+        ? state.getPersonalizedAssignments().filter(a => a.courseId === course.id)
+        : ((state.data && state.data.assignments) ? state.data.assignments.filter(a => a.courseId === course.id) : []);
       const submissions = (state.data && state.data.submissions) ? state.data.submissions : [];
 
       if (!window.activeCourseCategory) window.activeCourseCategory = userSkill;
       const currentCategory = window.activeCourseCategory;
 
-      const categories = course.categories || {};
-      const beginnerData = categories.Beginner || { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-beginner` };
-      const intermediateData = categories.Intermediate || { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-intermediate` };
-      const advancedData = categories.Advanced || { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-advanced` };
+      const tierObj = (!Array.isArray(course.categories) && typeof course.categories === 'object' && course.categories) ? course.categories : (course.tiers || {});
+      const beginnerData = tierObj.Beginner || { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-beginner` };
+      const intermediateData = tierObj.Intermediate || { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-intermediate` };
+      const advancedData = tierObj.Advanced || { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-advanced` };
 
       const currentCatData = currentCategory === 'Beginner' ? beginnerData : (currentCategory === 'Advanced' ? advancedData : intermediateData);
       const qCount = currentCategory === 'Beginner' ? 5 : (currentCategory === 'Intermediate' ? 10 : 15);

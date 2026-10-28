@@ -32,7 +32,12 @@
         { id: 'course-math-101', title: 'Mathematics & Advanced Analytics', subjectId: 'math', level: 'Intermediate' },
         { id: 'course-physics-101', title: 'Physics & Quantum Systems', subjectId: 'physics', level: 'Advanced' }
       ];
-      const sourceCourses = (courses && courses.length > 0) ? courses : fallbackCourses;
+      const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+      const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
+      let sourceCourses = (courses && courses.length > 0) ? courses : fallbackCourses;
+      if (isStudent && userInterests.length > 0) {
+        sourceCourses = sourceCourses.filter(item => userInterests.includes(item.subjectId) || userInterests.includes(item.category));
+      }
       const certCourses = [...sourceCourses].sort((a, b) => {
         const aEnrolled = enrolledIds.includes(a.id) ? 1 : 0;
         const bEnrolled = enrolledIds.includes(b.id) ? 1 : 0;

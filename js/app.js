@@ -515,18 +515,18 @@
   function renderCurrentView() {
     const state = window.AppState;
     switch (state.currentView) {
-      case 'dashboard': return renderDashboard();
-      case 'courses': return renderCoursesCatalog();
-      case 'course-hub': return renderCourseHub();
-      case 'roadmap': return renderRoadmap();
-      case 'catalog': return renderCatalog();
+      case 'dashboard': return (window.DashboardView && typeof window.DashboardView.render === 'function') ? window.DashboardView.render() : renderDashboard();
+      case 'courses': return (window.CoursesView && typeof window.CoursesView.render === 'function') ? window.CoursesView.render() : (window.renderCoursesCatalog ? window.renderCoursesCatalog() : renderCoursesCatalog());
+      case 'course-hub': return (window.CourseHubView && typeof window.CourseHubView.render === 'function') ? window.CourseHubView.render() : renderCourseHub();
+      case 'roadmap': return (window.RoadmapView && typeof window.RoadmapView.render === 'function') ? window.RoadmapView.render() : renderRoadmap();
+      case 'catalog': return (window.CatalogView && typeof window.CatalogView.render === 'function') ? window.CatalogView.render() : renderCatalog();
       case 'quizzes': return (window.QuizzesView && typeof window.QuizzesView.render === 'function') ? window.QuizzesView.render() : renderQuizzes();
       case 'notes': return renderNotesView();
       case 'evaluation': return renderEvaluationView();
       case 'analytics': return renderAnalytics();
       case 'achievements': return renderAchievements();
-      case 'admin': return renderAdmin();
-      default: return renderDashboard();
+      case 'admin': return (window.AdminView && typeof window.AdminView.render === 'function') ? window.AdminView.render() : renderAdmin();
+      default: return (window.DashboardView && typeof window.DashboardView.render === 'function') ? window.DashboardView.render() : renderDashboard();
     }
   }
 
@@ -696,18 +696,37 @@
   };
 
   function renderCoursesCatalog() {
+    if (window.CoursesView && typeof window.CoursesView.render === 'function') {
+      return window.CoursesView.render();
+    }
     const state = window.AppState;
     const user = state.currentUser || {};
-    const courses = (state.data && state.data.courses) ? state.data.courses : [];
+    const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+    const courses = (isStudent && state.getPersonalizedCourses) ? state.getPersonalizedCourses() : ((state.data && state.data.courses) ? state.data.courses : []);
+    const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
 
     return `
       <div class="page-header">
         <h1 class="page-title">${renderIcon('graduation-cap')} Course Enrollment & Study Pathways</h1>
-        <p class="page-subtitle">Enroll in structured AI & Computer Science courses with step-by-step study materials and quizzes.</p>
+        <p class="page-subtitle">${isStudent ? 'Personalized courses matching your selected interests with step-by-step study materials and quizzes.' : 'Enroll in structured courses with step-by-step study materials and quizzes.'}</p>
       </div>
 
       <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:24px;">
-        ${courses.map(c => renderCourseCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
+        ${courses.length === 0 ? `
+          <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 50px 20px;">
+            <div style="font-size: 2.5rem; margin-bottom: 12px;">🎓</div>
+            <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No courses available for your selected interests yet</h3>
+            <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 18px;">We currently have no courses matching your selected interests. Modify your preferences or browse all courses.</p>
+            <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+              <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
+                ${renderIcon('edit-3')} Edit Interests
+              </button>
+              <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="AppState.showAllCourses = true; AppState.activeSubjectFilter = 'all'; AppState.notify();">
+                ${renderIcon('globe')} Browse All Courses
+              </button>
+            </div>
+          </div>
+        ` : courses.map(c => renderCourseCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
       </div>
     `;
   }

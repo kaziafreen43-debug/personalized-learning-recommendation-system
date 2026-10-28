@@ -44,8 +44,8 @@
           </div>
           
           <div class="course-card-content">
-            <div class="course-card-title">${c.title}</div>
-            <div class="course-card-desc">${c.description}</div>
+            <div class="course-card-title" title="${c.title}">${c.title}</div>
+            <div class="course-card-desc" title="${c.description}">${c.description}</div>
             
             <div class="course-card-meta">
               <div class="course-card-meta-item">${window.renderIcon('clock')} ${c.duration || '10 Weeks'}</div>
@@ -72,29 +72,54 @@
     render: function() {
       const state = window.AppState || {};
       const user = state.currentUser || {};
-      let courses = (state.data && state.data.courses) ? state.data.courses : [];
-      const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+      const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+      const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
+
+      let courses = (isStudent && state.getPersonalizedCourses)
+        ? state.getPersonalizedCourses()
+        : ((state.data && state.data.courses) ? state.data.courses : []);
+
+      const subjects = (isStudent && state.getPersonalizedSubjects)
+        ? state.getPersonalizedSubjects()
+        : ((state.data && state.data.subjects) ? state.data.subjects : []);
+
       const activeSub = state.activeSubjectFilter || 'all';
 
       if (activeSub !== 'all') {
-        courses = courses.filter(c => c.subjectId === activeSub);
+        courses = courses.filter(c => window.itemMatchesInterests ? window.itemMatchesInterests(c, [activeSub]) : (c.subjectId === activeSub || c.category === activeSub));
       }
-      if (state.searchQuery) {
-        const q = state.searchQuery.toLowerCase();
-        courses = courses.filter(c => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+      if (state.searchQuery && state.searchQuery.trim() !== '') {
+        const q = state.searchQuery.toLowerCase().trim();
+        courses = courses.filter(c => {
+          const itemTags = window.getItemCategories ? window.getItemCategories(c).join(' ').toLowerCase() : '';
+          return (c.title && c.title.toLowerCase().includes(q)) ||
+                 (c.description && c.description.toLowerCase().includes(q)) ||
+                 itemTags.includes(q);
+        });
       }
 
       return `
         <div class="page-header">
           <h1 class="page-title">${window.renderIcon('graduation-cap')} Course Enrollment & Study Pathways</h1>
-          <p class="page-subtitle">Enroll in structured AI & Computer Science courses with step-by-step study materials and quizzes.</p>
+          <p class="page-subtitle">${isStudent ? 'Personalized courses matching your selected interests with step-by-step study materials and quizzes.' : 'Enroll in structured courses with step-by-step study materials and quizzes.'}</p>
         </div>
+
+        ${state.showAllCourses ? `
+          <div style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:var(--radius-md); padding:12px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:10px; font-size:0.9rem; font-weight:600; color:var(--text-main);">
+              ${window.renderIcon('info')} Showing all available courses across subjects.
+            </div>
+            <button class="btn-hero-primary" style="padding:6px 14px; font-size:0.85rem;" onclick="AppState.showAllCourses = false; AppState.notify();">
+              ${window.renderIcon('sparkles')} Back to My Recommendations
+            </button>
+          </div>
+        ` : ''}
 
         <!-- Filter Pills Bar (Matches 2.PNG) -->
         <div class="filter-pills-bar">
           <div class="nav-search catalog-search-input" style="width: 100%; max-width: 320px; margin-right: 8px;">
             ${window.renderIcon('search')}
-            <input type="text" placeholder="Search courses, videos, quizzes..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; AppState.notify();">
+            <input type="text" placeholder="Search courses, categories, tags..." value="${state.searchQuery || ''}" oninput="AppState.searchQuery = this.value; AppState.notify();">
           </div>
           <button class="pill-filter-btn ${activeSub === 'all' ? 'active' : ''}" onclick="AppState.activeSubjectFilter='all'; AppState.notify();">
             All Subjects
@@ -110,8 +135,18 @@
           ${courses.length === 0 ? `
             <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 50px 20px;">
               <div style="font-size: 2.5rem; margin-bottom: 12px;">🎓</div>
-              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No Courses Available Yet</h3>
-              <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto;">No courses match the current filter. Courses created in the Admin panel will appear dynamically here.</p>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No courses available for your selected interests yet</h3>
+              <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 18px;">${isStudent ? `We currently have no courses matching your selected interests (${userInterests.map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ')}). You can modify your interests or browse all available courses.` : 'No courses match the current filter. Courses created in the Admin panel will appear dynamically here.'}</p>
+              ${isStudent ? `
+                <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                  <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
+                    ${window.renderIcon('edit-3')} Edit Interests
+                  </button>
+                  <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="AppState.showAllCourses = true; AppState.activeSubjectFilter = 'all'; AppState.notify();">
+                    ${window.renderIcon('globe')} Browse All Courses
+                  </button>
+                </div>
+              ` : ''}
             </div>
           ` : courses.map(c => CoursesView.renderCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
         </div>

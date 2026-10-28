@@ -49,14 +49,22 @@
   window.handleCreateCourseSubmit = function(e) {
     e.preventDefault();
     const form = e.target;
+    const selectedCategories = Array.from(form.querySelectorAll('input[name="categories"]:checked')).map(cb => cb.value);
+    const subId = form.subjectId.value;
+    const defaultCat = window.getSubjectCategoryName ? window.getSubjectCategoryName(subId) : 'General';
+    const cats = selectedCategories.length > 0 ? selectedCategories : (subId ? [defaultCat] : ['General']);
+
     const courseObj = {
       title: form.title.value.trim(),
-      subjectId: form.subjectId.value,
+      subjectId: subId,
       instructor: form.instructor.value.trim() || 'AI Faculty',
       prerequisites: form.prerequisites.value.trim() || 'None',
       duration: form.duration.value ? `${form.duration.value} Weeks` : '8 Weeks',
       description: form.description.value.trim(),
-      bannerImage: form.bannerImage.value.trim() || 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800'
+      bannerImage: form.bannerImage.value.trim() || 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800',
+      categories: cats,
+      category: cats[0],
+      tags: cats
     };
     if (!courseObj.title || !courseObj.description) {
       alert("Please enter a course title and description.");
@@ -92,12 +100,13 @@
     const contentUrl = form.contentUrl.value.trim();
     const duration = form.duration.value.trim() || '15 mins';
     const description = form.description.value.trim();
+    const selectedCategories = Array.from(form.querySelectorAll('input[name="videoCategories"]:checked')).map(cb => cb.value);
 
     if (!courseId || !title || !contentUrl) {
       alert("Please fill in Course, Title, and Video URL.");
       return;
     }
-    window.AppState.addVideoToCourse(courseId, tier, title, description, contentUrl, duration);
+    window.AppState.addVideoToCourse(courseId, tier, title, description, contentUrl, duration, selectedCategories, selectedCategories);
     alert("Video material successfully added to course and synced with Firebase!");
     form.reset();
   };
@@ -204,10 +213,17 @@
       return;
     }
 
+    const selectedCategories = Array.from(form.querySelectorAll('input[name="quizCategories"]:checked')).map(cb => cb.value);
+    const defaultCat = window.getSubjectCategoryName ? window.getSubjectCategoryName(subjectId) : 'General';
+    const quizCats = selectedCategories.length > 0 ? selectedCategories : (subjectId ? [defaultCat] : ['General']);
+
     const quizObj = {
       id: 'quiz-' + Date.now(),
       title: title,
       subjectId: subjectId,
+      category: quizCats[0],
+      categories: quizCats,
+      tags: quizCats,
       level: level,
       questionCount: questions.length,
       timeLimitMinutes: timeLimit,
@@ -557,17 +573,22 @@
       }
     }
 
+    const assignForm = document.getElementById('mcqAssignmentBuilderForm');
+    const selectedCategories = assignForm ? Array.from(assignForm.querySelectorAll('input[name="assignCategories"]:checked')).map(cb => cb.value) : [];
+
     if (b.editingId) {
       window.AppState.updateAssignment(b.editingId, {
         courseId: b.courseId,
         title: b.title,
         description: b.description,
         points: b.points,
-        questions: b.questions
+        questions: b.questions,
+        categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+        tags: selectedCategories.length > 0 ? selectedCategories : undefined
       });
       alert(`Assignment "${b.title}" updated successfully!`);
     } else {
-      window.AppState.addAssignment(b.courseId, b.title, b.description, b.points, b.questions);
+      window.AppState.addAssignment(b.courseId, b.title, b.description, b.points, b.questions, selectedCategories, selectedCategories);
       alert(`Assignment "${b.title}" successfully created with ${b.questions.length} MCQ questions!`);
     }
 
@@ -754,6 +775,17 @@
                     ${subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
                     <option value="ADD_NEW_SUBJECT" style="color:var(--color-purple); font-weight:700;">+ Add New Subject...</option>
                   </select>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:6px;">Categories / Tags (Select multiple)</label>
+                  <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="categories" value="AI Machine Learning"> AI Machine Learning</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="categories" value="Computer science"> Computer Science</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="categories" value="Mathematics"> Mathematics</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="categories" value="Physics"> Physics</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="categories" value="Biology"> Biology</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="categories" value="Chemistry"> Chemistry</label>
+                  </div>
                 </div>
                 <div class="admin-form-grid-2">
                   <div>
@@ -1034,6 +1066,17 @@
                   <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Must be an embeddable iframe URL format.</div>
                 </div>
                 <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:6px;">Categories / Tags (Select multiple)</label>
+                  <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="videoCategories" value="AI Machine Learning"> AI Machine Learning</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="videoCategories" value="Computer science"> Computer Science</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="videoCategories" value="Mathematics"> Mathematics</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="videoCategories" value="Physics"> Physics</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="videoCategories" value="Biology"> Biology</label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="videoCategories" value="Chemistry"> Chemistry</label>
+                  </div>
+                </div>
+                <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Duration</label>
                   <input type="text" name="duration" placeholder="e.g. 25 mins" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
                 </div>
@@ -1093,6 +1136,18 @@
                   <div class="mcq-form-group">
                     <label class="mcq-field-label">Instructions & Criteria</label>
                     <textarea name="description" id="assignmentBuilderDescInput" required placeholder="Provide clear task instructions, required materials, and how to submit..." oninput="window.updateBuilderField('description', this.value)" class="mcq-input-control mcq-textarea-control">${window.escapeHtmlAttr(b.description || '')}</textarea>
+                  </div>
+
+                  <div class="mcq-form-group">
+                    <label class="mcq-field-label">Categories / Tags (Select multiple)</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="assignCategories" value="AI Machine Learning"> AI Machine Learning</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="assignCategories" value="Computer science"> Computer Science</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="assignCategories" value="Mathematics"> Mathematics</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="assignCategories" value="Physics"> Physics</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="assignCategories" value="Biology"> Biology</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="assignCategories" value="Chemistry"> Chemistry</label>
+                    </div>
                   </div>
 
                   <!-- Questions Section -->
@@ -1917,6 +1972,112 @@
             `)}
           </div>
         `;
+      } else if (window.activeAdminTab === 'roadmaps') {
+
+        const roadmapsObj = (state.data && state.data.roadmaps) ? state.data.roadmaps : {};
+
+        const allTaxonomy = ['AI Machine Learning', 'Computer science', 'Mathematics', 'Physics', 'Biology', 'Chemistry'];
+
+
+
+        activeTabContent = `
+
+          <div class="widget-card" style="max-width:900px; margin:0 auto; width:100%;">
+
+            <h2 style="font-size:1.25rem; font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+
+              ${window.renderIcon('git-branch')} Study Roadmaps Multi-Category Manager
+
+            </h2>
+
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">
+
+              Assign multiple categories & tags to each subject roadmap so recommendations dynamically surface them when students select matching interests.
+
+            </p>
+
+
+
+            <div style="display:flex; flex-direction:column; gap:20px;">
+
+              ${Object.entries(roadmapsObj).map(([key, rm]) => {
+
+                const currentCats = window.getItemCategories ? window.getItemCategories(rm) : (rm.categories || [rm.category || 'General']);
+
+                return `
+
+                  <div style="padding:16px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-surface);">
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+
+                      <div>
+
+                        <h3 style="font-size:1.05rem; font-weight:800; margin:0;">${rm.title}</h3>
+
+                        <span style="font-size:0.8rem; color:var(--text-muted);">Subject Key: <code>${key}</code> • Nodes: ${(rm.nodes || []).length}</span>
+
+                      </div>
+
+                      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+
+                        ${currentCats.map(c => `<span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:12px; background:rgba(99,102,241,0.12); color:var(--primary-600); border:1px solid rgba(99,102,241,0.2);">${c}</span>`).join('')}
+
+                      </div>
+
+                    </div>
+
+
+
+                    <form onsubmit="window.handleUpdateRoadmapCategories(event, '${key}')">
+
+                      <div style="margin-bottom:12px;">
+
+                        <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:6px;">Assign Categories / Tags</label>
+
+                        <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+
+                          ${allTaxonomy.map(cat => {
+
+                            const isChecked = currentCats.some(c => c.toLowerCase() === cat.toLowerCase());
+
+                            return `
+
+                              <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;">
+
+                                <input type="checkbox" name="roadmapCategories" value="${cat}" ${isChecked ? 'checked' : ''}>
+
+                                ${cat}
+
+                              </label>
+
+                            `;
+
+                          }).join('')}
+
+                        </div>
+
+                      </div>
+
+                      <button type="submit" class="btn-hero-primary" style="padding:7px 16px; font-size:0.85rem; font-weight:700;">
+
+                        Save Categories
+
+                      </button>
+
+                    </form>
+
+                  </div>
+
+                `;
+
+              }).join('')}
+
+            </div>
+
+          </div>
+
+        `;
+
       } else if (window.activeAdminTab === 'subjects') {
         activeTabContent = `
           <div class="admin-two-col-grid">
@@ -2162,6 +2323,18 @@
                     </div>
                   </div>
 
+                  <div>
+                    <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">Categories / Tags (Select multiple)</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="quizCategories" value="AI Machine Learning"> AI Machine Learning</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="quizCategories" value="Computer science"> Computer Science</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="quizCategories" value="Mathematics"> Mathematics</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="quizCategories" value="Physics"> Physics</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="quizCategories" value="Biology"> Biology</label>
+                      <label style="display:flex; align-items:center; gap:6px; font-size:0.83rem; cursor:pointer;"><input type="checkbox" name="quizCategories" value="Chemistry"> Chemistry</label>
+                    </div>
+                  </div>
+
                   <div style="margin-top:10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                       <h3 style="font-size:1.05rem; font-weight:800; margin:0;">Quiz Questions (${window.quizBuilder.questions.length})</h3>
@@ -2389,6 +2562,9 @@
           </button>
           <button class="tab-btn ${window.activeAdminTab === 'subjects' ? 'active' : ''}" onclick="window.activeAdminTab='subjects'; AppState.notify();">
             ${window.renderIcon('book')} Manage Subjects
+          </button>
+          <button class="tab-btn ${window.activeAdminTab === 'roadmaps' ? 'active' : ''}" onclick="window.activeAdminTab='roadmaps'; AppState.notify();">
+            ${window.renderIcon('git-branch')} Roadmaps & Tags
           </button>
         </div>
 

@@ -25,14 +25,18 @@
     render: function() {
       const state = window.AppState || {};
       const user = state.currentUser || {};
-      const resources = (state.data && state.data.resources) ? state.data.resources : [];
-      const courses = (state.data && state.data.courses) ? state.data.courses : [];
+      const rawCourses = (state.data && state.data.courses) ? state.data.courses : [];
+      const courses = (state.getPersonalizedCourses && user.role !== 'admin')
+        ? state.getPersonalizedCourses()
+        : rawCourses;
+
+      const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
       const enrolledCourses = courses.filter(c => (user.enrolledCourseIds || []).includes(c.id));
       const recommendedCourses = courses.filter(c => !(user.enrolledCourseIds || []).includes(c.id));
       
       recommendedCourses.sort((a, b) => {
-        const aMatches = (user.interests || []).includes(a.subjectId) ? 1 : 0;
-        const bMatches = (user.interests || []).includes(b.subjectId) ? 1 : 0;
+        const aMatches = window.itemMatchesInterests ? (window.itemMatchesInterests(a, userInterests) ? 1 : 0) : (userInterests.includes(a.subjectId) || userInterests.includes(a.category) ? 1 : 0);
+        const bMatches = window.itemMatchesInterests ? (window.itemMatchesInterests(b, userInterests) ? 1 : 0) : (userInterests.includes(b.subjectId) || userInterests.includes(b.category) ? 1 : 0);
         return bMatches - aMatches;
       });
 
@@ -52,8 +56,8 @@
             Target Career Goal: <strong>${user.careerGoal || 'AI & Machine Learning Engineer'}</strong> • Skill Level: <strong>${user.skillLevel || 'Intermediate'}</strong>
           </div>
           <div class="banner-pills-row">
-            <span class="banner-badge-pill">Primary Style: ${(user.preferredStyle || 'Visual').toUpperCase()}</span>
-            <span class="banner-badge-pill">Interests: ${(user.interests || ['DS', 'MATH']).map(i => i.toUpperCase()).join(', ')}</span>
+            <span class="banner-badge-pill">Primary Style: ${(user.learningStyle || user.preferredStyle || 'Visual').toUpperCase()}</span>
+            <span class="banner-badge-pill">Interests: ${(userInterests.length > 0 ? userInterests : ['ds', 'math']).map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ')}</span>
           </div>
           <button class="btn-edit-questionnaire" onclick="AppState.openModal('questionnaire')">
             ${window.renderIcon('edit-3')} Edit Questionnaire
@@ -117,8 +121,16 @@
           ${courses.length === 0 ? `
             <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 36px 20px;">
               <div style="font-size: 2.2rem; margin-bottom: 8px;">📚</div>
-              <h4 style="font-weight: 800; margin-bottom: 4px;">No Courses Published Yet</h4>
-              <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">Once the instructor creates and publishes courses in the Admin panel, recommendations will appear here.</p>
+              <h4 style="font-weight: 800; margin-bottom: 6px;">No courses available for your selected interests yet</h4>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0 0 16px 0;">We currently have no courses matching ${userInterests.length > 0 ? userInterests.map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ') : 'your profile'}. Update your interests or browse all courses.</p>
+              <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
+                  ${window.renderIcon('edit-3')} Edit Interests
+                </button>
+                <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="AppState.showAllCourses = true; AppState.activeSubjectFilter = 'all'; AppState.setView('courses');">
+                  ${window.renderIcon('globe')} Browse All Courses
+                </button>
+              </div>
             </div>
           ` : (recommendedCourses.length > 0 ? recommendedCourses.slice(0, 2) : courses.slice(0, 2)).map(c => {
             if (courseCardRenderer) {
