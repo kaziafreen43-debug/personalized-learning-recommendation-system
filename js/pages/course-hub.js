@@ -35,10 +35,17 @@
       const state = window.AppState || {};
       const user = state.currentUser || {};
       const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
+      const allCourses = (state.data && Array.isArray(state.data._masterCourses) && state.data._masterCourses.length > 0)
+        ? state.data._masterCourses
+        : ((state.data && Array.isArray(state.data.courses)) ? state.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+      const allResources = (state.data && Array.isArray(state.data._masterResources) && state.data._masterResources.length > 0)
+        ? state.data._masterResources
+        : ((state.data && Array.isArray(state.data.resources)) ? state.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
+
       const courses = (isStudent && state.getPersonalizedCourses)
         ? state.getPersonalizedCourses()
-        : ((state.data && state.data.courses) ? state.data.courses : []);
-      if (!courses.length) {
+        : allCourses;
+      if (!courses.length && !allCourses.length) {
         return `
           <div style="margin-bottom:24px;">
             <button onclick="AppState.setView('courses')" style="font-size:0.88rem; font-weight:700; color:var(--color-teal-action); display:flex; align-items:center; gap:6px; margin-bottom:12px;">
@@ -56,8 +63,8 @@
         `;
       }
 
-      const courseId = state.selectedCourseId || (courses[0] && courses[0].id);
-      const course = courses.find(c => c.id === courseId) || courses[0];
+      const courseId = state.selectedCourseId || (courses[0] && courses[0].id) || (allCourses[0] && allCourses[0].id);
+      const course = allCourses.find(c => c.id === courseId) || courses.find(c => c.id === courseId) || allCourses[0];
       const userSkill = (state.currentUser && state.currentUser.skillLevel) || 'Intermediate';
 
       const courseAssignments = (isStudent && state.getPersonalizedAssignments)
@@ -69,9 +76,45 @@
       const currentCategory = window.activeCourseCategory;
 
       const tierObj = (!Array.isArray(course.categories) && typeof course.categories === 'object' && course.categories) ? course.categories : (course.tiers || {});
-      const beginnerData = tierObj.Beginner || { title: 'Beginner Category (5 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-beginner` };
-      const intermediateData = tierObj.Intermediate || { title: 'Intermediate Category (10 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-intermediate` };
-      const advancedData = tierObj.Advanced || { title: 'Advanced Category (15 Questions Quiz)', materials: [], quizId: `quiz-${course.subjectId || 'ds'}-advanced` };
+
+      function getTierMaterials(tierName) {
+        if (tierObj[tierName] && Array.isArray(tierObj[tierName].materials) && tierObj[tierName].materials.length > 0) {
+          return tierObj[tierName].materials;
+        }
+        const matched = allResources.filter(r => r.subjectId === course.subjectId && r.level === tierName && (r.format === 'video' || r.contentUrl));
+        if (matched.length > 0) {
+          return matched.map(m => ({
+            id: m.id,
+            title: m.title,
+            format: m.format || 'video',
+            duration: m.duration || '25 mins',
+            contentUrl: m.contentUrl
+          }));
+        }
+        return allResources.filter(r => r.subjectId === course.subjectId && (r.format === 'video' || r.contentUrl)).map(m => ({
+          id: m.id,
+          title: m.title,
+          format: m.format || 'video',
+          duration: m.duration || '25 mins',
+          contentUrl: m.contentUrl
+        }));
+      }
+
+      const beginnerData = {
+        title: (tierObj.Beginner && tierObj.Beginner.title) || 'Beginner Category (5 Questions Quiz)',
+        quizId: (tierObj.Beginner && tierObj.Beginner.quizId) || `quiz-${course.subjectId || 'ds'}-beginner`,
+        materials: getTierMaterials('Beginner')
+      };
+      const intermediateData = {
+        title: (tierObj.Intermediate && tierObj.Intermediate.title) || 'Intermediate Category (10 Questions Quiz)',
+        quizId: (tierObj.Intermediate && tierObj.Intermediate.quizId) || `quiz-${course.subjectId || 'ds'}-intermediate`,
+        materials: getTierMaterials('Intermediate')
+      };
+      const advancedData = {
+        title: (tierObj.Advanced && tierObj.Advanced.title) || 'Advanced Category (15 Questions Quiz)',
+        quizId: (tierObj.Advanced && tierObj.Advanced.quizId) || `quiz-${course.subjectId || 'ds'}-advanced`,
+        materials: getTierMaterials('Advanced')
+      };
 
       const currentCatData = currentCategory === 'Beginner' ? beginnerData : (currentCategory === 'Advanced' ? advancedData : intermediateData);
       const qCount = currentCategory === 'Beginner' ? 5 : (currentCategory === 'Intermediate' ? 10 : 15);
@@ -115,17 +158,31 @@
               <div style="padding:24px; text-align:center; color:var(--text-muted); background:var(--bg-surface); border-radius:var(--radius-md); border:1px dashed var(--border-color);">
                 <p style="margin:0; font-size:0.9rem;">No video lectures or study materials added to this category tier yet.</p>
               </div>
-            ` : (currentCatData.materials || []).map(mat => `
-              <div class="course-hub-material-row">
-                <div class="course-hub-material-info">
-                  <span class="format-badge" style="background:var(--color-teal-light); color:var(--color-teal-action); flex-shrink:0;">${mat.format}</span>
-                  <span style="font-weight:700; font-size:0.95rem; min-width:0; overflow-wrap:break-word;">${mat.title}</span>
+            ` : (currentCatData.materials || []).map(mat => {
+              const matProg = (state.getVideoProgress) ? (state.getVideoProgress(mat.id) || (state.getVideoProgress(course.id) && state.getVideoProgress(course.id).resourceId === mat.id ? state.getVideoProgress(course.id) : null)) : null;
+              const matDur = matProg ? Math.max(1, Math.floor(matProg.duration || (window.parseDurationToSeconds ? window.parseDurationToSeconds(mat.duration) : 900))) : 900;
+              const matCur = matProg ? Math.max(0, Math.floor(matProg.currentTime || 0)) : 0;
+              const calculatedMatPercent = (matProg && matDur > 0) ? Math.min(100, Math.max(0, Math.round((matCur / matDur) * 100))) : (matProg ? matProg.percentage || 0 : 0);
+              const hasProg = matProg && calculatedMatPercent > 0;
+              return `
+                <div class="course-hub-material-row">
+                  <div class="course-hub-material-info">
+                    <span class="format-badge" style="background:var(--color-teal-light); color:var(--color-teal-action); flex-shrink:0;">${mat.format}</span>
+                    <div style="display:flex; flex-direction:column; min-width:0;">
+                      <span style="font-weight:700; font-size:0.95rem; overflow-wrap:break-word;">${mat.title}</span>
+                      ${hasProg ? `
+                        <span style="font-size:0.78rem; color:${calculatedMatPercent >= 100 ? 'var(--color-emerald)' : 'var(--color-amber)'}; font-weight:800; margin-top:2px; display:inline-flex; align-items:center; gap:4px;">
+                          ${window.renderIcon(calculatedMatPercent >= 100 ? 'check-circle' : 'clock', 'small-icon')} ${calculatedMatPercent}% Watched (${matProg.formattedTime || ''})
+                        </span>
+                      ` : ''}
+                    </div>
+                  </div>
+                  <button class="btn-launch-resource" style="padding:8px 16px; font-size:0.82rem; min-height:42px; display:inline-flex; align-items:center; gap:6px;" onclick="AppState.openModal('resource-viewer', { resId: '${mat.id}', courseId: '${course.id}' })">
+                    ${window.renderIcon('play')} ${hasProg && calculatedMatPercent < 100 ? `Resume (${calculatedMatPercent}%)` : 'Open Material'}
+                  </button>
                 </div>
-                <button class="btn-launch-resource" style="padding:8px 16px; font-size:0.82rem; min-height:42px; display:inline-flex; align-items:center; gap:6px;" onclick="AppState.openModal('resource-viewer', '${mat.id}')">
-                  ${window.renderIcon('play')} Open Material
-                </button>
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
 
           ${(() => {

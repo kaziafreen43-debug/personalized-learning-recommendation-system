@@ -2,12 +2,12 @@ import math
 from datetime import datetime
 
 CATEGORY_TAXONOMY = {
-    'ds': ['ai machine learning', 'computer science', 'artificial intelligence & data science', 'data science', 'ds', 'ai'],
+    'ds': ['ai machine learning', 'computer science', 'artificial intelligence & data science', 'data science', 'ds', 'ai', 'ai-ml', 'ai/ml', 'aiml', 'machine learning'],
     'cs': ['computer science', 'computer science & software', 'software', 'programming', 'cs'],
-    'math': ['mathematics', 'mathematics & analytics', 'analytics', 'math'],
-    'physics': ['physics', 'physics & quantum systems', 'quantum', 'physics'],
-    'bio': ['biology', 'biology & biotechnology', 'biotechnology', 'bio'],
-    'chem': ['chemistry', 'chemistry & molecules', 'molecules', 'chem']
+    'math': ['mathematics', 'mathematics & analytics', 'analytics', 'math', 'maths', 'calculus', 'algebra'],
+    'physics': ['physics', 'physics & quantum systems', 'quantum', 'physics', 'mechanics'],
+    'bio': ['biology', 'biology & biotechnology', 'biotechnology', 'bio', 'genetics'],
+    'chem': ['chemistry', 'chemistry & molecules', 'molecules', 'chem', 'chemical']
 }
 
 def item_matches_interests(item, interests):
@@ -124,10 +124,21 @@ def get_recommendations(resources, user, filter_subject='all', limit=10):
         return []
 
     filtered_resources = resources
-    # Filter to keep only subjects of interest to the user
-    if user and user.get('interests') and len(user.get('interests', [])) > 0:
+    # If a specific subject filter is requested, filter across all resources by that subject/alias
+    if filter_subject and filter_subject != 'all':
+        norm_sub = filter_subject.strip().lower()
+        sub_keys = {norm_sub}
+        for sk, aliases in CATEGORY_TAXONOMY.items():
+            if norm_sub == sk or norm_sub in aliases:
+                sub_keys.add(sk)
+                for a in aliases:
+                    sub_keys.add(a)
+        filtered_resources = [res for res in resources if (res.get('subjectId', '').lower() in sub_keys or res.get('category', '').lower() in sub_keys)]
+    elif user and user.get('interests') and len(user.get('interests', [])) > 0:
         interests = user.get('interests', [])
-        filtered_resources = [res for res in filtered_resources if item_matches_interests(res, interests)]
+        matched = [res for res in filtered_resources if item_matches_interests(res, interests)]
+        if matched:
+            filtered_resources = matched
 
     result_list = []
     for res in filtered_resources:
@@ -170,9 +181,6 @@ def get_recommendations(resources, user, filter_subject='all', limit=10):
         enriched_res['reason'] = reason
 
         result_list.append(enriched_res)
-
-    if filter_subject and filter_subject != 'all':
-        result_list = [r for r in result_list if r.get('subjectId') == filter_subject]
 
     # Sort descending by matchScore
     result_list.sort(key=lambda x: x.get('matchScore', 0), reverse=True)

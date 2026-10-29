@@ -151,6 +151,27 @@ window.FirebaseDB = {
       });
       if (courses.length > 0) {
         appState.data.courses = courses;
+        // Ensure courses don't retain outdated/broken video embed URLs from prior sessions
+        if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses)) {
+          const KNOWN_BROKEN = ['P3RXtoYCF4U', '8hly31xKLI0', '5vcj8kSwBCY', 'Qe453-yYjbg', 'SqsC34ghxCM', 'ndSpJq7q4G8'];
+          appState.data.courses.forEach(c => {
+            const initC = window.INITIAL_DATA.courses.find(item => item.id === c.id);
+            if (initC && initC.tiers && c.tiers) {
+              for (const t in c.tiers) {
+                if (c.tiers[t] && c.tiers[t].materials && initC.tiers[t] && initC.tiers[t].materials) {
+                  c.tiers[t].materials.forEach(m => {
+                    const initM = initC.tiers[t].materials.find(x => x.id === m.id);
+                    if (initM && (KNOWN_BROKEN.some(b => String(m.contentUrl).includes(b)) || !m.contentUrl || m.contentUrl !== initM.contentUrl)) {
+                      m.contentUrl = initM.contentUrl;
+                      m.fallbackUrls = initM.fallbackUrls;
+                      m.title = initM.title;
+                    }
+                  });
+                }
+              }
+            }
+          });
+        }
       } else if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses) && window.INITIAL_DATA.courses.length > 0) {
         appState.data.courses = [...window.INITIAL_DATA.courses];
         window.INITIAL_DATA.courses.forEach(c => {
@@ -175,6 +196,20 @@ window.FirebaseDB = {
       });
       if (resources.length > 0) {
         appState.data.resources = resources;
+        // Ensure resources don't retain outdated/broken video embed URLs from prior sessions
+        if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources)) {
+          const KNOWN_BROKEN = ['P3RXtoYCF4U', '8hly31xKLI0', '5vcj8kSwBCY', 'Qe453-yYjbg', 'SqsC34ghxCM', 'ndSpJq7q4G8'];
+          appState.data.resources.forEach(r => {
+            const initR = window.INITIAL_DATA.resources.find(item => item.id === r.id);
+            if (initR && (KNOWN_BROKEN.some(b => String(r.contentUrl).includes(b)) || !r.contentUrl || r.contentUrl !== initR.contentUrl)) {
+              r.contentUrl = initR.contentUrl;
+              r.fallbackUrls = initR.fallbackUrls;
+              r.title = initR.title;
+              r.description = initR.description;
+              r.summary = initR.summary;
+            }
+          });
+        }
       } else if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources) && window.INITIAL_DATA.resources.length > 0) {
         appState.data.resources = [...window.INITIAL_DATA.resources];
         window.INITIAL_DATA.resources.forEach(r => {
@@ -527,11 +562,13 @@ window.FirebaseDB = {
 
     const interests = user.interests || [];
     if (!Array.isArray(interests) || interests.length === 0) {
-      appState.data.courses = [];
-      appState.data.resources = [];
-      appState.data.quizzes = [];
-      appState.data.assignments = [];
-      appState.currentUser.enrolledCourseIds = [];
+      if (!appState.data._masterCourses) appState.data._masterCourses = (window.INITIAL_DATA && window.INITIAL_DATA.courses) || [];
+      if (!appState.data._masterResources) appState.data._masterResources = (window.INITIAL_DATA && window.INITIAL_DATA.resources) || [];
+      if (!appState.data._masterAssignments) appState.data._masterAssignments = (window.INITIAL_DATA && window.INITIAL_DATA.assignments) || [];
+      appState.data.courses = [...appState.data._masterCourses];
+      appState.data.resources = [...appState.data._masterResources];
+      appState.data.quizzes = (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || [];
+      appState.data.assignments = [...appState.data._masterAssignments];
       try {
         localStorage.setItem('plr_app_data', JSON.stringify(appState.data));
       } catch (_) {}
@@ -603,14 +640,33 @@ window.FirebaseDB = {
       user.enrolledCourseIds = updatedEnrolled;
 
       // 6. Keep master collections intact while personalizing
-      if (!appState.data._masterCourses) appState.data._masterCourses = masterCourses;
-      if (!appState.data._masterResources) appState.data._masterResources = masterResources;
-      if (!appState.data._masterAssignments) appState.data._masterAssignments = masterAssignments;
+      if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses)) {
+        window.INITIAL_DATA.courses.forEach(c => {
+          if (!masterCourses.some(item => item.id === c.id)) masterCourses.push(c);
+        });
+      }
+      if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources)) {
+        window.INITIAL_DATA.resources.forEach(r => {
+          if (!masterResources.some(item => item.id === r.id)) masterResources.push(r);
+        });
+      }
+      if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.assignments)) {
+        window.INITIAL_DATA.assignments.forEach(a => {
+          if (!masterAssignments.some(item => item.id === a.id)) masterAssignments.push(a);
+        });
+      }
 
-      appState.data.courses = matchedCourses;
-      appState.data.resources = matchedResources;
-      appState.data.quizzes = matchedQuizzes;
-      appState.data.assignments = matchedAssignments;
+      appState.data._masterCourses = masterCourses;
+      appState.data._masterResources = masterResources;
+      appState.data._masterAssignments = masterAssignments;
+
+      // Keep full collections available across the app so all subjects, search, and video playback work reliably
+      appState.data.courses = masterCourses;
+      appState.data.resources = masterResources;
+      appState.data.quizzes = masterQuizzes;
+      appState.data.assignments = masterAssignments;
+      appState.data._matchedCourses = matchedCourses;
+      appState.data._matchedResources = matchedResources;
 
       // 7. Re-align user roadmaps so only matched roadmaps exist
       if (appState.data.roadmaps) {

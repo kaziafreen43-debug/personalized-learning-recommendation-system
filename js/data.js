@@ -66,7 +66,55 @@ window.INITIAL_DATA = {
       "Computer science",
       "Artificial Intelligence",
       "Data Science"
-    ]
+    ],
+    "tiers": {
+      "Beginner": {
+        "title": "Beginner Category (5 Questions Quiz)",
+        "quizId": "quiz-ds-beginner",
+        "materials": [
+          {
+            "id": "res-ai-road-1",
+            "title": "Python for AI & Data Wrangling Video Masterclass",
+            "format": "video",
+            "duration": "35 mins",
+            "contentUrl": "https://www.youtube.com/embed/r-uOLxNrNk8"
+          }
+        ]
+      },
+      "Intermediate": {
+        "title": "Intermediate Category (10 Questions Quiz)",
+        "quizId": "quiz-ds-intermediate",
+        "materials": [
+          {
+            "id": "res-ai-road-2",
+            "title": "Artificial Intelligence Core: Perceptrons & Backpropagation Math Video",
+            "format": "video",
+            "duration": "45 mins",
+            "contentUrl": "https://www.youtube.com/embed/aircAruvnKk"
+          }
+        ]
+      },
+      "Advanced": {
+        "title": "Advanced Category (15 Questions Quiz)",
+        "quizId": "quiz-ds-advanced",
+        "materials": [
+          {
+            "id": "res-ai-road-3",
+            "title": "Deep Learning & Convolutional Neural Networks (CNNs) Video",
+            "format": "video",
+            "duration": "50 mins",
+            "contentUrl": "https://www.youtube.com/embed/YRhxdVk_sIs"
+          },
+          {
+            "id": "res-ai-road-4",
+            "title": "Transformers & LLM Architectures Video (Attention Mechanism)",
+            "format": "video",
+            "duration": "55 mins",
+            "contentUrl": "https://www.youtube.com/embed/eMlx5fFNoYc"
+          }
+        ]
+      }
+    }
   },
   {
     "id": "course-cs-101",
@@ -88,8 +136,61 @@ window.INITIAL_DATA = {
     "tags": [
       "Computer science",
       "Software Engineering",
-      "Algorithms"
-    ]
+      "Algorithms",
+      "Data Science"
+    ],
+    "tiers": {
+      "Beginner": {
+        "title": "Beginner Category (5 Questions Quiz)",
+        "quizId": "quiz-cs-beginner",
+        "materials": [
+          {
+            "id": "res-cs-road-1",
+            "title": "Programming Fundamentals & Control Flow in Python Video",
+            "format": "video",
+            "duration": "30 mins",
+            "contentUrl": "https://www.youtube.com/embed/kqtD5dpn9C8"
+          }
+        ]
+      },
+      "Intermediate": {
+        "title": "Intermediate Category (10 Questions Quiz)",
+        "quizId": "quiz-cs-intermediate",
+        "materials": [
+          {
+            "id": "res-cs-road-2",
+            "title": "Data Structures, Big-O Complexity & Sorting Algorithms Video",
+            "format": "video",
+            "duration": "40 mins",
+            "contentUrl": "https://www.youtube.com/embed/CBYHwZcbD-s",
+            "fallbackUrls": [
+              "https://www.youtube.com/embed/8hly31xKli0",
+              "https://www.youtube.com/embed/RBSGKlAvoiM"
+            ]
+          }
+        ]
+      },
+      "Advanced": {
+        "title": "Advanced Category (15 Questions Quiz)",
+        "quizId": "quiz-cs-advanced",
+        "materials": [
+          {
+            "id": "res-cs-road-3",
+            "title": "Full Stack Web Architecture & REST API Engineering Video",
+            "format": "video",
+            "duration": "45 mins",
+            "contentUrl": "https://www.youtube.com/embed/zQnBQ4tB3ZA"
+          },
+          {
+            "id": "res-cs-road-4",
+            "title": "System Design, DevOps & Distributed Microservices Video",
+            "format": "video",
+            "duration": "50 mins",
+            "contentUrl": "https://www.youtube.com/embed/m8Icp_Cid5o"
+          }
+        ]
+      }
+    }
   },
   {
     "id": "course-math-101",
@@ -112,7 +213,55 @@ window.INITIAL_DATA = {
       "Mathematics",
       "Analytics",
       "Calculus"
-    ]
+    ],
+    "tiers": {
+      "Beginner": {
+        "title": "Beginner Category (5 Questions Quiz)",
+        "quizId": "quiz-math-beginner",
+        "materials": [
+          {
+            "id": "res-math-road-1",
+            "title": "Discrete Mathematics, Logic Gates & Set Theory Video",
+            "format": "video",
+            "duration": "30 mins",
+            "contentUrl": "https://www.youtube.com/embed/tyDKR4FG3Yw"
+          }
+        ]
+      },
+      "Intermediate": {
+        "title": "Intermediate Category (10 Questions Quiz)",
+        "quizId": "quiz-math-intermediate",
+        "materials": [
+          {
+            "id": "res-math-road-2",
+            "title": "Differential & Integral Calculus Visually Explained Video",
+            "format": "video",
+            "duration": "40 mins",
+            "contentUrl": "https://www.youtube.com/embed/WUvTyaaNkzM"
+          }
+        ]
+      },
+      "Advanced": {
+        "title": "Advanced Category (15 Questions Quiz)",
+        "quizId": "quiz-math-advanced",
+        "materials": [
+          {
+            "id": "res-math-road-3",
+            "title": "Linear Algebra Essence: Vectors, Matrices & Transformations Video",
+            "format": "video",
+            "duration": "45 mins",
+            "contentUrl": "https://www.youtube.com/embed/fNk_zzaMoSs"
+          },
+          {
+            "id": "res-math-road-4",
+            "title": "Probability Distributions & Bayesian Decision Statistics Video",
+            "format": "video",
+            "duration": "45 mins",
+            "contentUrl": "https://www.youtube.com/embed/HZGCoVF3YvM"
+          }
+        ]
+      }
+    }
   },
   {
     "id": "course-physics-101",
@@ -135,7 +284,51 @@ window.INITIAL_DATA = {
       "Physics",
       "Quantum Systems",
       "Mechanics"
-    ]
+    ],
+    "tiers": {
+      "Beginner": {
+        "title": "Beginner Category (5 Questions Quiz)",
+        "quizId": "quiz-physics-beginner",
+        "materials": [
+          {
+            "id": "res-phys-road-1",
+            "title": "Classical Mechanics: Kinematics & Newton Laws Video",
+            "format": "video",
+            "duration": "25 mins",
+            "contentUrl": "https://www.youtube.com/embed/ZM8ECpBuQYE"
+          }
+        ]
+      },
+      "Intermediate": {
+        "title": "Intermediate Category (10 Questions Quiz)",
+        "quizId": "quiz-physics-intermediate",
+        "materials": [
+          {
+            "id": "res-phys-road-2",
+            "title": "Electromagnetism, Circuit Laws & Maxwell Equations Video",
+            "format": "video",
+            "duration": "35 mins",
+            "contentUrl": "https://www.youtube.com/embed/hFAOXdXZ5TM"
+          }
+        ]
+      },
+      "Advanced": {
+        "title": "Advanced Category (15 Questions Quiz)",
+        "quizId": "quiz-physics-advanced",
+        "materials": [
+          {
+            "id": "res-phys-road-3",
+            "title": "Quantum Mechanics, Wave Function & Double Slit Video",
+            "format": "video",
+            "duration": "45 mins",
+            "contentUrl": "https://www.youtube.com/embed/7kb1VT0J3DE",
+            "fallbackUrls": [
+              "https://www.youtube.com/embed/qO_W70VegbQ"
+            ]
+          }
+        ]
+      }
+    }
   },
   {
     "id": "course-bio-101",
@@ -158,7 +351,48 @@ window.INITIAL_DATA = {
       "Biology",
       "Biotechnology",
       "Genetics"
-    ]
+    ],
+    "tiers": {
+      "Beginner": {
+        "title": "Beginner Category (5 Questions Quiz)",
+        "quizId": "quiz-bio-beginner",
+        "materials": [
+          {
+            "id": "res-bio-road-1",
+            "title": "Cellular Biology, Organelles & ATP Energy Video",
+            "format": "video",
+            "duration": "25 mins",
+            "contentUrl": "https://www.youtube.com/embed/URUJD5NEXC8"
+          }
+        ]
+      },
+      "Intermediate": {
+        "title": "Intermediate Category (10 Questions Quiz)",
+        "quizId": "quiz-bio-intermediate",
+        "materials": [
+          {
+            "id": "res-bio-road-2",
+            "title": "DNA Replication, Transcription & Translation Video",
+            "format": "video",
+            "duration": "35 mins",
+            "contentUrl": "https://www.youtube.com/embed/gG7uCskUOrA"
+          }
+        ]
+      },
+      "Advanced": {
+        "title": "Advanced Category (15 Questions Quiz)",
+        "quizId": "quiz-bio-advanced",
+        "materials": [
+          {
+            "id": "res-bio-road-3",
+            "title": "CRISPR-Cas9 Gene Editing & Genomic Biotech Video",
+            "format": "video",
+            "duration": "45 mins",
+            "contentUrl": "https://www.youtube.com/embed/6tw_JVz_IEc"
+          }
+        ]
+      }
+    }
   },
   {
     "id": "course-chem-101",
@@ -181,7 +415,57 @@ window.INITIAL_DATA = {
       "Chemistry",
       "Molecular Science",
       "Organic Synthesis"
-    ]
+    ],
+    "tiers": {
+      "Beginner": {
+        "title": "Beginner Category (5 Questions Quiz)",
+        "quizId": "quiz-chem-beginner",
+        "materials": [
+          {
+            "id": "res-chem-road-1",
+            "title": "Atomic Models, Electron Shells & Periodic Trends Video",
+            "format": "video",
+            "duration": "25 mins",
+            "contentUrl": "https://www.youtube.com/embed/jMvG_IeSWCs",
+            "fallbackUrls": [
+              "https://www.youtube.com/embed/rcKilE9CdaA",
+              "https://www.youtube.com/embed/0RRVV4Diomg",
+              "https://www.youtube.com/embed/NSAgLvKOPLQ",
+              "https://www.youtube.com/embed/Gy9HR65DpYQ"
+            ]
+          }
+        ]
+      },
+      "Intermediate": {
+        "title": "Intermediate Category (10 Questions Quiz)",
+        "quizId": "quiz-chem-intermediate",
+        "materials": [
+          {
+            "id": "res-chem-road-2",
+            "title": "Organic Functional Groups & Reaction Mechanisms Video",
+            "format": "video",
+            "duration": "35 mins",
+            "contentUrl": "https://www.youtube.com/embed/ORMUTUhYjvg",
+            "fallbackUrls": [
+              "https://www.youtube.com/embed/z43b8WbMsmw"
+            ]
+          }
+        ]
+      },
+      "Advanced": {
+        "title": "Advanced Category (15 Questions Quiz)",
+        "quizId": "quiz-chem-advanced",
+        "materials": [
+          {
+            "id": "res-chem-road-3",
+            "title": "Chemical Thermodynamics, Enthalpy & Reaction Kinetics Video",
+            "format": "video",
+            "duration": "40 mins",
+            "contentUrl": "https://www.youtube.com/embed/7qOFtL3VEBc"
+          }
+        ]
+      }
+    }
   }
 ],
 
@@ -301,7 +585,10 @@ window.INITIAL_DATA = {
       "Artificial Intelligence",
       "Data Science"
     ],
-    "contentUrl": "https://www.youtube.com/embed/5vcj8kSwBCY",
+    "contentUrl": "https://www.youtube.com/embed/eMlx5fFNoYc",
+    "fallbackUrls": [
+      "https://www.youtube.com/embed/aircAruvnKk"
+    ],
     "description": "Step 4 Video: Self-Attention mechanism, Scaled Dot-Product Attention, BERT, GPT, and modern Large Language Models.",
     "summary": "Deep architectural walkthrough of Transformer encoders and decoders.",
     "category": "AI Machine Learning",
@@ -360,9 +647,13 @@ window.INITIAL_DATA = {
       "Software Engineering",
       "Algorithms"
     ],
-    "contentUrl": "https://www.youtube.com/embed/8hly31xKLI0",
-    "description": "Step 2 Video: Arrays, Linked Lists, Stacks, Queues, Binary Trees, Big-O time complexity analysis, and QuickSort.",
-    "summary": "Analyze algorithm performance and learn memory-efficient data structures.",
+    "contentUrl": "https://www.youtube.com/embed/CBYHwZcbD-s",
+    "fallbackUrls": [
+      "https://www.youtube.com/embed/8hly31xKli0",
+      "https://www.youtube.com/embed/RBSGKlAvoiM"
+    ],
+    "description": "Comprehensive video lecture covering arrays (static and dynamic), linked lists (singly and doubly), stacks, queues, priority queues, binary search trees, graph representations & traversals (BFS, DFS), Big-O asymptotic notation, and common sorting algorithms (Bubble, Selection, Insertion, Merge, and QuickSort).",
+    "summary": "Master data structures (arrays, linked lists, stacks, queues, trees, graphs), Big-O complexity analysis, and essential sorting algorithms (Bubble, Selection, Insertion, Merge, Quick).",
     "category": "Computer science",
     "categories": [
       "Computer science"
@@ -418,7 +709,7 @@ window.INITIAL_DATA = {
       "Software Engineering",
       "Algorithms"
     ],
-    "contentUrl": "https://www.youtube.com/embed/SqsC34ghxCM",
+    "contentUrl": "https://www.youtube.com/embed/m8Icp_Cid5o",
     "description": "Step 4 Video: Distributed system architecture, load balancing, horizontal scaling, caching strategies, and Docker containers.",
     "summary": "Architect high-concurrency systems handling millions of daily requests.",
     "category": "Computer science",
@@ -621,7 +912,10 @@ window.INITIAL_DATA = {
       "Quantum Systems",
       "Mechanics"
     ],
-    "contentUrl": "https://www.youtube.com/embed/Qe453-yYjbg",
+    "contentUrl": "https://www.youtube.com/embed/7kb1VT0J3DE",
+    "fallbackUrls": [
+      "https://www.youtube.com/embed/qO_W70VegbQ"
+    ],
     "description": "Step 3 Video: Wave-particle duality, double-slit interference, Planck energy quantization, and Schrödinger wave equation.",
     "summary": "Deep dive into quantum mechanical wave packet collapse.",
     "category": "Physics",
@@ -737,9 +1031,15 @@ window.INITIAL_DATA = {
       "Molecular Science",
       "Organic Synthesis"
     ],
-    "contentUrl": "https://www.youtube.com/embed/P3RXtoYCF4U",
-    "description": "Step 1 Video: Bohr atomic radius, electron orbital filling, electronegativity trends, and ionic vs covalent bonding.",
-    "summary": "Explore periodic table trends and atomic structures.",
+    "contentUrl": "https://www.youtube.com/embed/jMvG_IeSWCs",
+    "fallbackUrls": [
+      "https://www.youtube.com/embed/rcKilE9CdaA",
+      "https://www.youtube.com/embed/0RRVV4Diomg",
+      "https://www.youtube.com/embed/NSAgLvKOPLQ",
+      "https://www.youtube.com/embed/Gy9HR65DpYQ"
+    ],
+    "description": "Comprehensive video lecture covering atomic models (Dalton, Thomson, Rutherford, Bohr, Quantum mechanical model), electron shells and orbital energy levels (s, p, d, f), electron configuration rules (Aufbau, Pauli, Hund), and periodic trends including atomic radius, ionization energy, electron affinity, and electronegativity.",
+    "summary": "Explore atomic models, electron shells, electron configuration, and periodic trends with high-quality educational demonstrations.",
     "category": "Chemistry",
     "categories": [
       "Chemistry"
@@ -766,7 +1066,10 @@ window.INITIAL_DATA = {
       "Molecular Science",
       "Organic Synthesis"
     ],
-    "contentUrl": "https://www.youtube.com/embed/ndSpJq7q4G8",
+    "contentUrl": "https://www.youtube.com/embed/ORMUTUhYjvg",
+    "fallbackUrls": [
+      "https://www.youtube.com/embed/z43b8WbMsmw"
+    ],
     "description": "Step 2 Video: Alcohols, aldehydes, carboxylic acids, SN1 vs SN2 nucleophilic substitution, and arrow-pushing mechanisms.",
     "summary": "Master organic chemistry synthesis and reaction steps.",
     "category": "Chemistry",

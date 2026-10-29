@@ -42,6 +42,60 @@
     activeCharts = [];
   }
 
+  function syncModalLayer() {
+    let modalRoot = document.getElementById('modal-root');
+    if (!modalRoot) {
+      modalRoot = document.createElement('div');
+      modalRoot.id = 'modal-root';
+      document.body.appendChild(modalRoot);
+    }
+
+    const state = window.AppState;
+    if (!state || !state.activeModal) {
+      if (modalRoot.innerHTML !== '') {
+        if (window.cleanupVideoModalTracker) {
+          try { window.cleanupVideoModalTracker(); } catch (_) {}
+        }
+        modalRoot.innerHTML = '';
+      }
+      return;
+    }
+
+    // Special check for video / resource viewer modal:
+    // If the video player for this resource is ALREADY mounted and in the DOM,
+    // NEVER destroy and recreate it! Keeping the DOM node untouched prevents
+    // the YouTube iframe from unmounting, reloading, or flickering with a black screen.
+    if (state.activeModal === 'resource-viewer') {
+      const modalData = state.modalData;
+      let targetResId = (typeof modalData === 'object' && modalData !== null)
+        ? (modalData.resId || modalData.id)
+        : modalData;
+
+      const existingContainer = modalRoot.querySelector('.video-modal-container');
+      const existingPlayer = document.getElementById('active-video-player');
+      const mountedResId = existingContainer ? existingContainer.getAttribute('data-resource-id') : null;
+
+      if (existingContainer && existingPlayer && mountedResId && String(mountedResId) === String(targetResId)) {
+        // Player is already safely mounted for this video resource; update UI metrics without re-rendering
+        if (window.updateVideoModalUI) {
+          window.updateVideoModalUI();
+        }
+        return;
+      }
+    }
+
+    // Modal changed or not yet mounted: render active modal content into modalRoot
+    const modalHtml = (window.ModalsView && typeof window.ModalsView.render === 'function')
+      ? window.ModalsView.render()
+      : (typeof renderActiveModal === 'function' ? renderActiveModal() : '');
+
+    modalRoot.innerHTML = modalHtml;
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try { window.lucide.createIcons(); } catch (e) {}
+    }
+  }
+
   function renderApp() {
     const root = document.getElementById('app');
     if (!root) return;
@@ -195,8 +249,8 @@
       `;
     }
 
-    // Always render modals on top
-    root.innerHTML += renderActiveModal();
+    // Always synchronize modal layer stably without unmounting active video players
+    syncModalLayer();
 
     if (window.lucide) {
       try { window.lucide.createIcons(); } catch(e) {}
@@ -1982,6 +2036,9 @@
   // MODALS ROUTER & RENDERERS
   // --------------------------------------------------------------------------
   function renderActiveModal() {
+    if (window.ModalsView && typeof window.ModalsView.render === 'function') {
+      return window.ModalsView.render();
+    }
     const state = window.AppState;
     if (!state.activeModal) return '';
 
@@ -2447,9 +2504,35 @@
     `;
   }
 
-  function renderResourceViewerModalContent(resId) {
-    const resources = (window.AppState.data && window.AppState.data.resources) ? window.AppState.data.resources : [];
-    const res = resources.find(r => r.id === resId) || resources[0] || { title: 'Study Material', format: 'article', summary: 'Description' };
+  function renderResourceViewerModalContent(modalData) {
+    if (window.ModalsView && typeof window.ModalsView.renderResourceViewerModalContent === 'function') {
+      return window.ModalsView.renderResourceViewerModalContent(modalData);
+    }
+    const state = window.AppState || {};
+    const allResources = (state.data && Array.isArray(state.data._masterResources) && state.data._masterResources.length > 0)
+      ? state.data._masterResources
+      : ((state.data && Array.isArray(state.data.resources)) ? state.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
+    const allCourses = (state.data && Array.isArray(state.data._masterCourses) && state.data._masterCourses.length > 0)
+      ? state.data._masterCourses
+      : ((state.data && Array.isArray(state.data.courses)) ? state.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+
+    let resId = modalData;
+    let courseId = null;
+    if (typeof modalData === 'object' && modalData !== null) {
+      resId = modalData.resId || modalData.id;
+      courseId = modalData.courseId || null;
+    }
+
+    let res = allResources.find(r => r.id === resId);
+    if (!res && courseId) {
+      const c = allCourses.find(course => course.id === courseId);
+      if (c) {
+        res = allResources.find(r => r.subjectId === c.subjectId && (r.format === 'video' || r.contentUrl));
+      }
+    }
+    if (!res) {
+      res = allResources[0] || { title: 'Study Material', format: 'video', summary: 'Description' };
+    }
 
     return `
       <div>

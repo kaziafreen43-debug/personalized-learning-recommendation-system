@@ -647,57 +647,180 @@
       `;
     },
 
-    renderResourceViewerModalContent: function(resId) {
-      const resources = (window.AppState.data && window.AppState.data.resources) ? window.AppState.data.resources : [];
-      const courses = (window.AppState.data && window.AppState.data.courses) ? window.AppState.data.courses : [];
-      let res = resources.find(r => r.id === resId);
+    renderResourceViewerModalContent: function(modalData) {
+      const state = window.AppState || {};
+      const allResources = (state.data && Array.isArray(state.data._masterResources) && state.data._masterResources.length > 0)
+        ? state.data._masterResources
+        : ((state.data && Array.isArray(state.data.resources)) ? state.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
+      const courses = (state.data && Array.isArray(state.data._masterCourses) && state.data._masterCourses.length > 0)
+        ? state.data._masterCourses
+        : ((state.data && Array.isArray(state.data.courses)) ? state.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+      
+      let resId = modalData;
+      let courseId = null;
+      let reqStartTime = null;
+
+      if (typeof modalData === 'object' && modalData !== null) {
+        resId = modalData.resId || modalData.id;
+        courseId = modalData.courseId || null;
+        reqStartTime = (modalData.startTime !== undefined) ? modalData.startTime : null;
+      }
+
+      let res = allResources.find(r => r.id === resId);
       
       if (!res) {
         for (const course of courses) {
-          if (course.categories) {
-            for (const tier in course.categories) {
-              const cat = course.categories[tier];
-              if (cat && cat.materials) {
-                const foundMat = cat.materials.find(m => m.id === resId);
-                if (foundMat) {
-                  res = {
-                    id: foundMat.id,
-                    title: foundMat.title,
-                    format: foundMat.format || 'video',
-                    duration: foundMat.duration,
-                    contentUrl: foundMat.contentUrl || 'https://www.youtube.com/embed/r-uOLxNrNk8',
-                    description: foundMat.description || foundMat.title,
-                    summary: foundMat.description || foundMat.title,
-                    subjectId: course.subjectId
-                  };
-                  break;
-                }
+          const tierObj = (!Array.isArray(course.categories) && typeof course.categories === 'object' && course.categories) ? course.categories : (course.tiers || {});
+          for (const tier in tierObj) {
+            const cat = tierObj[tier];
+            if (cat && cat.materials) {
+              const foundMat = cat.materials.find(m => m.id === resId);
+              if (foundMat) {
+                const fullRes = allResources.find(r => r.id === foundMat.id) || {};
+                res = {
+                  id: foundMat.id,
+                  title: foundMat.title || fullRes.title,
+                  format: foundMat.format || fullRes.format || 'video',
+                  duration: foundMat.duration || fullRes.duration || '25 mins',
+                  contentUrl: foundMat.contentUrl || fullRes.contentUrl,
+                  fallbackUrls: foundMat.fallbackUrls || fullRes.fallbackUrls || [],
+                  description: foundMat.description || fullRes.description || foundMat.title,
+                  summary: foundMat.summary || fullRes.summary || foundMat.title,
+                  subjectId: course.subjectId || fullRes.subjectId
+                };
+                if (!courseId) courseId = course.id;
+                break;
               }
             }
           }
           if (res) break;
         }
       }
+
+      if (!res && courseId) {
+        const parent = courses.find(c => c.id === courseId);
+        if (parent) {
+          res = allResources.find(r => r.subjectId === parent.subjectId && (r.format === 'video' || r.contentUrl));
+        }
+      }
       
       if (!res) {
-        res = resources[0] || { title: 'Study Material', format: 'article', summary: 'Description' };
+        res = allResources[0] || { id: 'res-default', title: 'Course Video Lesson', format: 'video', duration: '15 mins', summary: 'Core curriculum study material' };
       }
 
+      // If courseId still not found, search courses matching resource or subject
+      if (!courseId) {
+        for (const course of courses) {
+          const tierObj = (!Array.isArray(course.categories) && typeof course.categories === 'object' && course.categories) ? course.categories : (course.tiers || {});
+          for (const tier in tierObj) {
+            const cat = tierObj[tier];
+            if (cat && cat.materials && cat.materials.some(m => m.id === res.id)) {
+              courseId = course.id;
+              break;
+            }
+          }
+          if (courseId) break;
+        }
+      }
+      if (!courseId && res.subjectId) {
+        const matched = courses.find(c => c.subjectId === res.subjectId);
+        if (matched) courseId = matched.id;
+      }
+      if (!courseId && courses.length > 0) {
+        courseId = courses[0].id;
+      }
+
+      const parentCourse = courses.find(c => c.id === courseId) || null;
+
+      // Determine duration in seconds
+      const durationSec = window.parseDurationToSeconds ? window.parseDurationToSeconds(res.duration) : 900;
+
+      // Look up any existing saved progress for this course/video
+      const savedProgress = (state.getVideoProgress) 
+        ? (state.getVideoProgress(courseId) || state.getVideoProgress(res.id))
+        : null;
+
+      const initialStartTime = (reqStartTime !== null && reqStartTime !== undefined)
+        ? Math.max(0, Math.floor(reqStartTime))
+        : (savedProgress ? savedProgress.currentTime : 0);
+
+      let currentPercent = (savedProgress && savedProgress.percentage !== undefined)
+        ? savedProgress.percentage
+        : (durationSec > 0 ? Math.min(100, Math.round((initialStartTime / durationSec) * 100)) : 0);
+
+      // Start the tracker after DOM paint
+      setTimeout(function() {
+        if (window.initVideoModalTracker) {
+          window.initVideoModalTracker(courseId, res.id, durationSec, initialStartTime, res.title);
+        }
+      }, 60);
+
       return `
-        <div>
-          <div style="margin-bottom:16px;">
-            <span class="ai-match-badge" style="display:inline-flex;">${(res.format || 'material').toUpperCase()}</span>
-            <h2 style="font-size:1.5rem; font-weight:800; margin-top:8px;">${res.title}</h2>
+        <div class="video-modal-container" data-course-id="${courseId || ''}" data-resource-id="${res.id}">
+          <div style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div style="flex:1; min-width:240px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                <span class="ai-match-badge" style="display:inline-flex;">${(res.format || 'video').toUpperCase()}</span>
+                ${parentCourse ? `
+                  <span style="font-size:0.75rem; background:rgba(15,118,110,0.12); color:var(--color-teal-action); padding:3px 10px; border-radius:var(--radius-full); font-weight:700;">
+                    ${window.renderIcon('book-open', 'small-icon')} ${parentCourse.title}
+                  </span>
+                ` : ''}
+              </div>
+              <h2 style="font-size:1.35rem; font-weight:800; margin:0; color:var(--text-main);">${res.title}</h2>
+            </div>
+
+            <!-- Watched Percentage Pill Header -->
+            <div id="video-progress-pill-header" style="background:${currentPercent >= 100 ? 'var(--color-emerald)' : (currentPercent > 0 ? 'var(--color-amber)' : 'rgba(100,116,139,0.85)')}; color:#fff; padding:6px 14px; border-radius:var(--radius-full); font-size:0.82rem; font-weight:800; display:flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(0,0,0,0.25);">
+              <span id="video-pill-icon">${window.renderIcon(currentPercent >= 100 ? 'check-circle' : (currentPercent > 0 ? 'clock' : 'play-circle'), 'small-icon')}</span>
+              <span id="video-percent-display">${currentPercent}% Watched</span>
+            </div>
           </div>
 
-          ${res.contentUrl ? window.getVideoPlayerHtml(res.contentUrl) : ''}
+          <!-- Video Player Embed -->
+          ${res.contentUrl ? window.getVideoPlayerHtml(res.contentUrl, initialStartTime, 'active-video-player', res.fallbackUrls, { resourceId: res.id, title: res.title, subjectId: res.subjectId }) : ''}
 
-          <p style="font-size:0.95rem; color:var(--text-main); margin-bottom:20px; line-height:1.6;">
+          <!-- Video Watch Progress Box (Matches User Requirement) -->
+          <div class="video-watch-progress-card" style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-bottom:20px; box-shadow:var(--shadow-xs);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:0.88rem; font-weight:800; color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+                ${window.renderIcon('clock')} Watch Progress & Remaining Time
+              </span>
+              <div style="font-size:0.82rem; color:var(--text-muted); font-weight:700;">
+                <span id="video-time-display">${window.formatSeconds ? window.formatSeconds(initialStartTime) : '00:00'}</span> / <span id="video-total-display">${window.formatSeconds ? window.formatSeconds(durationSec) : '15:00'}</span>
+                (<span id="video-time-remaining">${window.formatSeconds ? window.formatSeconds(Math.max(0, durationSec - initialStartTime)) : '15:00'} remaining</span>)
+              </div>
+            </div>
+
+            <!-- Interactive Scrubber / Progress Bar -->
+            <div class="video-progress-track" style="width:100%; height:12px; background:rgba(0,0,0,0.08); border-radius:6px; overflow:hidden; cursor:pointer; position:relative;" onclick="window.handleVideoProgressTrackClick(event, '${courseId || ''}', '${res.id}', ${durationSec}, '${window.escapeHtmlAttr(res.title)}')" title="Click anywhere to jump position">
+              <div id="video-progress-fill" style="width:${currentPercent}%; height:100%; background:linear-gradient(90deg, #0ea5e9, #10b981); border-radius:6px; transition:width 0.25s ease;"></div>
+            </div>
+
+            <!-- Quick Progress Jump Controls (25%, 50% Half, 75%, 100%) -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Jump Playhead:</span>
+                <button type="button" class="btn-time-jump" onclick="window.seekVideoToPercent(25, '${courseId || ''}', '${res.id}', ${durationSec}, '${window.escapeHtmlAttr(res.title)}')">25%</button>
+                <button type="button" class="btn-time-jump active-half" onclick="window.seekVideoToPercent(50, '${courseId || ''}', '${res.id}', ${durationSec}, '${window.escapeHtmlAttr(res.title)}')" style="background:var(--color-teal-light); border:1px solid var(--color-teal-action); color:var(--color-teal-action); font-weight:800;" title="Jump to half video">
+                  ${window.renderIcon('check')} 50% (Half Video)
+                </button>
+                <button type="button" class="btn-time-jump" onclick="window.seekVideoToPercent(75, '${courseId || ''}', '${res.id}', ${durationSec}, '${window.escapeHtmlAttr(res.title)}')">75%</button>
+                <button type="button" class="btn-time-jump" onclick="window.seekVideoToPercent(100, '${courseId || ''}', '${res.id}', ${durationSec}, '${window.escapeHtmlAttr(res.title)}')">100%</button>
+              </div>
+
+              <button type="button" class="btn-save-progress" style="font-size:0.82rem; font-weight:800; padding:7px 16px; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:var(--shadow-xs);" onclick="window.saveAndCloseVideoModal('${courseId || ''}', '${res.id}')">
+                ${window.renderIcon('bookmark')} Save & Resume Later
+              </button>
+            </div>
+          </div>
+
+          <p style="font-size:0.92rem; color:var(--text-muted); margin-bottom:18px; line-height:1.6;">
             ${res.summary || res.description}
           </p>
 
-          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; justify-content:center;" onclick="AppState.toggleCompleteResource('${res.id}'); AppState.closeModal();">
-            ${window.renderIcon('check-circle')} Mark Study Material Completed (+15 Mins Progress)
+          <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; justify-content:center; padding:12px; font-weight:800;" onclick="window.seekVideoToPercent(100, '${courseId || ''}', '${res.id}', ${durationSec}, '${window.escapeHtmlAttr(res.title)}'); AppState.toggleCompleteResource('${res.id}'); AppState.closeModal();">
+            ${window.renderIcon('check-circle')} Mark Video Lecture Completed (+15 Mins Progress)
           </button>
         </div>
       `;
@@ -1282,7 +1405,7 @@
       }
 
       return `
-        <div class="modal-overlay">
+        <div class="modal-overlay" onclick="if(event.target === this) AppState.closeModal()">
           <div class="modal-content">
             <button class="btn-close-modal" onclick="AppState.closeModal()">
               ${window.renderIcon('x')}
@@ -1291,6 +1414,443 @@
           </div>
         </div>
       `;
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // LIVE VIDEO WATCH TRACKER & DYNAMIC PLAYBACK CONTROLLER
+  // --------------------------------------------------------------------------
+  let activeVideoTrackerInterval = null;
+  let activeDebouncedSaveTimeout = null;
+  let activeVideoState = {
+    courseId: null,
+    resourceId: null,
+    durationSec: 900,
+    currentTime: 0,
+    percentage: 0,
+    videoTitle: '',
+    isPlaying: false,
+    lastRemoteSyncTime: 0
+  };
+  window.activeVideoState = activeVideoState;
+  window._activeYTPlayer = null;
+
+  window.forceSaveVideoProgress = function() {
+    if (!activeVideoState.courseId && !activeVideoState.resourceId) return;
+    if (activeDebouncedSaveTimeout) {
+      clearTimeout(activeDebouncedSaveTimeout);
+      activeDebouncedSaveTimeout = null;
+    }
+    const cur = Math.max(0, Math.floor(activeVideoState.currentTime || 0));
+    const dur = Math.max(1, Math.floor(activeVideoState.durationSec || 900));
+    const pct = Math.min(100, Math.max(0, Math.round((cur / dur) * 100)));
+    activeVideoState.percentage = pct;
+    activeVideoState.lastRemoteSyncTime = cur;
+
+    if (window.AppState && window.AppState.saveVideoProgress) {
+      window.AppState.saveVideoProgress(
+        activeVideoState.courseId,
+        activeVideoState.resourceId,
+        cur,
+        dur,
+        pct,
+        activeVideoState.videoTitle,
+        { notify: false, syncRemote: true }
+      );
+    }
+  };
+
+  window.debouncedSaveVideoProgress = function() {
+    if (activeDebouncedSaveTimeout) return;
+    activeDebouncedSaveTimeout = setTimeout(function() {
+      activeDebouncedSaveTimeout = null;
+      if (!activeVideoState.courseId && !activeVideoState.resourceId) return;
+      const cur = Math.max(0, Math.floor(activeVideoState.currentTime || 0));
+      const dur = Math.max(1, Math.floor(activeVideoState.durationSec || 900));
+      const pct = Math.min(100, Math.max(0, Math.round((cur / dur) * 100)));
+      activeVideoState.percentage = pct;
+
+      const shouldSyncRemote = Math.abs(cur - activeVideoState.lastRemoteSyncTime) >= 15;
+      if (shouldSyncRemote) activeVideoState.lastRemoteSyncTime = cur;
+
+      if (window.AppState && window.AppState.saveVideoProgress) {
+        window.AppState.saveVideoProgress(
+          activeVideoState.courseId,
+          activeVideoState.resourceId,
+          cur,
+          dur,
+          pct,
+          activeVideoState.videoTitle,
+          { notify: false, syncRemote: shouldSyncRemote }
+        );
+      }
+    }, 1200);
+  };
+
+  window.cleanupVideoModalTracker = function() {
+    // Save current progress before cleaning up
+    try {
+      window.forceSaveVideoProgress();
+    } catch (_) {}
+
+    if (activeVideoTrackerInterval) {
+      clearInterval(activeVideoTrackerInterval);
+      activeVideoTrackerInterval = null;
+    }
+    if (activeDebouncedSaveTimeout) {
+      clearTimeout(activeDebouncedSaveTimeout);
+      activeDebouncedSaveTimeout = null;
+    }
+    if (window._activeYTPlayer) {
+      try {
+        if (typeof window._activeYTPlayer.destroy === 'function') {
+          window._activeYTPlayer.destroy();
+        }
+      } catch(_) {}
+      window._activeYTPlayer = null;
+    }
+    activeVideoState.isPlaying = false;
+  };
+
+  window.updateVideoModalUI = function() {
+    const cur = activeVideoState.currentTime;
+    const dur = activeVideoState.durationSec;
+    const pct = dur > 0 ? Math.min(100, Math.max(0, Math.round((cur / dur) * 100))) : 0;
+    activeVideoState.percentage = pct;
+
+    const fillEl = document.getElementById('video-progress-fill');
+    if (fillEl) fillEl.style.width = pct + '%';
+
+    const percentText = document.getElementById('video-percent-display');
+    if (percentText) percentText.textContent = pct + '% Watched';
+
+    const timeText = document.getElementById('video-time-display');
+    if (timeText && window.formatSeconds) timeText.textContent = window.formatSeconds(cur);
+
+    const totalText = document.getElementById('video-total-display');
+    if (totalText && window.formatSeconds) totalText.textContent = window.formatSeconds(dur);
+
+    const remText = document.getElementById('video-time-remaining');
+    if (remText && window.formatSeconds) {
+      const remSec = Math.max(0, dur - cur);
+      remText.textContent = window.formatSeconds(remSec) + ' remaining';
+    }
+
+    const pillHeader = document.getElementById('video-progress-pill-header');
+    const pillIcon = document.getElementById('video-pill-icon');
+    if (pillHeader) {
+      if (pct >= 100) {
+        pillHeader.style.background = 'var(--color-emerald)';
+        pillHeader.style.color = '#fff';
+        if (pillIcon && window.renderIcon) pillIcon.innerHTML = window.renderIcon('check-circle', 'small-icon');
+      } else if (pct > 0) {
+        pillHeader.style.background = 'var(--color-amber)';
+        pillHeader.style.color = '#fff';
+        if (pillIcon && window.renderIcon) pillIcon.innerHTML = window.renderIcon('clock', 'small-icon');
+      } else {
+        pillHeader.style.background = 'rgba(100,116,139,0.85)';
+        pillHeader.style.color = '#fff';
+        if (pillIcon && window.renderIcon) pillIcon.innerHTML = window.renderIcon('play-circle', 'small-icon');
+      }
+    }
+  };
+
+  window.handleYouTubePlaybackUpdate = function(info) {
+    if (!info || !window.activeVideoState) return;
+
+    if (typeof info.duration === 'number' && info.duration > 0) {
+      activeVideoState.durationSec = Math.round(info.duration);
+    }
+
+    if (typeof info.playerState === 'number') {
+      // 1: playing, 2: paused, 0: ended, 3: buffering
+      if (info.playerState === 1) {
+        activeVideoState.isPlaying = true;
+      } else if (info.playerState === 2) {
+        activeVideoState.isPlaying = false;
+        window.forceSaveVideoProgress();
+      } else if (info.playerState === 0) {
+        activeVideoState.isPlaying = false;
+        activeVideoState.currentTime = activeVideoState.durationSec;
+        activeVideoState.percentage = 100;
+        window.updateVideoModalUI();
+        window.forceSaveVideoProgress();
+        if (window.AppState && window.AppState.toggleCompleteResource && activeVideoState.resourceId) {
+          const u = window.AppState.currentUser;
+          if (u && (!u.completedResourceIds || !u.completedResourceIds.includes(activeVideoState.resourceId))) {
+            window.AppState.toggleCompleteResource(activeVideoState.resourceId);
+          }
+        }
+        return;
+      }
+    }
+
+    if (typeof info.currentTime === 'number') {
+      const cur = Math.max(0, Math.min(activeVideoState.durationSec, Math.round(info.currentTime)));
+      activeVideoState.currentTime = cur;
+      activeVideoState.percentage = activeVideoState.durationSec > 0
+        ? Math.min(100, Math.max(0, Math.round((cur / activeVideoState.durationSec) * 100)))
+        : 0;
+      window.updateVideoModalUI();
+      window.debouncedSaveVideoProgress();
+    }
+  };
+
+  window.initVideoModalTracker = function(courseId, resourceId, durationSec, initialStartTime, videoTitle) {
+    window.cleanupVideoModalTracker();
+
+    activeVideoState.courseId = courseId;
+    activeVideoState.resourceId = resourceId;
+    activeVideoState.durationSec = Math.max(1, durationSec || 900);
+    activeVideoState.currentTime = Math.max(0, initialStartTime || 0);
+    activeVideoState.percentage = Math.min(100, Math.round((activeVideoState.currentTime / activeVideoState.durationSec) * 100));
+    activeVideoState.videoTitle = videoTitle || 'Course Video Lecture';
+    activeVideoState.isPlaying = false;
+    activeVideoState.lastRemoteSyncTime = activeVideoState.currentTime;
+
+    window.updateVideoModalUI();
+
+    const videoEl = document.getElementById('active-video-player');
+
+    // 1. Direct HTML5 Video Player
+    if (videoEl && videoEl.tagName === 'VIDEO') {
+      if (initialStartTime > 0) {
+        try { videoEl.currentTime = initialStartTime; } catch(_) {}
+      }
+
+      videoEl.addEventListener('loadedmetadata', function() {
+        if (!isNaN(videoEl.duration) && videoEl.duration > 0) {
+          activeVideoState.durationSec = Math.round(videoEl.duration);
+          window.updateVideoModalUI();
+        }
+      });
+
+      videoEl.addEventListener('timeupdate', function() {
+        if (!isNaN(videoEl.duration) && videoEl.duration > 0) {
+          activeVideoState.durationSec = Math.round(videoEl.duration);
+        }
+        activeVideoState.currentTime = Math.round(videoEl.currentTime);
+        activeVideoState.percentage = Math.min(100, Math.max(0, Math.round((activeVideoState.currentTime / activeVideoState.durationSec) * 100)));
+        window.updateVideoModalUI();
+        window.debouncedSaveVideoProgress();
+      });
+
+      videoEl.addEventListener('play', function() {
+        activeVideoState.isPlaying = true;
+      });
+
+      videoEl.addEventListener('pause', function() {
+        activeVideoState.isPlaying = false;
+        window.forceSaveVideoProgress();
+      });
+
+      videoEl.addEventListener('seeked', function() {
+        activeVideoState.currentTime = Math.round(videoEl.currentTime);
+        activeVideoState.percentage = Math.min(100, Math.max(0, Math.round((activeVideoState.currentTime / activeVideoState.durationSec) * 100)));
+        window.updateVideoModalUI();
+        window.forceSaveVideoProgress();
+      });
+
+      videoEl.addEventListener('ended', function() {
+        activeVideoState.isPlaying = false;
+        activeVideoState.currentTime = activeVideoState.durationSec;
+        activeVideoState.percentage = 100;
+        window.updateVideoModalUI();
+        window.forceSaveVideoProgress();
+        if (window.AppState && window.AppState.toggleCompleteResource && activeVideoState.resourceId) {
+          const u = window.AppState.currentUser;
+          if (u && (!u.completedResourceIds || !u.completedResourceIds.includes(activeVideoState.resourceId))) {
+            window.AppState.toggleCompleteResource(activeVideoState.resourceId);
+          }
+        }
+      });
+    }
+
+    // 2. YouTube IFrame Embed
+    if (videoEl && videoEl.tagName === 'IFRAME') {
+      const pingYT = function() {
+        if (videoEl && videoEl.contentWindow) {
+          try {
+            videoEl.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+            videoEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*');
+          } catch(_) {}
+        }
+      };
+      pingYT();
+
+      const attachYT = function() {
+        if (window.YT && window.YT.Player && !window._activeYTPlayer) {
+          try {
+            window._activeYTPlayer = new window.YT.Player(videoEl.id, {
+              events: {
+                onReady: function(e) {
+                  try {
+                    const dur = Math.round(e.target.getDuration() || 0);
+                    if (dur > 0) {
+                      activeVideoState.durationSec = dur;
+                      window.updateVideoModalUI();
+                    }
+                    if (initialStartTime > 0) {
+                      e.target.seekTo(initialStartTime, true);
+                    }
+                  } catch(_) {}
+                },
+                onStateChange: function(event) {
+                  if (!event) return;
+                  if (event.data === 1) { // Playing
+                    activeVideoState.isPlaying = true;
+                  } else if (event.data === 2) { // Paused
+                    activeVideoState.isPlaying = false;
+                    if (window._activeYTPlayer && typeof window._activeYTPlayer.getCurrentTime === 'function') {
+                      const cur = Math.round(window._activeYTPlayer.getCurrentTime() || 0);
+                      activeVideoState.currentTime = cur;
+                      activeVideoState.percentage = Math.min(100, Math.max(0, Math.round((cur / activeVideoState.durationSec) * 100)));
+                      window.updateVideoModalUI();
+                    }
+                    window.forceSaveVideoProgress();
+                  } else if (event.data === 0) { // Ended
+                    activeVideoState.isPlaying = false;
+                    activeVideoState.currentTime = activeVideoState.durationSec;
+                    activeVideoState.percentage = 100;
+                    window.updateVideoModalUI();
+                    window.forceSaveVideoProgress();
+                    if (window.AppState && window.AppState.toggleCompleteResource && activeVideoState.resourceId) {
+                      const u = window.AppState.currentUser;
+                      if (u && (!u.completedResourceIds || !u.completedResourceIds.includes(activeVideoState.resourceId))) {
+                        window.AppState.toggleCompleteResource(activeVideoState.resourceId);
+                      }
+                    }
+                  }
+                },
+                onError: function(e) {
+                  if (window.autoSwitchToNextVideoFallback && (e.data === 100 || e.data === 101 || e.data === 150)) {
+                    window.autoSwitchToNextVideoFallback(videoEl.id, 'API error code ' + e.data);
+                  }
+                }
+              }
+            });
+          } catch(_) {}
+        }
+      };
+
+      if (window.YT && window.YT.Player) {
+        attachYT();
+      } else {
+        const origOnReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function() {
+          if (typeof origOnReady === 'function') origOnReady();
+          attachYT();
+        };
+      }
+    }
+
+    // 3. Regular interval to poll active playback metrics
+    activeVideoTrackerInterval = setInterval(function() {
+      if (!window.AppState || window.AppState.activeModal !== 'resource-viewer') {
+        window.cleanupVideoModalTracker();
+        return;
+      }
+
+      // Check YouTube Player API instance
+      if (window._activeYTPlayer && typeof window._activeYTPlayer.getPlayerState === 'function') {
+        try {
+          const ytState = window._activeYTPlayer.getPlayerState();
+          if (ytState === 1) { // Playing
+            activeVideoState.isPlaying = true;
+            const cur = Math.round(window._activeYTPlayer.getCurrentTime() || 0);
+            const dur = Math.round(window._activeYTPlayer.getDuration() || 0);
+            if (dur > 0) activeVideoState.durationSec = dur;
+            activeVideoState.currentTime = cur;
+            activeVideoState.percentage = Math.min(100, Math.max(0, Math.round((cur / activeVideoState.durationSec) * 100)));
+            window.updateVideoModalUI();
+            window.debouncedSaveVideoProgress();
+            return;
+          } else if (ytState === 2) {
+            activeVideoState.isPlaying = false;
+            return;
+          } else if (ytState === 0) {
+            activeVideoState.isPlaying = false;
+            return;
+          }
+        } catch(_) {}
+      }
+
+      // Keep postMessage alive with iframe
+      if (videoEl && videoEl.tagName === 'IFRAME' && videoEl.contentWindow) {
+        try {
+          videoEl.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+        } catch(_) {}
+      }
+
+      // If active video is marked playing and no direct API hook is available (fallback)
+      if (activeVideoState.isPlaying && activeVideoState.currentTime < activeVideoState.durationSec) {
+        activeVideoState.currentTime += 1;
+        activeVideoState.percentage = Math.min(100, Math.max(0, Math.round((activeVideoState.currentTime / activeVideoState.durationSec) * 100)));
+        window.updateVideoModalUI();
+        window.debouncedSaveVideoProgress();
+      }
+    }, 1000);
+  };
+
+  window.seekVideoToPercent = function(percent, courseId, resId, durationSec, videoTitle) {
+    const p = Math.min(100, Math.max(0, Math.round(percent)));
+    const dur = Math.max(1, Math.floor(durationSec || activeVideoState.durationSec || 900));
+    const targetTime = Math.round((p / 100) * dur);
+
+    activeVideoState.courseId = courseId || activeVideoState.courseId;
+    activeVideoState.resourceId = resId || activeVideoState.resourceId;
+    activeVideoState.durationSec = dur;
+    activeVideoState.currentTime = targetTime;
+    activeVideoState.percentage = p;
+    if (videoTitle) activeVideoState.videoTitle = videoTitle;
+
+    window.updateVideoModalUI();
+
+    // Seek HTML5 video or YouTube iframe
+    const videoEl = document.getElementById('active-video-player');
+    if (videoEl && videoEl.tagName === 'VIDEO') {
+      try { videoEl.currentTime = targetTime; } catch(_) {}
+    } else if (window._activeYTPlayer && typeof window._activeYTPlayer.seekTo === 'function') {
+      try { window._activeYTPlayer.seekTo(targetTime, true); } catch(_) {}
+    }
+    if (videoEl && videoEl.tagName === 'IFRAME' && videoEl.contentWindow) {
+      try {
+        videoEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [targetTime, true] }), '*');
+      } catch(_) {}
+    }
+
+    if (p >= 100 && activeVideoState.resourceId && window.AppState && window.AppState.toggleCompleteResource) {
+      const u = window.AppState.currentUser;
+      if (u && (!u.completedResourceIds || !u.completedResourceIds.includes(activeVideoState.resourceId))) {
+        window.AppState.toggleCompleteResource(activeVideoState.resourceId);
+      }
+    }
+
+    window.forceSaveVideoProgress();
+  };
+
+  // Backward compatibility alias
+  window.setVideoProgressPercent = window.seekVideoToPercent;
+
+  window.handleVideoProgressTrackClick = function(event, courseId, resId, durationSec, videoTitle) {
+    const track = event.currentTarget;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const width = rect.width;
+    if (width <= 0) return;
+    const fraction = Math.min(1, Math.max(0, clickX / width));
+    const dur = Math.max(1, Math.floor(durationSec || activeVideoState.durationSec || 900));
+    const targetTime = Math.round(fraction * dur);
+    const calculatedPercent = Math.min(100, Math.max(0, Math.round((targetTime / dur) * 100)));
+    window.seekVideoToPercent(calculatedPercent, courseId, resId, dur, videoTitle);
+  };
+
+  window.saveAndCloseVideoModal = function(courseId, resId) {
+    if (window.AppState) {
+      window.forceSaveVideoProgress();
+      window.cleanupVideoModalTracker();
+      window.AppState.closeModal();
     }
   };
 

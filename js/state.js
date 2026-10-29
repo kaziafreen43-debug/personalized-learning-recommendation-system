@@ -9,7 +9,7 @@ window.CATEGORY_TAXONOMY = {
     name: 'Artificial Intelligence & Data Science',
     category: 'AI Machine Learning',
     tags: ['AI Machine Learning', 'Computer science', 'Artificial Intelligence', 'Data Science', 'Machine Learning'],
-    aliases: ['ds', 'ai', 'aiml', 'ai machine learning', 'ai & machine learning', 'artificial intelligence', 'artificial intelligence & data science', 'data science', 'machine learning', 'deep learning']
+    aliases: ['ds', 'ai', 'ml', 'ai-ml', 'ai/ml', 'aiml', 'ai machine learning', 'ai & machine learning', 'artificial intelligence', 'artificial intelligence & data science', 'data science', 'datascience', 'data-science', 'machine learning', 'deep learning']
   },
   cs: {
     id: 'cs',
@@ -23,14 +23,14 @@ window.CATEGORY_TAXONOMY = {
     name: 'Mathematics & Analytics',
     category: 'Mathematics',
     tags: ['Mathematics', 'Analytics', 'Calculus', 'Algebra', 'Statistics'],
-    aliases: ['math', 'mathematics', 'mathematics & analytics', 'algebra', 'calculus', 'analytics', 'statistics', 'discrete math']
+    aliases: ['math', 'maths', 'mathematics', 'mathematics & analytics', 'algebra', 'calculus', 'analytics', 'statistics', 'discrete math']
   },
   physics: {
     id: 'physics',
     name: 'Physics & Quantum Systems',
     category: 'Physics',
     tags: ['Physics', 'Quantum Systems', 'Mechanics', 'Electromagnetism'],
-    aliases: ['physics', 'physics & quantum systems', 'quantum systems', 'quantum', 'mechanics', 'electromagnetism']
+    aliases: ['physics', 'physic', 'physics & quantum systems', 'quantum systems', 'quantum', 'mechanics', 'electromagnetism']
   },
   bio: {
     id: 'bio',
@@ -54,7 +54,14 @@ window.normalizeCategoryKey = function(cat) {
   if (window.CATEGORY_TAXONOMY) {
     for (const [key, meta] of Object.entries(window.CATEGORY_TAXONOMY)) {
       if (key === clean) return key;
-      if (meta.aliases && meta.aliases.some(a => a === clean || clean.includes(a) || a.includes(clean))) {
+      if (meta.aliases && meta.aliases.some(a => {
+        if (a === clean) return true;
+        if (a.length <= 3) {
+          const regex = new RegExp(`(^|[\\s_-])${a}([\\s_-]|$)`, 'i');
+          return regex.test(clean);
+        }
+        return clean.includes(a) || a.includes(clean);
+      })) {
         return key;
       }
     }
@@ -156,7 +163,13 @@ window.autoCategorizeItem = function(item, type = 'item') {
   const text = ((item.title || '') + ' ' + (item.description || '')).toLowerCase();
   if (window.CATEGORY_TAXONOMY) {
     Object.values(window.CATEGORY_TAXONOMY).forEach(t => {
-      if (t.aliases.some(a => text.includes(a))) {
+      if (t.aliases.some(a => {
+        if (a.length <= 3) {
+          const regex = new RegExp(`(^|[\\s_-])${a}([\\s_-]|$)`, 'i');
+          return regex.test(text);
+        }
+        return text.includes(a);
+      })) {
         if (!cats.includes(t.category)) cats.push(t.category);
         if (!tags.includes(t.category)) tags.push(t.category);
       }
@@ -171,6 +184,157 @@ window.autoCategorizeItem = function(item, type = 'item') {
   if (!item.category) item.category = cats[0];
 
   return item;
+};
+
+// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// Robust Search Matching for All 6 Core Subjects (Physics, Chem, Bio, Math, AI-ML, Data Science)
+// --------------------------------------------------------------------------
+window.resourceMatchesSearch = function(r, query) {
+  if (!r || typeof r !== "object") return false;
+  if (!query || !query.trim()) return true;
+  const q = query.toLowerCase().trim();
+
+  const title = (r.title || "").toLowerCase();
+  const desc = ((r.description || "") + " " + (r.summary || "")).toLowerCase();
+  const subId = (r.subjectId || "").toLowerCase();
+  const cat = (r.category || "").toLowerCase();
+  const cats = (Array.isArray(r.categories) ? r.categories : []).map(c => String(c).toLowerCase());
+  const tags = (Array.isArray(r.tags) ? r.tags : []).map(t => String(t).toLowerCase());
+
+  // 1. Direct core subject lookup for all 6 target subjects
+  const subjectExactMap = {
+    physics: ['physics', 'physic'],
+    chem: ['chemistry', 'chem'],
+    bio: ['biology', 'bio'],
+    math: ['math', 'maths', 'mathematics'],
+    ds: ['ai', 'ml', 'ai-ml', 'ai/ml', 'aiml', 'artificial intelligence', 'machine learning', 'data science', 'datascience', 'data-science'],
+    cs: ['cs', 'computer science', 'software', 'programming']
+  };
+
+  for (const [sId, names] of Object.entries(subjectExactMap)) {
+    if (names.includes(q)) {
+      if (subId === sId) return true;
+      if (sId === 'ds' && (tags.some(t => t.includes('data science') || t.includes('artificial intelligence') || t.includes('machine learning')) || cat.includes('ai machine learning') || cat.includes('data science'))) return true;
+      if (sId === 'cs' && (tags.some(t => t.includes('computer science') || t.includes('software engineering')) || cat.includes('computer science'))) return true;
+      return false;
+    }
+  }
+
+  if (title.includes(q) || desc.includes(q)) return true;
+  if (subId === q) return true;
+  if (cat && (cat.includes(q) || (cat.length > 3 && q.includes(cat)))) return true;
+  if (cats.some(c => c && (c.includes(q) || (c.length > 3 && q.includes(c))))) return true;
+  if (tags.some(t => {
+    if (!t) return false;
+    if (t === q) return true;
+    if (t.includes(q)) return true;
+    if (t.length <= 3) {
+      const rx = new RegExp("(^|[\\s_-])" + t.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&") + "([\\s_-]|$)", "i");
+      return rx.test(q);
+    }
+    return q.includes(t);
+  })) return true;
+
+  const subjectQueryMap = {
+    physics: ["physics", "physic", "quantum", "mechanics", "electromagnetism", "newton", "kinematics"],
+    chem: ["chemistry", "chem", "chemical", "molecules", "molecular", "organic", "thermodynamics", "periodic"],
+    bio: ["biology", "bio", "biotechnology", "biotech", "genetics", "cellular", "dna", "crispr", "organelles"],
+    math: ["math", "maths", "mathematics", "calculus", "algebra", "analytics", "statistics", "discrete math", "derivatives", "matrices", "linear algebra", "probability"],
+    ds: ["ai", "ml", "ai-ml", "ai/ml", "aiml", "artificial intelligence", "machine learning", "deep learning", "neural", "perceptron", "data science", "datascience", "data-science", "transformers", "llm", "backpropagation"],
+    cs: ["cs", "computer science", "software", "programming", "software engineering", "web dev", "algorithms", "dsa", "system design", "control flow"]
+  };
+
+  for (const [sId, keywords] of Object.entries(subjectQueryMap)) {
+    const matchesKeyword = keywords.some(k => {
+      if (k.length <= 3) {
+        const regex = new RegExp("(^|[\\s_-])" + k + "([\\s_-]|$)", "i");
+        return regex.test(q);
+      }
+      return q.includes(k) || k.includes(q);
+    });
+
+    if (matchesKeyword) {
+      if (subId === sId) return true;
+      if (sId === "ds" && (tags.some(t => t.includes("data science") || t.includes("artificial intelligence") || t.includes("machine learning")) || cat.includes("ai machine learning") || cat.includes("data science"))) return true;
+      if (sId === "cs" && (tags.some(t => t.includes("computer science") || t.includes("software engineering")) || cat.includes("computer science"))) return true;
+      if (sId === "math" && (tags.some(t => t.includes("mathematics") || t.includes("calculus") || t.includes("discrete math")) || cat.includes("mathematics"))) return true;
+      if (sId === "physics" && (tags.some(t => t.includes("physics") || t.includes("mechanics") || t.includes("quantum")) || cat.includes("physics"))) return true;
+      if (sId === "bio" && (tags.some(t => t.includes("biology") || t.includes("genetics") || t.includes("biotechnology")) || cat.includes("biology"))) return true;
+      if (sId === "chem" && (tags.some(t => t.includes("chemistry") || t.includes("organic") || t.includes("molecules")) || cat.includes("chemistry"))) return true;
+    }
+  }
+
+  return false;
+};
+
+window.courseMatchesSearch = function(c, query) {
+  if (!c || typeof c !== "object") return false;
+  if (!query || !query.trim()) return true;
+  const q = query.toLowerCase().trim();
+
+  const title = (c.title || "").toLowerCase();
+  const desc = (c.description || "").toLowerCase();
+  const subId = (c.subjectId || "").toLowerCase();
+  const cat = (c.category || "").toLowerCase();
+  const cats = (Array.isArray(c.categories) ? c.categories : []).map(cat => String(cat).toLowerCase());
+  const tags = (Array.isArray(c.tags) ? c.tags : []).map(t => String(t).toLowerCase());
+
+  // 1. Direct core subject lookup for all 6 target subjects
+  const courseExactMap = {
+    physics: ['physics', 'physic'],
+    chem: ['chemistry', 'chem'],
+    bio: ['biology', 'bio'],
+    math: ['math', 'maths', 'mathematics'],
+    ds: ['ai', 'ml', 'ai-ml', 'ai/ml', 'aiml', 'artificial intelligence', 'machine learning', 'data science', 'datascience', 'data-science'],
+    cs: ['cs', 'computer science', 'software', 'programming']
+  };
+
+  for (const [sId, names] of Object.entries(courseExactMap)) {
+    if (names.includes(q)) {
+      if (subId === sId) return true;
+      if (sId === 'ds' && (tags.some(t => t.includes('data science') || t.includes('artificial intelligence') || t.includes('machine learning')) || cat.includes('ai machine learning') || cat.includes('data science'))) return true;
+      if (sId === 'cs' && (tags.some(t => t.includes('computer science') || t.includes('software engineering')) || cat.includes('computer science'))) return true;
+      return false;
+    }
+  }
+
+  if (title.includes(q) || desc.includes(q)) return true;
+  if (subId === q) return true;
+  if (cat && (cat.includes(q) || (cat.length > 3 && q.includes(cat)))) return true;
+  if (cats.some(cat => cat && (cat.includes(q) || (cat.length > 3 && q.includes(cat))))) return true;
+  if (tags.some(t => {
+    if (!t) return false;
+    if (t === q) return true;
+    if (t.includes(q)) return true;
+    if (t.length <= 3) {
+      const rx = new RegExp("(^|[\\s_-])" + t.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&") + "([\\s_-]|$)", "i");
+      return rx.test(q);
+    }
+    return q.includes(t);
+  })) return true;
+
+  const subjectQueryMap = {
+    physics: ["physics", "physic", "quantum", "mechanics", "electromagnetism"],
+    chem: ["chemistry", "chem", "chemical", "molecules", "molecular", "organic"],
+    bio: ["biology", "bio", "biotechnology", "biotech", "genetics"],
+    math: ["math", "maths", "mathematics", "calculus", "algebra", "analytics"],
+    ds: ["ai", "ml", "ai-ml", "ai/ml", "aiml", "artificial intelligence", "machine learning", "deep learning", "data science", "datascience", "data-science"],
+    cs: ["cs", "computer science", "software", "programming", "algorithms", "software engineering"]
+  };
+
+  for (const [sId, keywords] of Object.entries(subjectQueryMap)) {
+    const matchesKeyword = keywords.some(k => {
+      if (k.length <= 3) {
+        const regex = new RegExp("(^|[\\s_-])" + k + "([\\s_-]|$)", "i");
+        return regex.test(q);
+      }
+      return q.includes(k) || k.includes(q);
+    });
+    if (matchesKeyword && subId === sId) return true;
+  }
+
+  return false;
 };
 
 window.autoCategorizeAllData = function(data) {
@@ -251,21 +415,72 @@ window.AppState = {
     if (!Array.isArray(this.data.subjects)) this.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
     if (!this.data.roadmaps) this.data.roadmaps = (window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) || {};
 
-    // Guarantee full content from INITIAL_DATA if local storage cache is empty
-    if (this.data.courses.length === 0 && window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses)) {
-      this.data.courses = [...window.INITIAL_DATA.courses];
+    // Guarantee full content from INITIAL_DATA: merge all core courses and resources
+    const KNOWN_BROKEN_VIDEOS = ['P3RXtoYCF4U', '8hly31xKLI0', '5vcj8kSwBCY', 'Qe453-yYjbg', 'SqsC34ghxCM', 'ndSpJq7q4G8'];
+    const isUrlBroken = (url) => url && KNOWN_BROKEN_VIDEOS.some(badId => String(url).includes(badId));
+
+    if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.courses)) {
+      window.INITIAL_DATA.courses.forEach(initCourse => {
+        const existingIdx = this.data.courses.findIndex(c => c.id === initCourse.id);
+        if (existingIdx === -1) {
+          this.data.courses.push({ ...initCourse });
+        } else {
+          // Keep mapped tiers if existing course lacks them
+          if (!this.data.courses[existingIdx].tiers && initCourse.tiers) {
+            this.data.courses[existingIdx].tiers = initCourse.tiers;
+          } else if (this.data.courses[existingIdx].tiers && initCourse.tiers) {
+            // Synchronize materials to ensure verified embed URLs and fallback options
+            for (const tier in initCourse.tiers) {
+              const initTier = initCourse.tiers[tier];
+              const existTier = this.data.courses[existingIdx].tiers[tier];
+              if (initTier && initTier.materials && existTier && existTier.materials) {
+                existTier.materials.forEach(m => {
+                  const initM = initTier.materials.find(im => im.id === m.id);
+                  if (initM && (isUrlBroken(m.contentUrl) || !m.contentUrl || m.contentUrl !== initM.contentUrl)) {
+                    m.contentUrl = initM.contentUrl;
+                    m.fallbackUrls = initM.fallbackUrls;
+                    m.title = initM.title;
+                    m.duration = initM.duration;
+                  }
+                });
+              }
+            }
+          }
+        }
+      });
     }
-    if (this.data.resources.length === 0 && window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources)) {
-      this.data.resources = [...window.INITIAL_DATA.resources];
+    if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.resources)) {
+      window.INITIAL_DATA.resources.forEach(initRes => {
+        const existingRes = this.data.resources.find(r => r.id === initRes.id);
+        if (!existingRes) {
+          this.data.resources.push({ ...initRes });
+        } else {
+          if (isUrlBroken(existingRes.contentUrl) || !existingRes.contentUrl || existingRes.contentUrl !== initRes.contentUrl) {
+            existingRes.contentUrl = initRes.contentUrl;
+            existingRes.fallbackUrls = initRes.fallbackUrls;
+            existingRes.title = initRes.title;
+            existingRes.description = initRes.description;
+            existingRes.summary = initRes.summary;
+          }
+        }
+      });
     }
-    if (Object.keys(this.data.roadmaps).length === 0 && window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) {
-      this.data.roadmaps = { ...window.INITIAL_DATA.roadmaps };
+    if (window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) {
+      Object.entries(window.INITIAL_DATA.roadmaps).forEach(([k, rm]) => {
+        if (!this.data.roadmaps[k]) {
+          this.data.roadmaps[k] = rm;
+        }
+      });
     }
-    if (this.data.assignments.length === 0 && window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.assignments)) {
-      this.data.assignments = [...window.INITIAL_DATA.assignments];
+    if (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.assignments)) {
+      window.INITIAL_DATA.assignments.forEach(initAssign => {
+        if (!this.data.assignments.some(a => a.id === initAssign.id)) {
+          this.data.assignments.push({ ...initAssign });
+        }
+      });
     }
 
-    // Always maintain master repository for instant category switching
+    // Always maintain master repository for instant search and subject switching
     this.data._masterCourses = [...this.data.courses];
     this.data._masterResources = [...this.data.resources];
     this.data._masterAssignments = [...this.data.assignments];
@@ -384,6 +599,7 @@ window.AppState = {
       if (!this.currentUser.learningStyle) this.currentUser.learningStyle = this.currentUser.preferredStyle || 'visual';
       if (!this.currentUser.preferredStyle) this.currentUser.preferredStyle = this.currentUser.learningStyle || 'visual';
       if (!this.currentUser.skillLevel) this.currentUser.skillLevel = 'Intermediate';
+      if (!this.currentUser.videoProgress) this.currentUser.videoProgress = {};
     }
 
     // Initialize Firestore dynamic sync
@@ -773,6 +989,9 @@ window.AppState = {
   },
 
   closeModal: function() {
+    if (window.cleanupVideoModalTracker) {
+      try { window.cleanupVideoModalTracker(); } catch(_) {}
+    }
     this.activeModal = null;
     this.modalData = null;
     this.notify();
@@ -845,6 +1064,7 @@ window.AppState = {
       enrolledCourseIds: enrolledIds,
       completedResourceIds: (this.currentUser && !isNewRegistration && this.currentUser.completedResourceIds) ? this.currentUser.completedResourceIds : [],
       bookmarkedResourceIds: (this.currentUser && !isNewRegistration && this.currentUser.bookmarkedResourceIds) ? this.currentUser.bookmarkedResourceIds : [],
+      videoProgress: (this.currentUser && !isNewRegistration && this.currentUser.videoProgress) ? this.currentUser.videoProgress : {},
       dailyGoalMinutes: (this.currentUser && this.currentUser.dailyGoalMinutes) ? this.currentUser.dailyGoalMinutes : 30,
       todayStudiedMinutes: (this.currentUser && this.currentUser.todayStudiedMinutes) ? this.currentUser.todayStudiedMinutes : 0,
       streakDays: (this.currentUser && this.currentUser.streakDays) ? this.currentUser.streakDays : 1,
@@ -916,15 +1136,20 @@ window.AppState = {
     const master = (this.data && Array.isArray(this.data._masterCourses) && this.data._masterCourses.length > 0)
       ? this.data._masterCourses
       : ((this.data && Array.isArray(this.data.courses)) ? this.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
-    if (!this.currentUser || this.isAdmin(this.currentUser)) {
-      return master;
+    if (this.searchQuery && this.searchQuery.trim() !== '') {
+      return master.filter(c => window.courseMatchesSearch ? window.courseMatchesSearch(c, this.searchQuery) : true);
     }
-    if (this.showAllCourses) {
+    if (this.activeSubjectFilter && this.activeSubjectFilter !== 'all') {
+      const normFilter = window.normalizeCategoryKey ? window.normalizeCategoryKey(this.activeSubjectFilter) : this.activeSubjectFilter;
+      return master.filter(c => c.subjectId === normFilter || (window.normalizeCategoryKey && window.normalizeCategoryKey(c.subjectId) === normFilter) || (window.normalizeCategoryKey && window.normalizeCategoryKey(c.category) === normFilter));
+    }
+    if (!this.currentUser || this.isAdmin(this.currentUser) || this.showAllCourses) {
       return master;
     }
     const interests = this.currentUser.interests || [];
-    if (interests.length === 0) return [];
-    return master.filter(c => window.itemMatchesInterests(c, interests));
+    if (interests.length === 0) return master;
+    const filtered = master.filter(c => window.itemMatchesInterests(c, interests));
+    return filtered.length > 0 ? filtered : master;
   },
 
   getPersonalizedResources: function(format = 'all') {
@@ -932,10 +1157,17 @@ window.AppState = {
       ? this.data._masterResources
       : ((this.data && Array.isArray(this.data.resources)) ? this.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
     let resources = master;
-    if (this.currentUser && !this.isAdmin(this.currentUser)) {
+    if (this.searchQuery && this.searchQuery.trim() !== '') {
+      resources = resources.filter(r => window.resourceMatchesSearch ? window.resourceMatchesSearch(r, this.searchQuery) : true);
+    } else if (this.activeSubjectFilter && this.activeSubjectFilter !== 'all') {
+      const normFilter = window.normalizeCategoryKey ? window.normalizeCategoryKey(this.activeSubjectFilter) : this.activeSubjectFilter;
+      resources = resources.filter(r => r.subjectId === normFilter || (window.normalizeCategoryKey && window.normalizeCategoryKey(r.subjectId) === normFilter) || (window.normalizeCategoryKey && window.normalizeCategoryKey(r.category) === normFilter));
+    } else if (this.currentUser && !this.isAdmin(this.currentUser) && !this.showAllCourses) {
       const interests = this.currentUser.interests || [];
-      if (interests.length === 0) return [];
-      resources = master.filter(r => window.itemMatchesInterests(r, interests));
+      if (interests.length > 0) {
+        const matched = master.filter(r => window.itemMatchesInterests(r, interests));
+        if (matched.length > 0) resources = matched;
+      }
     }
     if (format !== 'all') {
       resources = resources.filter(r => r.format === format);
@@ -947,7 +1179,7 @@ window.AppState = {
     let quizzes = (this.data && Array.isArray(this.data.quizzes) && this.data.quizzes.length > 0)
       ? this.data.quizzes
       : (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
-    if (!this.currentUser || this.isAdmin(this.currentUser)) {
+    if (!this.currentUser || this.isAdmin(this.currentUser) || this.showAllCourses || (this.searchQuery && this.searchQuery.trim() !== '') || (this.activeSubjectFilter && this.activeSubjectFilter !== 'all')) {
       const allQuizzes = (window.ALL_SUBJECT_QUIZZES || (window.INITIAL_DATA && window.INITIAL_DATA.quizzes) || []);
       if (allQuizzes.length > 0 && quizzes.length < allQuizzes.length) {
         return allQuizzes;
@@ -955,23 +1187,16 @@ window.AppState = {
       return quizzes;
     }
     const interests = this.currentUser.interests || [];
-    if (interests.length === 0) return [];
-    return quizzes.filter(q => window.itemMatchesInterests(q, interests));
+    if (interests.length === 0) return quizzes;
+    const filtered = quizzes.filter(q => window.itemMatchesInterests(q, interests));
+    return filtered.length > 0 ? filtered : quizzes;
   },
 
   getPersonalizedSubjects: function() {
-    const subjects = (this.data && Array.isArray(this.data.subjects)) ? this.data.subjects : ((window.INITIAL_DATA && window.INITIAL_DATA.subjects) || []);
-    if (!this.currentUser || this.isAdmin(this.currentUser)) {
-      return subjects;
-    }
-    if (this.showAllCourses) {
-      return subjects;
-    }
-    const interests = this.currentUser.interests || [];
-    if (interests.length === 0) return [];
-    return subjects.filter(s => {
-      return interests.some(i => window.normalizeCategoryKey(i) === s.id || s.name.toLowerCase().includes(i.toLowerCase()) || window.normalizeCategoryKey(s.name) === window.normalizeCategoryKey(i));
-    });
+    const subjects = (this.data && Array.isArray(this.data.subjects) && this.data.subjects.length > 0)
+      ? this.data.subjects
+      : ((window.INITIAL_DATA && window.INITIAL_DATA.subjects) || []);
+    return subjects;
   },
 
   getPersonalizedRoadmaps: function() {
@@ -1059,6 +1284,213 @@ window.AppState = {
       });
     }
     this.saveData();
+  },
+
+  getVideoProgress: function(key) {
+    if (!this.currentUser || !this.currentUser.videoProgress || !key) return null;
+    if (this.currentUser.videoProgress[key]) return this.currentUser.videoProgress[key];
+    for (const k in this.currentUser.videoProgress) {
+      const item = this.currentUser.videoProgress[k];
+      if (item && (item.courseId === key || item.resourceId === key)) {
+        return item;
+      }
+    }
+    return null;
+  },
+
+  saveVideoProgress: function(courseId, resourceId, currentTime, duration, percentage, videoTitle, options = {}) {
+    if (!this.currentUser) return null;
+    if (!this.currentUser.videoProgress) this.currentUser.videoProgress = {};
+
+    const rawCurrentTime = Math.max(0, Math.floor(currentTime || 0));
+    const rawDuration = Math.max(1, Math.floor(duration || 900));
+    // Calculate actual watch percentage dynamically strictly from playback time & duration
+    const calculatedPercent = Math.min(100, Math.max(0, Math.round((rawCurrentTime / rawDuration) * 100)));
+
+    const courses = (this.data && this.data.courses) ? this.data.courses : [];
+    const resources = (this.data && this.data.resources) ? this.data.resources : [];
+    let resolvedCourse = courses.find(c => c.id === courseId);
+    let resolvedResource = resources.find(r => r.id === resourceId);
+
+    // If course not found directly by courseId, attempt to locate course containing this material
+    if (!resolvedCourse && resourceId) {
+      for (const c of courses) {
+        if (c.categories) {
+          for (const t in c.categories) {
+            if (c.categories[t] && c.categories[t].materials && c.categories[t].materials.some(m => m.id === resourceId)) {
+              resolvedCourse = c;
+              break;
+            }
+          }
+        }
+        if (resolvedCourse) break;
+      }
+    }
+    if (!resolvedCourse && resolvedResource && resolvedResource.subjectId) {
+      resolvedCourse = courses.find(c => c.subjectId === resolvedResource.subjectId);
+    }
+
+    const finalCourseId = resolvedCourse ? resolvedCourse.id : (courseId || 'course-default');
+    const finalCourseTitle = resolvedCourse ? resolvedCourse.title : 'Course Masterclass';
+    const finalVideoTitle = videoTitle || (resolvedResource ? resolvedResource.title : 'Core Video Lecture');
+
+    const formattedTime = (window.formatSeconds)
+      ? `${window.formatSeconds(rawCurrentTime)} / ${window.formatSeconds(rawDuration)}`
+      : `${Math.floor(rawCurrentTime / 60)}:${(rawCurrentTime % 60).toString().padStart(2, '0')}`;
+
+    const progressEntry = {
+      courseId: finalCourseId,
+      courseTitle: finalCourseTitle,
+      resourceId: resourceId || (resolvedResource ? resolvedResource.id : null),
+      videoTitle: finalVideoTitle,
+      currentTime: rawCurrentTime,
+      duration: rawDuration,
+      percentage: calculatedPercent,
+      formattedTime: formattedTime,
+      lastWatched: new Date().toISOString()
+    };
+
+    this.currentUser.videoProgress[finalCourseId] = progressEntry;
+    if (resourceId) {
+      this.currentUser.videoProgress[resourceId] = progressEntry;
+    }
+
+    // Auto-enroll student into this course if not already enrolled
+    if (!this.currentUser.enrolledCourseIds) this.currentUser.enrolledCourseIds = [];
+    if (!this.currentUser.enrolledCourseIds.includes(finalCourseId)) {
+      this.currentUser.enrolledCourseIds.push(finalCourseId);
+    }
+
+    // If watched >= 95%, also mark resource as completed
+    if (calculatedPercent >= 95 && resourceId) {
+      if (!this.currentUser.completedResourceIds) this.currentUser.completedResourceIds = [];
+      if (!this.currentUser.completedResourceIds.includes(resourceId)) {
+        this.currentUser.completedResourceIds.push(resourceId);
+      }
+    }
+
+    // Persist progress to local storage cache safely without triggering full app re-render
+    try {
+      localStorage.setItem('plr_app_data', JSON.stringify(this.data));
+    } catch(e) {}
+
+    // Synchronize to Firestore remote database only when requested (prevents API call spamming)
+    if (options && options.syncRemote && window.FirebaseDB && this.currentUser) {
+      window.FirebaseDB.saveUser(this.currentUser);
+    }
+
+    // Only notify listeners if explicitly requested (prevents unmounting active video player)
+    if (options && options.notify) {
+      this.notify();
+    }
+
+    return progressEntry;
+  },
+
+  getResumeCourses: function() {
+    if (!this.currentUser) return [];
+    const allCourses = (this.data && Array.isArray(this.data._masterCourses) && this.data._masterCourses.length > 0)
+      ? this.data._masterCourses
+      : ((this.data && Array.isArray(this.data.courses)) ? this.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
+    const allResources = (this.data && Array.isArray(this.data._masterResources) && this.data._masterResources.length > 0)
+      ? this.data._masterResources
+      : ((this.data && Array.isArray(this.data.resources)) ? this.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
+
+    const user = this.currentUser;
+    const enrolledIds = user.enrolledCourseIds || [];
+    const videoProgressMap = user.videoProgress || {};
+
+    const courseMap = new Map();
+
+    // 1. First add all courses that have explicit video progress
+    Object.keys(videoProgressMap).forEach(key => {
+      const prog = videoProgressMap[key];
+      if (prog && prog.courseId && !courseMap.has(prog.courseId)) {
+        const c = allCourses.find(item => item.id === prog.courseId);
+        if (c) {
+          // Verify that prog.resourceId actually matches this course's subject!
+          let validResource = allResources.find(r => r.id === prog.resourceId);
+          if (validResource && validResource.subjectId !== c.subjectId) {
+            // Mismatched video from previous bug! Re-match to course's video
+            validResource = allResources.find(r => r.subjectId === c.subjectId && r.format === 'video');
+            prog.resourceId = validResource ? validResource.id : null;
+            prog.videoTitle = validResource ? validResource.title : c.title;
+          }
+          const duration = Math.max(1, Math.floor(prog.duration || (validResource && window.parseDurationToSeconds ? window.parseDurationToSeconds(validResource.duration) : 900)));
+          const currentTime = Math.max(0, Math.floor(prog.currentTime || 0));
+          // Dynamically calculate percentage strictly based on video playback time
+          const calculatedPct = Math.min(100, Math.max(0, Math.round((currentTime / duration) * 100)));
+          const remainingSec = Math.max(0, duration - currentTime);
+          courseMap.set(prog.courseId, {
+            ...c,
+            activeVideoId: prog.resourceId || (validResource ? validResource.id : null),
+            videoTitle: prog.videoTitle || (validResource ? validResource.title : 'Active Video Lesson'),
+            percentage: calculatedPct,
+            currentTime: currentTime,
+            duration: duration,
+            formattedTime: window.formatSeconds ? `${window.formatSeconds(currentTime)} / ${window.formatSeconds(duration)}` : `${Math.floor(currentTime / 60)}:${(currentTime % 60).toString().padStart(2, '0')}`,
+            formattedCurrentTime: window.formatSeconds ? window.formatSeconds(currentTime) : `${Math.floor(currentTime / 60)}m`,
+            remainingTime: window.formatSeconds ? window.formatSeconds(remainingSec) + ' remaining' : `${Math.floor(remainingSec / 60)}m remaining`,
+            lastWatched: prog.lastWatched || new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    // 2. Next, add enrolled courses that might not have a progress record yet (0% watched)
+    enrolledIds.forEach(id => {
+      if (!courseMap.has(id)) {
+        const c = allCourses.find(item => item.id === id);
+        if (c) {
+          // Look for first material to use as default video
+          let firstMatTitle = 'Introduction Video Lecture';
+          let firstMatId = null;
+          const tierObj = (!Array.isArray(c.categories) && typeof c.categories === 'object' && c.categories) ? c.categories : (c.tiers || {});
+          for (const tier of ['Beginner', 'Intermediate', 'Advanced']) {
+            if (tierObj[tier] && tierObj[tier].materials && tierObj[tier].materials.length > 0) {
+              firstMatTitle = tierObj[tier].materials[0].title;
+              firstMatId = tierObj[tier].materials[0].id;
+              break;
+            }
+          }
+          if (!firstMatId) {
+            const matched = allResources.find(r => r.subjectId === c.subjectId && r.format === 'video');
+            if (matched) {
+              firstMatTitle = matched.title;
+              firstMatId = matched.id;
+            }
+          }
+
+          courseMap.set(id, {
+            ...c,
+            activeVideoId: firstMatId,
+            videoTitle: firstMatTitle,
+            percentage: 0,
+            currentTime: 0,
+            duration: 900,
+            formattedTime: '00:00 / 15:00',
+            formattedCurrentTime: '0 mins',
+            remainingTime: '15 mins remaining',
+            lastWatched: null
+          });
+        }
+      }
+    });
+
+    const list = Array.from(courseMap.values());
+
+    // Sort: In-progress courses (0% < percentage < 100%) first, then by lastWatched desc, then not started, then completed
+    list.sort((a, b) => {
+      const aInProgress = a.percentage > 0 && a.percentage < 100 ? 1 : 0;
+      const bInProgress = b.percentage > 0 && b.percentage < 100 ? 1 : 0;
+      if (aInProgress !== bInProgress) return bInProgress - aInProgress;
+      if (a.lastWatched && b.lastWatched) return new Date(b.lastWatched) - new Date(a.lastWatched);
+      if (a.lastWatched) return -1;
+      if (b.lastWatched) return 1;
+      return 0;
+    });
+
+    return list;
   },
 
   saveQuizResult: function(quizId, scorePercentage) {

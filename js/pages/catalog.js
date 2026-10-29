@@ -98,43 +98,72 @@
     render: function() {
       const state = window.AppState || {};
       const user = state.currentUser || {};
-      const filterSub = state.activeSubjectFilter;
-      const filterFmt = state.activeFormatFilter;
+      const filterSub = state.activeSubjectFilter || 'all';
+      const filterFmt = state.activeFormatFilter || 'all';
       const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
       const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
 
-      let resources = (isStudent && state.getPersonalizedResources)
-        ? state.getPersonalizedResources()
-        : ((state.data && state.data.resources) ? state.data.resources : []);
+      const allResources = (state.data && Array.isArray(state.data._masterResources) && state.data._masterResources.length > 0)
+        ? state.data._masterResources
+        : ((state.data && Array.isArray(state.data.resources)) ? state.data.resources : ((window.INITIAL_DATA && window.INITIAL_DATA.resources) || []));
 
-      let subjects = (isStudent && state.getPersonalizedSubjects)
-        ? state.getPersonalizedSubjects()
-        : ((state.data && state.data.subjects) ? state.data.subjects : []);
+      const allSubjects = (state.data && Array.isArray(state.data.subjects) && state.data.subjects.length > 0)
+        ? state.data.subjects
+        : ((window.INITIAL_DATA && window.INITIAL_DATA.subjects) || []);
 
-      const filteredSubjects = (isStudent && userInterests.length > 0)
-        ? subjects.filter(s => window.itemMatchesInterests ? window.itemMatchesInterests(s, userInterests) : userInterests.includes(s.id))
-        : subjects;
+      let items = [...allResources];
 
-      if (isStudent && userInterests.length > 0 && filterSub && filterSub !== 'all') {
-        const matchesSub = window.itemMatchesInterests ? window.itemMatchesInterests({ subjectId: filterSub, id: filterSub }, userInterests) : userInterests.includes(filterSub);
-        if (!matchesSub) {
-          filterSub = 'all';
-          state.activeSubjectFilter = 'all';
-        }
+      // 1. Filter by subject
+      if (filterSub && filterSub !== 'all') {
+        items = items.filter(r => {
+          if (r.subjectId === filterSub) return true;
+          if (window.normalizeCategoryKey && window.normalizeCategoryKey(r.subjectId) === filterSub) return true;
+          if (window.normalizeCategoryKey && window.normalizeCategoryKey(r.category) === filterSub) return true;
+          return false;
+        });
       }
 
-      let items = window.AIEngine ? window.AIEngine.getRecommendations(resources, user, filterSub, 50) : resources;
-      if (isStudent && userInterests.length > 0) {
-        items = items.filter(i => window.itemMatchesInterests ? window.itemMatchesInterests(i, userInterests) : (userInterests.includes(i.subjectId) || userInterests.includes(i.category)));
-      }
-
-      if (state.searchQuery && state.searchQuery.trim() !== '') {
-        const q = state.searchQuery.toLowerCase().trim();
-        items = items.filter(i => (i.title && i.title.toLowerCase().includes(q)) || (i.description && i.description.toLowerCase().includes(q)));
-      }
+      // 2. Filter by format
       if (filterFmt && filterFmt !== 'all') {
         items = items.filter(i => i.format === filterFmt);
       }
+
+      // 3. Filter by search query (supports all 6 subjects: Physics, Chemistry, Biology, Maths, AI-ML, Data Science)
+      if (state.searchQuery && state.searchQuery.trim() !== '') {
+        items = items.filter(i => window.resourceMatchesSearch ? window.resourceMatchesSearch(i, state.searchQuery) : true);
+      }
+
+      // 4. Calculate AI match scores and status
+      items = items.map(res => {
+        const matchScore = window.AIEngine ? window.AIEngine.calculateMatchScore(res, user) : 95;
+        const isCompleted = user && user.completedResourceIds ? user.completedResourceIds.includes(res.id) : false;
+        const isBookmarked = user && user.bookmarkedResourceIds ? user.bookmarkedResourceIds.includes(res.id) : false;
+
+        let reason = `Recommended for ${user.gradeClass || 'your grade'}`;
+        if (user.preferredStyle && res.vark && res.vark.includes(user.preferredStyle)) {
+          reason = `Matches your ${user.preferredStyle.toUpperCase()} learning style`;
+        } else if (userInterests.length > 0 && window.itemMatchesInterests && window.itemMatchesInterests(res, userInterests)) {
+          reason = `Matches your subject interest`;
+        }
+
+        return {
+          ...res,
+          matchScore: isCompleted ? Math.round(matchScore * 0.75) : matchScore,
+          isCompleted: isCompleted,
+          isBookmarked: isBookmarked,
+          reason: reason
+        };
+      });
+
+      // 5. Sort: items matching user interests or higher match score first
+      items.sort((a, b) => {
+        if (!state.searchQuery && filterSub === 'all' && userInterests.length > 0 && window.itemMatchesInterests) {
+          const aMatch = window.itemMatchesInterests(a, userInterests) ? 1 : 0;
+          const bMatch = window.itemMatchesInterests(b, userInterests) ? 1 : 0;
+          if (aMatch !== bMatch) return bMatch - aMatch;
+        }
+        return (b.matchScore || 0) - (a.matchScore || 0);
+      });
 
       return `
         <div class="page-header">
@@ -145,7 +174,7 @@
         <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px;">
           <div class="subject-tabs">
             <button class="tab-btn ${filterSub === 'all' ? 'active' : ''}" onclick="AppState.activeSubjectFilter='all'; AppState.notify();">All Subjects</button>
-            ${filteredSubjects.map(s => `
+            ${allSubjects.map(s => `
               <button class="tab-btn ${filterSub === s.id ? 'active' : ''}" onclick="AppState.activeSubjectFilter='${s.id}'; AppState.notify();">${s.name}</button>
             `).join('')}
           </div>
@@ -161,16 +190,11 @@
         <div class="resource-grid">
           ${items.length > 0 ? items.map(res => CatalogView.renderCard(res)).join('') : `
             <div style="grid-column: 1 / -1; padding:40px; text-align:center; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border-color);">
-              <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">No study materials available for your selected interests yet</h3>
-              <p style="font-size:0.88rem; margin-bottom:16px;">Modify your interests or reset filters to discover available learning resources.</p>
+              <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">No study materials match your search or filter criteria</h3>
+              <p style="font-size:0.88rem; margin-bottom:16px;">Try adjusting your search terms, selecting another subject, or resetting all filters.</p>
               <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-                ${isStudent ? `
-                  <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
-                    ${window.renderIcon('edit-3')} Edit Interests
-                  </button>
-                ` : ''}
-                <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="AppState.activeSubjectFilter='all'; AppState.activeFormatFilter='all'; AppState.notify();">
-                  Reset Filters
+                <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.searchQuery=''; AppState.activeSubjectFilter='all'; AppState.activeFormatFilter='all'; AppState.notify();">
+                  ${window.renderIcon('rotate-ccw')} Reset Filters & Show All
                 </button>
               </div>
             </div>

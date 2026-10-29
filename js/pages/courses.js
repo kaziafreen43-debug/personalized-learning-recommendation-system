@@ -75,45 +75,39 @@
       const isStudent = user.role !== 'admin' && user.id !== 'u-admin';
       const userInterests = (user && Array.isArray(user.interests)) ? user.interests : [];
 
-      let courses = (isStudent && state.getPersonalizedCourses)
-        ? state.getPersonalizedCourses()
-        : ((state.data && state.data.courses) ? state.data.courses : []);
+      const allCourses = (state.data && Array.isArray(state.data._masterCourses) && state.data._masterCourses.length > 0)
+        ? state.data._masterCourses
+        : ((state.data && Array.isArray(state.data.courses)) ? state.data.courses : ((window.INITIAL_DATA && window.INITIAL_DATA.courses) || []));
 
-      const subjects = (isStudent && state.getPersonalizedSubjects)
-        ? state.getPersonalizedSubjects()
-        : ((state.data && state.data.subjects) ? state.data.subjects : []);
+      const allSubjects = (state.data && Array.isArray(state.data.subjects) && state.data.subjects.length > 0)
+        ? state.data.subjects
+        : ((window.INITIAL_DATA && window.INITIAL_DATA.subjects) || []);
 
       const activeSub = state.activeSubjectFilter || 'all';
 
+      let courses = [...allCourses];
+
       if (activeSub !== 'all') {
-        courses = courses.filter(c => window.itemMatchesInterests ? window.itemMatchesInterests(c, [activeSub]) : (c.subjectId === activeSub || c.category === activeSub));
+        courses = courses.filter(c => c.subjectId === activeSub || (window.normalizeCategoryKey && window.normalizeCategoryKey(c.subjectId) === activeSub));
       }
+
       if (state.searchQuery && state.searchQuery.trim() !== '') {
-        const q = state.searchQuery.toLowerCase().trim();
-        courses = courses.filter(c => {
-          const itemTags = window.getItemCategories ? window.getItemCategories(c).join(' ').toLowerCase() : '';
-          return (c.title && c.title.toLowerCase().includes(q)) ||
-                 (c.description && c.description.toLowerCase().includes(q)) ||
-                 itemTags.includes(q);
+        courses = courses.filter(c => window.courseMatchesSearch ? window.courseMatchesSearch(c, state.searchQuery) : true);
+      } else if (activeSub === 'all' && isStudent && userInterests.length > 0 && !state.showAllCourses) {
+        // Prioritize courses matching user interests first
+        courses.sort((a, b) => {
+          const aMatch = window.itemMatchesInterests && window.itemMatchesInterests(a, userInterests) ? 1 : 0;
+          const bMatch = window.itemMatchesInterests && window.itemMatchesInterests(b, userInterests) ? 1 : 0;
+          if (aMatch !== bMatch) return bMatch - aMatch;
+          return (b.matchScore || 0) - (a.matchScore || 0);
         });
       }
 
       return `
         <div class="page-header">
           <h1 class="page-title">${window.renderIcon('graduation-cap')} Course Enrollment & Study Pathways</h1>
-          <p class="page-subtitle">${isStudent ? 'Personalized courses matching your selected interests with step-by-step study materials and quizzes.' : 'Enroll in structured courses with step-by-step study materials and quizzes.'}</p>
+          <p class="page-subtitle">${isStudent ? 'Structured subject courses with step-by-step video lectures, quizzes, and study materials.' : 'Enroll in structured courses with step-by-step study materials and quizzes.'}</p>
         </div>
-
-        ${state.showAllCourses ? `
-          <div style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:var(--radius-md); padding:12px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div style="display:flex; align-items:center; gap:10px; font-size:0.9rem; font-weight:600; color:var(--text-main);">
-              ${window.renderIcon('info')} Showing all available courses across subjects.
-            </div>
-            <button class="btn-hero-primary" style="padding:6px 14px; font-size:0.85rem;" onclick="AppState.showAllCourses = false; AppState.notify();">
-              ${window.renderIcon('sparkles')} Back to My Recommendations
-            </button>
-          </div>
-        ` : ''}
 
         <!-- Filter Pills Bar (Matches 2.PNG) -->
         <div class="filter-pills-bar">
@@ -124,7 +118,7 @@
           <button class="pill-filter-btn ${activeSub === 'all' ? 'active' : ''}" onclick="AppState.activeSubjectFilter='all'; AppState.notify();">
             All Subjects
           </button>
-          ${subjects.map(s => `
+          ${allSubjects.map(s => `
             <button class="pill-filter-btn ${activeSub === s.id ? 'active' : ''}" onclick="AppState.activeSubjectFilter='${s.id}'; AppState.notify();">
               ${s.name}
             </button>
@@ -135,18 +129,13 @@
           ${courses.length === 0 ? `
             <div class="widget-card" style="grid-column: 1 / -1; text-align: center; padding: 50px 20px;">
               <div style="font-size: 2.5rem; margin-bottom: 12px;">🎓</div>
-              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No courses available for your selected interests yet</h3>
-              <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 18px;">${isStudent ? `We currently have no courses matching your selected interests (${userInterests.map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ')}). You can modify your interests or browse all available courses.` : 'No courses match the current filter. Courses created in the Admin panel will appear dynamically here.'}</p>
-              ${isStudent ? `
-                <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-                  <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.openModal('questionnaire')">
-                    ${window.renderIcon('edit-3')} Edit Interests
-                  </button>
-                  <button class="btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-weight:700; cursor:pointer;" onclick="AppState.showAllCourses = true; AppState.activeSubjectFilter = 'all'; AppState.notify();">
-                    ${window.renderIcon('globe')} Browse All Courses
-                  </button>
-                </div>
-              ` : ''}
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No courses match your search or filter</h3>
+              <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 18px;">Try searching with different keywords or reset your subject filter.</p>
+              <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; display:inline-flex; align-items:center; gap:8px;" onclick="AppState.searchQuery=''; AppState.activeSubjectFilter='all'; AppState.notify();">
+                  ${window.renderIcon('rotate-ccw')} Show All Courses
+                </button>
+              </div>
             </div>
           ` : courses.map(c => CoursesView.renderCard(c, (user.enrolledCourseIds || []).includes(c.id))).join('')}
         </div>
