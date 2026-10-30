@@ -1,219 +1,29 @@
 {
   "users": {
-    "Iyf4OwaGMYWmsTcPTtLtpz2A3b13": {
-      "id": "Iyf4OwaGMYWmsTcPTtLtpz2A3b13",
-      "uid": "Iyf4OwaGMYWmsTcPTtLtpz2A3b13",
-      "name": "Afreen Kazi",
-      "email": "afreen@gmail.com",
-      "role": "student",
+    "GOpg2ky06YmDfTJzcxpvyhAzFWHb": {
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-      "gradeClass": "Undergraduate (Year 3-4)",
-      "skillLevel": "Beginner",
-      "learningStyle": "visual",
-      "preferredStyle": "visual",
+      "bookmarkedResourceIds": [],
       "careerGoal": "AI & Machine Learning Engineer",
+      "certificates": [],
+      "completedResourceIds": [],
+      "createdAt": "2026-10-30T13:55:43.832Z",
+      "dailyGoalMinutes": 30,
+      "email": "uzma@gmail.com",
+      "enrolledCourseIds": [
+        "course-math-101",
+        "course-chem-101"
+      ],
+      "gradeClass": "Undergraduate (Year 3-4)",
+      "id": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
       "interests": [
-        "bio",
         "chem",
         "math"
       ],
-      "enrolledCourseIds": [
-        "course-math-101",
-        "course-bio-101",
-        "course-chem-101"
-      ],
-      "completedResourceIds": [
-        "res-math-road-1",
-        "res-ai-road-2",
-        "res-bio-road-2"
-      ],
-      "bookmarkedResourceIds": [],
-      "videoProgress": {
-        "course-ai-101": {
-          "courseId": "course-ai-101",
-          "courseTitle": "Artificial Intelligence & Neural Networks Masterclass",
-          "currentTime": 4,
-          "duration": 2700,
-          "formattedTime": "00:04 / 45:00",
-          "lastWatched": "2026-10-29T11:08:09.943Z",
-          "percentage": 0,
-          "resourceId": "res-ai-road-2",
-          "videoTitle": "Artificial Intelligence Core: Perceptrons & Backpropagation Math Video"
-        },
-        "course-bio-101": {
-          "courseId": "course-bio-101",
-          "courseTitle": "Genetics, Cell Biology & Biotechnology Masterclass",
-          "resourceId": "res-bio-road-2",
-          "videoTitle": "DNA Replication, Transcription & Translation Video",
-          "currentTime": 2100,
-          "duration": 2100,
-          "percentage": 100,
-          "formattedTime": "35:00 / 35:00",
-          "lastWatched": "2026-10-29T13:12:40.133Z"
-        },
-        "course-chem-101": {
-          "courseId": "course-chem-101",
-          "courseTitle": "Chemistry, Organic Synthesis & Molecular Science",
-          "currentTime": 2762,
-          "duration": 3572,
-          "formattedTime": "46:02 / 59:32",
-          "lastWatched": "2026-10-29T13:12:19.955Z",
-          "percentage": 77,
-          "resourceId": "res-chem-road-1",
-          "videoTitle": "Atomic Models, Electron Shells & Periodic Trends Video"
-        },
-        "course-cs-101": {
-          "courseId": "course-cs-101",
-          "courseTitle": "Computer Science & Software Engineering Pathway",
-          "currentTime": 114,
-          "duration": 2400,
-          "formattedTime": "01:54 / 40:00",
-          "lastWatched": "2026-10-29T11:14:39.111Z",
-          "percentage": 5,
-          "resourceId": "res-cs-road-2",
-          "videoTitle": "Data Structures, Big-O Complexity & Sorting Algorithms Video"
-        },
-        "course-math-101": {
-          "courseId": "course-math-101",
-          "courseTitle": "Mathematics & Applied Analytics Mastery",
-          "currentTime": 14,
-          "duration": 1800,
-          "formattedTime": "00:14 / 30:00",
-          "lastWatched": "2026-10-29T11:01:49.801Z",
-          "percentage": 1,
-          "resourceId": "res-math-road-1",
-          "videoTitle": "Discrete Mathematics, Logic Gates & Set Theory Video"
-        },
-        "course-physics-101": {
-          "courseId": "course-physics-101",
-          "courseTitle": "Physics, Mechanics & Quantum Systems Pathway",
-          "currentTime": 8,
-          "duration": 2100,
-          "formattedTime": "00:08 / 35:00",
-          "lastWatched": "2026-10-29T11:08:57.976Z",
-          "percentage": 0,
-          "resourceId": "res-phys-road-2",
-          "videoTitle": "Electromagnetism, Circuit Laws & Maxwell Equations Video"
-        },
-        "res-ai-road-2": {
-          "courseId": "course-ai-101",
-          "courseTitle": "Artificial Intelligence & Neural Networks Masterclass",
-          "currentTime": 4,
-          "duration": 2700,
-          "formattedTime": "00:04 / 45:00",
-          "lastWatched": "2026-10-29T11:08:09.943Z",
-          "percentage": 0,
-          "resourceId": "res-ai-road-2",
-          "videoTitle": "Artificial Intelligence Core: Perceptrons & Backpropagation Math Video"
-        },
-        "res-bio-road-1": {
-          "courseId": "course-bio-101",
-          "courseTitle": "Genetics, Cell Biology & Biotechnology Masterclass",
-          "currentTime": 6,
-          "duration": 1500,
-          "formattedTime": "00:06 / 25:00",
-          "lastWatched": "2026-10-29T11:14:49.942Z",
-          "percentage": 0,
-          "resourceId": "res-bio-road-1",
-          "videoTitle": "Cellular Biology, Organelles & ATP Energy Video"
-        },
-        "res-bio-road-2": {
-          "courseId": "course-bio-101",
-          "courseTitle": "Genetics, Cell Biology & Biotechnology Masterclass",
-          "resourceId": "res-bio-road-2",
-          "videoTitle": "DNA Replication, Transcription & Translation Video",
-          "currentTime": 2100,
-          "duration": 2100,
-          "percentage": 100,
-          "formattedTime": "35:00 / 35:00",
-          "lastWatched": "2026-10-29T13:12:40.133Z"
-        },
-        "res-chem-road-1": {
-          "courseId": "course-chem-101",
-          "courseTitle": "Chemistry, Organic Synthesis & Molecular Science",
-          "currentTime": 2762,
-          "duration": 3572,
-          "formattedTime": "46:02 / 59:32",
-          "lastWatched": "2026-10-29T13:12:19.955Z",
-          "percentage": 77,
-          "resourceId": "res-chem-road-1",
-          "videoTitle": "Atomic Models, Electron Shells & Periodic Trends Video"
-        },
-        "res-cs-road-2": {
-          "courseId": "course-cs-101",
-          "courseTitle": "Computer Science & Software Engineering Pathway",
-          "currentTime": 114,
-          "duration": 2400,
-          "formattedTime": "01:54 / 40:00",
-          "lastWatched": "2026-10-29T11:14:39.111Z",
-          "percentage": 5,
-          "resourceId": "res-cs-road-2",
-          "videoTitle": "Data Structures, Big-O Complexity & Sorting Algorithms Video"
-        },
-        "res-math-road-1": {
-          "courseId": "course-math-101",
-          "courseTitle": "Mathematics & Applied Analytics Mastery",
-          "currentTime": 14,
-          "duration": 1800,
-          "formattedTime": "00:14 / 30:00",
-          "lastWatched": "2026-10-29T11:01:49.801Z",
-          "percentage": 1,
-          "resourceId": "res-math-road-1",
-          "videoTitle": "Discrete Mathematics, Logic Gates & Set Theory Video"
-        },
-        "res-phys-road-2": {
-          "courseId": "course-physics-101",
-          "courseTitle": "Physics, Mechanics & Quantum Systems Pathway",
-          "currentTime": 8,
-          "duration": 2100,
-          "formattedTime": "00:08 / 35:00",
-          "lastWatched": "2026-10-29T11:08:57.976Z",
-          "percentage": 0,
-          "resourceId": "res-phys-road-2",
-          "videoTitle": "Electromagnetism, Circuit Laws & Maxwell Equations Video"
-        }
-      },
-      "dailyGoalMinutes": 30,
-      "todayStudiedMinutes": 15,
-      "streakDays": 1,
-      "createdAt": "2026-09-08T17:10:39.178Z",
-      "updatedAt": "2026-10-29T13:12:40.135Z",
+      "learningStyle": "visual",
+      "name": "Uzma Kazi",
+      "preferredStyle": "visual",
+      "quizScores": [],
       "recentActivity": [
-        {
-          "icon": "edit-3",
-          "time": "Just now",
-          "title": "Updated Questionnaire & Learning Preferences"
-        },
-        {
-          "icon": "graduation-cap",
-          "time": "Just now",
-          "title": "Enrolled in Course: Physics, Mechanics & Quantum Systems Pathway"
-        },
-        {
-          "icon": "graduation-cap",
-          "time": "Just now",
-          "title": "Enrolled in Course: Computer Science & Software Engineering Pathway"
-        },
-        {
-          "icon": "graduation-cap",
-          "time": "Just now",
-          "title": "Enrolled in Course: Artificial Intelligence & Neural Networks Masterclass"
-        },
-        {
-          "icon": "edit-3",
-          "time": "Just now",
-          "title": "Updated Questionnaire & Learning Preferences"
-        },
-        {
-          "icon": "check-circle",
-          "time": "Just now",
-          "title": "Completed Study Material: Artificial Intelligence Core: Perceptrons & Backpropagation Math Video"
-        },
-        {
-          "icon": "check-circle",
-          "time": "Just now",
-          "title": "Completed Study Material: Discrete Mathematics, Logic Gates & Set Theory Video"
-        },
         {
           "icon": "edit-3",
           "time": "Just now",
@@ -239,6 +49,1754 @@
           "time": "Just now",
           "title": "Registered & Completed Onboarding Questionnaire"
         }
+      ],
+      "role": "student",
+      "skillLevel": "Beginner",
+      "streakDays": 1,
+      "todayStudiedMinutes": 0,
+      "uid": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
+      "updatedAt": "2026-10-30T14:30:17.431Z",
+      "videoProgress": {
+        "course-math-101": {
+          "completed": false,
+          "courseId": "course-math-101",
+          "courseTitle": "Mathematics & Applied Analytics Mastery",
+          "currentTime": 670,
+          "duration": 998,
+          "formattedTime": "11:10 / 16:38",
+          "lastWatched": "2026-10-30T14:27:07.553Z",
+          "percentage": 67,
+          "resourceId": "res-math-road-1",
+          "userId": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
+          "videoTitle": "Discrete Mathematics, Logic Gates & Set Theory Video"
+        },
+        "res-math-road-1": {
+          "completed": false,
+          "courseId": "course-math-101",
+          "courseTitle": "Mathematics & Applied Analytics Mastery",
+          "currentTime": 670,
+          "duration": 998,
+          "formattedTime": "11:10 / 16:38",
+          "lastWatched": "2026-10-30T14:27:07.553Z",
+          "percentage": 67,
+          "resourceId": "res-math-road-1",
+          "userId": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
+          "videoTitle": "Discrete Mathematics, Logic Gates & Set Theory Video"
+        }
+      }
+    }
+  },
+  "courses": {
+    "course-ai-101": {
+      "id": "course-ai-101",
+      "title": "Artificial Intelligence & Neural Networks Masterclass",
+      "subjectId": "ds",
+      "rating": 4.98,
+      "enrolledCount": 3420,
+      "matchScore": 98,
+      "suitableClass": "Undergraduate",
+      "bannerImage": "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80",
+      "description": "Master Artificial Intelligence with video lectures across Beginner (5 Qs), Intermediate (10 Qs), and Advanced (15 Qs).",
+      "instructor": "Dr. Alan Turing & AI Lab Team",
+      "prerequisites": "Basic Math & Logic",
+      "duration": "10 Weeks",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science"
+      ],
+      "category": "AI Machine Learning",
+      "tags": [
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds"
+      ],
+      "tiers": {
+        "Beginner": {
+          "title": "Beginner Category (5 Questions Quiz)",
+          "quizId": "quiz-ds-beginner",
+          "materials": [
+            {
+              "id": "res-ai-road-1",
+              "title": "Python for AI & Data Wrangling Video Masterclass",
+              "format": "video",
+              "duration": "35 mins",
+              "contentUrl": "https://www.youtube.com/embed/r-uOLxNrNk8"
+            }
+          ]
+        },
+        "Intermediate": {
+          "title": "Intermediate Category (10 Questions Quiz)",
+          "quizId": "quiz-ds-intermediate",
+          "materials": [
+            {
+              "id": "res-ai-road-2",
+              "title": "Artificial Intelligence Core: Perceptrons & Backpropagation Math Video",
+              "format": "video",
+              "duration": "45 mins",
+              "contentUrl": "https://www.youtube.com/embed/aircAruvnKk"
+            }
+          ]
+        },
+        "Advanced": {
+          "title": "Advanced Category (15 Questions Quiz)",
+          "quizId": "quiz-ds-advanced",
+          "materials": [
+            {
+              "id": "res-ai-road-3",
+              "title": "Deep Learning & Convolutional Neural Networks (CNNs) Video",
+              "format": "video",
+              "duration": "50 mins",
+              "contentUrl": "https://www.youtube.com/embed/YRhxdVk_sIs"
+            },
+            {
+              "id": "res-ai-road-4",
+              "title": "Transformers & LLM Architectures Video (Attention Mechanism)",
+              "format": "video",
+              "duration": "55 mins",
+              "contentUrl": "https://www.youtube.com/embed/eMlx5fFNoYc"
+            }
+          ]
+        }
+      }
+    },
+    "course-cs-101": {
+      "id": "course-cs-101",
+      "title": "Computer Science & Software Engineering Pathway",
+      "subjectId": "cs",
+      "rating": 4.92,
+      "enrolledCount": 5120,
+      "matchScore": 95,
+      "suitableClass": "Grade 10-12",
+      "bannerImage": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80",
+      "description": "Full Computer Science video curriculum across Beginner (5 Qs), Intermediate (10 Qs), and Advanced (15 Qs).",
+      "instructor": "Prof. Guido van Rossum",
+      "prerequisites": "Basic Computer Literacy",
+      "duration": "12 Weeks",
+      "categories": [
+        "Computer science"
+      ],
+      "category": "Computer science",
+      "tags": [
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Data Science",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ],
+      "tiers": {
+        "Beginner": {
+          "title": "Beginner Category (5 Questions Quiz)",
+          "quizId": "quiz-cs-beginner",
+          "materials": [
+            {
+              "id": "res-cs-road-1",
+              "title": "Programming Fundamentals & Control Flow in Python Video",
+              "format": "video",
+              "duration": "30 mins",
+              "contentUrl": "https://www.youtube.com/embed/kqtD5dpn9C8"
+            }
+          ]
+        },
+        "Intermediate": {
+          "title": "Intermediate Category (10 Questions Quiz)",
+          "quizId": "quiz-cs-intermediate",
+          "materials": [
+            {
+              "id": "res-cs-road-2",
+              "title": "Data Structures, Big-O Complexity & Sorting Algorithms Video",
+              "format": "video",
+              "duration": "40 mins",
+              "contentUrl": "https://www.youtube.com/embed/CBYHwZcbD-s",
+              "fallbackUrls": [
+                "https://www.youtube.com/embed/8hly31xKli0",
+                "https://www.youtube.com/embed/RBSGKlAvoiM"
+              ]
+            }
+          ]
+        },
+        "Advanced": {
+          "title": "Advanced Category (15 Questions Quiz)",
+          "quizId": "quiz-cs-advanced",
+          "materials": [
+            {
+              "id": "res-cs-road-3",
+              "title": "Full Stack Web Architecture & REST API Engineering Video",
+              "format": "video",
+              "duration": "45 mins",
+              "contentUrl": "https://www.youtube.com/embed/zQnBQ4tB3ZA"
+            },
+            {
+              "id": "res-cs-road-4",
+              "title": "System Design, DevOps & Distributed Microservices Video",
+              "format": "video",
+              "duration": "50 mins",
+              "contentUrl": "https://www.youtube.com/embed/m8Icp_Cid5o"
+            }
+          ]
+        }
+      }
+    },
+    "course-math-101": {
+      "id": "course-math-101",
+      "title": "Mathematics & Applied Analytics Mastery",
+      "subjectId": "math",
+      "rating": 4.88,
+      "enrolledCount": 2890,
+      "matchScore": 91,
+      "suitableClass": "Grade 11-12",
+      "bannerImage": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=800&q=80",
+      "description": "Comprehensive math video course across Beginner (5 Qs), Intermediate (10 Qs), and Advanced (15 Qs).",
+      "instructor": "Dr. Katherine Johnson",
+      "prerequisites": "High School Algebra",
+      "duration": "8 Weeks",
+      "categories": [
+        "Mathematics"
+      ],
+      "category": "Mathematics",
+      "tags": [
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics",
+        "math"
+      ],
+      "tiers": {
+        "Beginner": {
+          "title": "Beginner Category (5 Questions Quiz)",
+          "quizId": "quiz-math-beginner",
+          "materials": [
+            {
+              "id": "res-math-road-1",
+              "title": "Discrete Mathematics, Logic Gates & Set Theory Video",
+              "format": "video",
+              "duration": "30 mins",
+              "contentUrl": "https://www.youtube.com/embed/tyDKR4FG3Yw"
+            }
+          ]
+        },
+        "Intermediate": {
+          "title": "Intermediate Category (10 Questions Quiz)",
+          "quizId": "quiz-math-intermediate",
+          "materials": [
+            {
+              "id": "res-math-road-2",
+              "title": "Differential & Integral Calculus Visually Explained Video",
+              "format": "video",
+              "duration": "40 mins",
+              "contentUrl": "https://www.youtube.com/embed/WUvTyaaNkzM"
+            }
+          ]
+        },
+        "Advanced": {
+          "title": "Advanced Category (15 Questions Quiz)",
+          "quizId": "quiz-math-advanced",
+          "materials": [
+            {
+              "id": "res-math-road-3",
+              "title": "Linear Algebra Essence: Vectors, Matrices & Transformations Video",
+              "format": "video",
+              "duration": "45 mins",
+              "contentUrl": "https://www.youtube.com/embed/fNk_zzaMoSs"
+            },
+            {
+              "id": "res-math-road-4",
+              "title": "Probability Distributions & Bayesian Decision Statistics Video",
+              "format": "video",
+              "duration": "45 mins",
+              "contentUrl": "https://www.youtube.com/embed/HZGCoVF3YvM"
+            }
+          ]
+        }
+      }
+    },
+    "course-physics-101": {
+      "id": "course-physics-101",
+      "title": "Physics, Mechanics & Quantum Systems Pathway",
+      "subjectId": "physics",
+      "rating": 4.91,
+      "enrolledCount": 2980,
+      "matchScore": 94,
+      "suitableClass": "Grade 11-12",
+      "bannerImage": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=800&q=80",
+      "description": "Comprehensive physics video course across Beginner (5 Qs), Intermediate (10 Qs), and Advanced (15 Qs).",
+      "instructor": "Dr. Richard Feynman",
+      "prerequisites": "High School Physics Basics",
+      "duration": "10 Weeks",
+      "categories": [
+        "Physics"
+      ],
+      "category": "Physics",
+      "tags": [
+        "Physics",
+        "Quantum Systems",
+        "Mechanics",
+        "Electromagnetism",
+        "Physics & Quantum Systems",
+        "physics"
+      ],
+      "tiers": {
+        "Beginner": {
+          "title": "Beginner Category (5 Questions Quiz)",
+          "quizId": "quiz-physics-beginner",
+          "materials": [
+            {
+              "id": "res-phys-road-1",
+              "title": "Classical Mechanics: Kinematics & Newton Laws Video",
+              "format": "video",
+              "duration": "25 mins",
+              "contentUrl": "https://www.youtube.com/embed/ZM8ECpBuQYE"
+            }
+          ]
+        },
+        "Intermediate": {
+          "title": "Intermediate Category (10 Questions Quiz)",
+          "quizId": "quiz-physics-intermediate",
+          "materials": [
+            {
+              "id": "res-phys-road-2",
+              "title": "Electromagnetism, Circuit Laws & Maxwell Equations Video",
+              "format": "video",
+              "duration": "35 mins",
+              "contentUrl": "https://www.youtube.com/embed/hFAOXdXZ5TM"
+            }
+          ]
+        },
+        "Advanced": {
+          "title": "Advanced Category (15 Questions Quiz)",
+          "quizId": "quiz-physics-advanced",
+          "materials": [
+            {
+              "id": "res-phys-road-3",
+              "title": "Quantum Mechanics, Wave Function & Double Slit Video",
+              "format": "video",
+              "duration": "45 mins",
+              "contentUrl": "https://www.youtube.com/embed/7kb1VT0J3DE",
+              "fallbackUrls": [
+                "https://www.youtube.com/embed/qO_W70VegbQ"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "course-bio-101": {
+      "id": "course-bio-101",
+      "title": "Genetics, Cell Biology & Biotechnology Masterclass",
+      "subjectId": "bio",
+      "rating": 4.89,
+      "enrolledCount": 2410,
+      "matchScore": 92,
+      "suitableClass": "Grade 10-12",
+      "bannerImage": "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=800&q=80",
+      "description": "Biological sciences video curriculum across Beginner (5 Qs), Intermediate (10 Qs), and Advanced (15 Qs).",
+      "instructor": "Dr. Jennifer Doudna",
+      "prerequisites": "High School Biology",
+      "duration": "8 Weeks",
+      "categories": [
+        "Biology"
+      ],
+      "category": "Biology",
+      "tags": [
+        "Biology",
+        "Biotechnology",
+        "Genetics",
+        "Cell Biology",
+        "Biology & Biotechnology",
+        "bio"
+      ],
+      "tiers": {
+        "Beginner": {
+          "title": "Beginner Category (5 Questions Quiz)",
+          "quizId": "quiz-bio-beginner",
+          "materials": [
+            {
+              "id": "res-bio-road-1",
+              "title": "Cellular Biology, Organelles & ATP Energy Video",
+              "format": "video",
+              "duration": "25 mins",
+              "contentUrl": "https://www.youtube.com/embed/URUJD5NEXC8"
+            }
+          ]
+        },
+        "Intermediate": {
+          "title": "Intermediate Category (10 Questions Quiz)",
+          "quizId": "quiz-bio-intermediate",
+          "materials": [
+            {
+              "id": "res-bio-road-2",
+              "title": "DNA Replication, Transcription & Translation Video",
+              "format": "video",
+              "duration": "35 mins",
+              "contentUrl": "https://www.youtube.com/embed/gG7uCskUOrA"
+            }
+          ]
+        },
+        "Advanced": {
+          "title": "Advanced Category (15 Questions Quiz)",
+          "quizId": "quiz-bio-advanced",
+          "materials": [
+            {
+              "id": "res-bio-road-3",
+              "title": "CRISPR-Cas9 Gene Editing & Genomic Biotech Video",
+              "format": "video",
+              "duration": "45 mins",
+              "contentUrl": "https://www.youtube.com/embed/6tw_JVz_IEc"
+            }
+          ]
+        }
+      }
+    },
+    "course-chem-101": {
+      "id": "course-chem-101",
+      "title": "Chemistry, Organic Synthesis & Molecular Science",
+      "subjectId": "chem",
+      "rating": 4.87,
+      "enrolledCount": 2150,
+      "matchScore": 90,
+      "suitableClass": "Grade 11-12",
+      "bannerImage": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80",
+      "description": "Chemical bonding and organic reactions video course across Beginner (5 Qs), Intermediate (10 Qs), and Advanced (15 Qs).",
+      "instructor": "Dr. Marie Curie Lab",
+      "prerequisites": "High School Chemistry",
+      "duration": "9 Weeks",
+      "categories": [
+        "Chemistry"
+      ],
+      "category": "Chemistry",
+      "tags": [
+        "Chemistry",
+        "Molecular Science",
+        "Organic Synthesis",
+        "Chemical Reactions",
+        "Chemistry & Molecules",
+        "chem"
+      ],
+      "tiers": {
+        "Beginner": {
+          "title": "Beginner Category (5 Questions Quiz)",
+          "quizId": "quiz-chem-beginner",
+          "materials": [
+            {
+              "id": "res-chem-road-1",
+              "title": "Atomic Models, Electron Shells & Periodic Trends Video",
+              "format": "video",
+              "duration": "25 mins",
+              "contentUrl": "https://www.youtube.com/embed/jMvG_IeSWCs",
+              "fallbackUrls": [
+                "https://www.youtube.com/embed/rcKilE9CdaA",
+                "https://www.youtube.com/embed/0RRVV4Diomg",
+                "https://www.youtube.com/embed/NSAgLvKOPLQ",
+                "https://www.youtube.com/embed/Gy9HR65DpYQ"
+              ]
+            }
+          ]
+        },
+        "Intermediate": {
+          "title": "Intermediate Category (10 Questions Quiz)",
+          "quizId": "quiz-chem-intermediate",
+          "materials": [
+            {
+              "id": "res-chem-road-2",
+              "title": "Organic Functional Groups & Reaction Mechanisms Video",
+              "format": "video",
+              "duration": "35 mins",
+              "contentUrl": "https://www.youtube.com/embed/ORMUTUhYjvg",
+              "fallbackUrls": [
+                "https://www.youtube.com/embed/z43b8WbMsmw"
+              ]
+            }
+          ]
+        },
+        "Advanced": {
+          "title": "Advanced Category (15 Questions Quiz)",
+          "quizId": "quiz-chem-advanced",
+          "materials": [
+            {
+              "id": "res-chem-road-3",
+              "title": "Chemical Thermodynamics, Enthalpy & Reaction Kinetics Video",
+              "format": "video",
+              "duration": "40 mins",
+              "contentUrl": "https://www.youtube.com/embed/7qOFtL3VEBc"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "resources": {
+    "res-ai-road-1": {
+      "id": "res-ai-road-1",
+      "title": "Python for AI & Data Wrangling Video Masterclass",
+      "subjectId": "ds",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Beginner",
+      "suitableClass": "Grade 10-12",
+      "duration": "35 mins",
+      "rating": 4.95,
+      "tags": [
+        "python",
+        "numpy",
+        "ai",
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/r-uOLxNrNk8",
+      "description": "Step 1 Video: NumPy arrays, matrix reshaping, Pandas dataframes, and data preprocessing for AI pipelines.",
+      "summary": "Master array vectorization and data manipulation for artificial intelligence models.",
+      "category": "AI Machine Learning",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science"
+      ]
+    },
+    "res-ai-road-2": {
+      "id": "res-ai-road-2",
+      "title": "Artificial Intelligence Core: Perceptrons & Backpropagation Math Video",
+      "subjectId": "ds",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Intermediate",
+      "suitableClass": "Undergraduate",
+      "duration": "45 mins",
+      "rating": 4.98,
+      "tags": [
+        "ai",
+        "backprop",
+        "perceptrons",
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds",
+        "Mathematics"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/aircAruvnKk",
+      "description": "Step 2 Video: Mathematical breakdown of forward pass, loss functions, activation gradients, and backpropagation.",
+      "summary": "Understand gradient descent and weight optimization step-by-step.",
+      "category": "AI Machine Learning",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science",
+        "Mathematics"
+      ]
+    },
+    "res-ai-road-3": {
+      "id": "res-ai-road-3",
+      "title": "Deep Learning & Convolutional Neural Networks (CNNs) Video",
+      "subjectId": "ds",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "50 mins",
+      "rating": 4.96,
+      "tags": [
+        "cnn",
+        "deep-learning",
+        "computer-vision",
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/YRhxdVk_sIs",
+      "description": "Step 3 Video: Convolutional filters, max pooling layers, feature maps, and image classification architectures.",
+      "summary": "Build and inspect spatial feature extractors in deep convolutional networks.",
+      "category": "AI Machine Learning",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science"
+      ]
+    },
+    "res-ai-road-4": {
+      "id": "res-ai-road-4",
+      "title": "Transformers & LLM Architectures Video (Attention Mechanism)",
+      "subjectId": "ds",
+      "format": "video",
+      "vark": [
+        "visual",
+        "reading"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "55 mins",
+      "rating": 4.99,
+      "tags": [
+        "transformers",
+        "attention",
+        "llm",
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/eMlx5fFNoYc",
+      "fallbackUrls": [
+        "https://www.youtube.com/embed/aircAruvnKk"
+      ],
+      "description": "Step 4 Video: Self-Attention mechanism, Scaled Dot-Product Attention, BERT, GPT, and modern Large Language Models.",
+      "summary": "Deep architectural walkthrough of Transformer encoders and decoders.",
+      "category": "AI Machine Learning",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science"
+      ]
+    },
+    "res-cs-road-1": {
+      "id": "res-cs-road-1",
+      "title": "Programming Fundamentals & Control Flow in Python Video",
+      "subjectId": "cs",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Beginner",
+      "suitableClass": "Grade 9-10",
+      "tags": [
+        "programming",
+        "python",
+        "control-flow",
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/kqtD5dpn9C8",
+      "duration": "30 mins",
+      "rating": 4.91,
+      "description": "Step 1 Video: Core programming logic, variables, conditional branch statements, loops, and function syntax.",
+      "summary": "Master foundational computer programming with interactive code execution.",
+      "category": "Computer science",
+      "categories": [
+        "Computer science"
+      ]
+    },
+    "res-cs-road-2": {
+      "id": "res-cs-road-2",
+      "title": "Data Structures, Big-O Complexity & Sorting Algorithms Video",
+      "subjectId": "cs",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Intermediate",
+      "suitableClass": "Grade 11-12",
+      "duration": "40 mins",
+      "rating": 4.94,
+      "tags": [
+        "dsa",
+        "big-o",
+        "data-structures",
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/CBYHwZcbD-s",
+      "fallbackUrls": [
+        "https://www.youtube.com/embed/8hly31xKli0",
+        "https://www.youtube.com/embed/RBSGKlAvoiM"
+      ],
+      "description": "Comprehensive video lecture covering arrays (static and dynamic), linked lists (singly and doubly), stacks, queues, priority queues, binary search trees, graph representations & traversals (BFS, DFS), Big-O asymptotic notation, and common sorting algorithms (Bubble, Selection, Insertion, Merge, and QuickSort).",
+      "summary": "Master data structures (arrays, linked lists, stacks, queues, trees, graphs), Big-O complexity analysis, and essential sorting algorithms (Bubble, Selection, Insertion, Merge, Quick).",
+      "category": "Computer science",
+      "categories": [
+        "Computer science"
+      ]
+    },
+    "res-cs-road-3": {
+      "id": "res-cs-road-3",
+      "title": "Full Stack Web Architecture & REST API Engineering Video",
+      "subjectId": "cs",
+      "format": "video",
+      "vark": [
+        "visual",
+        "reading"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "45 mins",
+      "rating": 4.92,
+      "tags": [
+        "web-dev",
+        "rest-api",
+        "fullstack",
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/zQnBQ4tB3ZA",
+      "description": "Step 3 Video: HTTP client-server architecture, RESTful API endpoint design, JSON serialization, and database queries.",
+      "summary": "Design scalable backends and modern web frontends.",
+      "category": "Computer science",
+      "categories": [
+        "Computer science"
+      ]
+    },
+    "res-cs-road-4": {
+      "id": "res-cs-road-4",
+      "title": "System Design, DevOps & Distributed Microservices Video",
+      "subjectId": "cs",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "50 mins",
+      "rating": 4.97,
+      "tags": [
+        "system-design",
+        "microservices",
+        "devops",
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/m8Icp_Cid5o",
+      "description": "Step 4 Video: Distributed system architecture, load balancing, horizontal scaling, caching strategies, and Docker containers.",
+      "summary": "Architect high-concurrency systems handling millions of daily requests.",
+      "category": "Computer science",
+      "categories": [
+        "Computer science"
+      ]
+    },
+    "res-math-road-1": {
+      "id": "res-math-road-1",
+      "title": "Discrete Mathematics, Logic Gates & Set Theory Video",
+      "subjectId": "math",
+      "format": "video",
+      "vark": [
+        "reading",
+        "visual"
+      ],
+      "level": "Beginner",
+      "suitableClass": "Grade 10-12",
+      "duration": "30 mins",
+      "rating": 4.88,
+      "tags": [
+        "math",
+        "discrete-math",
+        "logic",
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/tyDKR4FG3Yw",
+      "description": "Step 1 Video: Propositional logic truth tables, boolean algebra, set theory operations, and mathematical proofs.",
+      "summary": "Build mathematical rigorous thinking for computer algorithms.",
+      "category": "Mathematics",
+      "categories": [
+        "Mathematics"
+      ]
+    },
+    "res-math-road-2": {
+      "id": "res-math-road-2",
+      "title": "Differential & Integral Calculus Visually Explained Video",
+      "subjectId": "math",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Intermediate",
+      "suitableClass": "Grade 11-12",
+      "duration": "40 mins",
+      "rating": 4.95,
+      "tags": [
+        "calculus",
+        "derivatives",
+        "integrals",
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics",
+        "math"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/WUvTyaaNkzM",
+      "description": "Step 2 Video: Limits, rates of change, power rule derivatives, anti-derivatives, and definite integrals.",
+      "summary": "Intuitive geometric understanding of continuous rates of change.",
+      "category": "Mathematics",
+      "categories": [
+        "Mathematics"
+      ]
+    },
+    "res-math-road-3": {
+      "id": "res-math-road-3",
+      "title": "Linear Algebra Essence: Vectors, Matrices & Transformations Video",
+      "subjectId": "math",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "45 mins",
+      "rating": 4.99,
+      "tags": [
+        "linear-algebra",
+        "vectors",
+        "matrices",
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics",
+        "math"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/fNk_zzaMoSs",
+      "description": "Step 3 Video: Vector spaces, linear transformations, matrix multiplication, determinants, and eigenvalues.",
+      "summary": "Visual linear algebra foundation essential for machine learning geometry.",
+      "category": "Mathematics",
+      "categories": [
+        "Mathematics"
+      ]
+    },
+    "res-math-road-4": {
+      "id": "res-math-road-4",
+      "title": "Probability Distributions & Bayesian Decision Statistics Video",
+      "subjectId": "math",
+      "format": "video",
+      "vark": [
+        "visual",
+        "reading"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "45 mins",
+      "rating": 4.93,
+      "tags": [
+        "probability",
+        "bayes",
+        "statistics",
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics",
+        "math"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/HZGCoVF3YvM",
+      "description": "Step 4 Video: Random variables, Gaussian normal distributions, conditional probability, and Bayes Theorem inference.",
+      "summary": "Master statistical inference and probabilistic modeling.",
+      "category": "Mathematics",
+      "categories": [
+        "Mathematics"
+      ]
+    },
+    "res-phys-road-1": {
+      "id": "res-phys-road-1",
+      "title": "Classical Mechanics: Kinematics & Newton Laws Video",
+      "subjectId": "physics",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Beginner",
+      "suitableClass": "Grade 9-10",
+      "duration": "25 mins",
+      "rating": 4.91,
+      "tags": [
+        "physics",
+        "mechanics",
+        "newton",
+        "Physics",
+        "Quantum Systems",
+        "Mechanics",
+        "Electromagnetism",
+        "Physics & Quantum Systems"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/ZM8ECpBuQYE",
+      "description": "Step 1 Video: Displacement, velocity, constant acceleration equations, forces, and Newton three motion laws.",
+      "summary": "Explore mechanical motion with live physical trajectory simulations.",
+      "category": "Physics",
+      "categories": [
+        "Physics"
+      ]
+    },
+    "res-phys-road-2": {
+      "id": "res-phys-road-2",
+      "title": "Electromagnetism, Circuit Laws & Maxwell Equations Video",
+      "subjectId": "physics",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Intermediate",
+      "suitableClass": "Grade 11-12",
+      "duration": "35 mins",
+      "rating": 4.94,
+      "tags": [
+        "physics",
+        "circuits",
+        "electromagnetism",
+        "Physics",
+        "Quantum Systems",
+        "Mechanics",
+        "Electromagnetism",
+        "Physics & Quantum Systems"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/hFAOXdXZ5TM",
+      "description": "Step 2 Video: Coulomb electric force, magnetic fields, Ohm Law, circuit currents, and Maxwell field equations.",
+      "summary": "Master electrical potential and magnetic field propagation.",
+      "category": "Physics",
+      "categories": [
+        "Physics"
+      ]
+    },
+    "res-phys-road-3": {
+      "id": "res-phys-road-3",
+      "title": "Quantum Mechanics, Wave Function & Double Slit Video",
+      "subjectId": "physics",
+      "format": "video",
+      "vark": [
+        "visual",
+        "reading"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "45 mins",
+      "rating": 4.98,
+      "tags": [
+        "physics",
+        "quantum",
+        "schrodinger",
+        "Physics",
+        "Quantum Systems",
+        "Mechanics",
+        "Electromagnetism",
+        "Physics & Quantum Systems"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/7kb1VT0J3DE",
+      "fallbackUrls": [
+        "https://www.youtube.com/embed/qO_W70VegbQ"
+      ],
+      "description": "Step 3 Video: Wave-particle duality, double-slit interference, Planck energy quantization, and Schrödinger wave equation.",
+      "summary": "Deep dive into quantum mechanical wave packet collapse.",
+      "category": "Physics",
+      "categories": [
+        "Physics"
+      ]
+    },
+    "res-bio-road-1": {
+      "id": "res-bio-road-1",
+      "title": "Cellular Biology, Organelles & ATP Energy Video",
+      "subjectId": "bio",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Beginner",
+      "suitableClass": "Grade 9-10",
+      "duration": "25 mins",
+      "rating": 4.89,
+      "tags": [
+        "biology",
+        "cells",
+        "mitochondria",
+        "Biology",
+        "Biotechnology",
+        "Genetics",
+        "Cell Biology",
+        "Biology & Biotechnology",
+        "bio"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/URUJD5NEXC8",
+      "description": "Step 1 Video: Eukaryotic cell membrane structure, mitochondria ATP synthesis, nucleus, and ribosomes.",
+      "summary": "3D animation tour through microscopic cellular organelles.",
+      "category": "Biology",
+      "categories": [
+        "Biology"
+      ]
+    },
+    "res-bio-road-2": {
+      "id": "res-bio-road-2",
+      "title": "DNA Replication, Transcription & Translation Video",
+      "subjectId": "bio",
+      "format": "video",
+      "vark": [
+        "visual",
+        "reading"
+      ],
+      "level": "Intermediate",
+      "suitableClass": "Grade 11-12",
+      "duration": "35 mins",
+      "rating": 4.93,
+      "tags": [
+        "biology",
+        "dna",
+        "transcription",
+        "Biology",
+        "Biotechnology",
+        "Genetics",
+        "Cell Biology",
+        "Biology & Biotechnology",
+        "bio"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/gG7uCskUOrA",
+      "description": "Step 2 Video: Double-helix unzipping by helicase, RNA polymerase transcription, mRNA processing, and ribosome translation.",
+      "summary": "Step-by-step molecular biology of central dogma.",
+      "category": "Biology",
+      "categories": [
+        "Biology"
+      ]
+    },
+    "res-bio-road-3": {
+      "id": "res-bio-road-3",
+      "title": "CRISPR-Cas9 Gene Editing & Genomic Biotech Video",
+      "subjectId": "bio",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "45 mins",
+      "rating": 4.97,
+      "tags": [
+        "biology",
+        "crispr",
+        "gene-editing",
+        "Biology",
+        "Biotechnology",
+        "Genetics",
+        "Cell Biology",
+        "Biology & Biotechnology",
+        "bio"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/6tw_JVz_IEc",
+      "description": "Step 3 Video: Targeted genomic cuts using Cas9 endonuclease, single guide RNA (sgRNA) design, and therapeutic gene therapy.",
+      "summary": "Discover revolutionary gene editing technologies in modern biotechnology.",
+      "category": "Biology",
+      "categories": [
+        "Biology"
+      ]
+    },
+    "res-chem-road-1": {
+      "id": "res-chem-road-1",
+      "title": "Atomic Models, Electron Shells & Periodic Trends Video",
+      "subjectId": "chem",
+      "format": "video",
+      "vark": [
+        "visual",
+        "reading"
+      ],
+      "level": "Beginner",
+      "suitableClass": "Grade 9-10",
+      "duration": "25 mins",
+      "rating": 4.88,
+      "tags": [
+        "chemistry",
+        "atomic-structure",
+        "periodic-table",
+        "Chemistry",
+        "Molecular Science",
+        "Organic Synthesis",
+        "Chemical Reactions",
+        "Chemistry & Molecules",
+        "chem",
+        "Physics"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/jMvG_IeSWCs",
+      "fallbackUrls": [
+        "https://www.youtube.com/embed/rcKilE9CdaA",
+        "https://www.youtube.com/embed/0RRVV4Diomg",
+        "https://www.youtube.com/embed/NSAgLvKOPLQ",
+        "https://www.youtube.com/embed/Gy9HR65DpYQ"
+      ],
+      "description": "Comprehensive video lecture covering atomic models (Dalton, Thomson, Rutherford, Bohr, Quantum mechanical model), electron shells and orbital energy levels (s, p, d, f), electron configuration rules (Aufbau, Pauli, Hund), and periodic trends including atomic radius, ionization energy, electron affinity, and electronegativity.",
+      "summary": "Explore atomic models, electron shells, electron configuration, and periodic trends with high-quality educational demonstrations.",
+      "category": "Chemistry",
+      "categories": [
+        "Chemistry",
+        "Physics"
+      ]
+    },
+    "res-chem-road-2": {
+      "id": "res-chem-road-2",
+      "title": "Organic Functional Groups & Reaction Mechanisms Video",
+      "subjectId": "chem",
+      "format": "video",
+      "vark": [
+        "visual",
+        "kinesthetic"
+      ],
+      "level": "Intermediate",
+      "suitableClass": "Grade 11-12",
+      "duration": "35 mins",
+      "rating": 4.92,
+      "tags": [
+        "chemistry",
+        "organic",
+        "sn2-reaction",
+        "Chemistry",
+        "Molecular Science",
+        "Organic Synthesis",
+        "Chemical Reactions",
+        "Chemistry & Molecules",
+        "chem"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/ORMUTUhYjvg",
+      "fallbackUrls": [
+        "https://www.youtube.com/embed/z43b8WbMsmw"
+      ],
+      "description": "Step 2 Video: Alcohols, aldehydes, carboxylic acids, SN1 vs SN2 nucleophilic substitution, and arrow-pushing mechanisms.",
+      "summary": "Master organic chemistry synthesis and reaction steps.",
+      "category": "Chemistry",
+      "categories": [
+        "Chemistry"
+      ]
+    },
+    "res-chem-road-3": {
+      "id": "res-chem-road-3",
+      "title": "Chemical Thermodynamics, Enthalpy & Reaction Kinetics Video",
+      "subjectId": "chem",
+      "format": "video",
+      "vark": [
+        "visual",
+        "auditory"
+      ],
+      "level": "Advanced",
+      "suitableClass": "Undergraduate",
+      "duration": "40 mins",
+      "rating": 4.95,
+      "tags": [
+        "chemistry",
+        "kinetics",
+        "thermodynamics",
+        "Chemistry",
+        "Molecular Science",
+        "Organic Synthesis",
+        "Chemical Reactions",
+        "Chemistry & Molecules",
+        "chem"
+      ],
+      "contentUrl": "https://www.youtube.com/embed/7qOFtL3VEBc",
+      "description": "Step 3 Video: Reaction rate laws, activation energy, Arrhenius equation, Hess Law, and Gibbs Free Energy spontaneity.",
+      "summary": "Analyze chemical thermodynamics and reaction rate equations.",
+      "category": "Chemistry",
+      "categories": [
+        "Chemistry"
+      ]
+    }
+  },
+  "assignments": {
+    "assign-ai-mcq-1": {
+      "id": "assign-ai-mcq-1",
+      "courseId": "course-ai-101",
+      "subjectId": "ds",
+      "category": "AI Machine Learning",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science",
+        "Physics"
+      ],
+      "tags": [
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds",
+        "Physics"
+      ],
+      "title": "AI & Machine Learning Foundations Assignment",
+      "description": "Assess foundational understanding of Artificial Intelligence concepts, neural network mechanics, and supervised learning.",
+      "points": 100,
+      "questions": [
+        {
+          "id": "q-ai-1",
+          "text": "Which type of learning uses labeled input and output training pairs?",
+          "options": [
+            "Supervised Learning",
+            "Unsupervised Learning",
+            "Clustering",
+            "Reinforcement with no reward"
+          ],
+          "correctAnswer": 0
+        },
+        {
+          "id": "q-ai-2",
+          "text": "What is the role of backpropagation in deep neural networks?",
+          "options": [
+            "Delete unused data",
+            "Compute gradients and update weights",
+            "Format CSV files",
+            "Increase display frame rate"
+          ],
+          "correctAnswer": 1
+        }
+      ],
+      "createdAt": "2026-07-20T00:00:00.000Z"
+    },
+    "assign-cs-mcq-1": {
+      "id": "assign-cs-mcq-1",
+      "courseId": "course-cs-101",
+      "subjectId": "cs",
+      "category": "Computer science",
+      "categories": [
+        "Computer science"
+      ],
+      "tags": [
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ],
+      "title": "Data Structures & Algorithms Practical Assignment",
+      "description": "Practical assessment on time complexity, recursion, trees, and hash map operations.",
+      "points": 100,
+      "questions": [
+        {
+          "id": "q-cs-1",
+          "text": "What is the average time complexity for lookup in a hash map?",
+          "options": [
+            "O(n)",
+            "O(log n)",
+            "O(1)",
+            "O(n^2)"
+          ],
+          "correctAnswer": 2
+        },
+        {
+          "id": "q-cs-2",
+          "text": "Which data structure follows First-In, First-Out (FIFO) order?",
+          "options": [
+            "Stack",
+            "Queue",
+            "Binary Heap",
+            "Graph"
+          ],
+          "correctAnswer": 1
+        }
+      ],
+      "createdAt": "2026-07-20T00:00:00.000Z"
+    },
+    "assign-math-mcq-1": {
+      "id": "assign-math-mcq-1",
+      "courseId": "course-math-101",
+      "subjectId": "math",
+      "category": "Mathematics",
+      "categories": [
+        "Mathematics"
+      ],
+      "tags": [
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics",
+        "math"
+      ],
+      "title": "Calculus & Matrix Operations Assignment",
+      "description": "Test your understanding of derivatives, integrals, and linear algebraic transformations.",
+      "points": 100,
+      "questions": [
+        {
+          "id": "q-m-1",
+          "text": "What is the derivative of sin(x) with respect to x?",
+          "options": [
+            "-cos(x)",
+            "cos(x)",
+            "tan(x)",
+            "-sin(x)"
+          ],
+          "correctAnswer": 1
+        },
+        {
+          "id": "q-m-2",
+          "text": "What is the determinant of a 2x2 identity matrix?",
+          "options": [
+            "0",
+            "1",
+            "2",
+            "-1"
+          ],
+          "correctAnswer": 1
+        }
+      ],
+      "createdAt": "2026-07-20T00:00:00.000Z"
+    },
+    "assign-physics-mcq-1": {
+      "id": "assign-physics-mcq-1",
+      "courseId": "course-physics-101",
+      "subjectId": "physics",
+      "category": "Physics",
+      "categories": [
+        "Physics"
+      ],
+      "tags": [
+        "Physics",
+        "Quantum Systems",
+        "Mechanics",
+        "Electromagnetism",
+        "Physics & Quantum Systems",
+        "physics"
+      ],
+      "title": "Mechanics & Electromagnetism Assignment",
+      "description": "Solve fundamental problems in kinematics, Newtonian dynamics, and electromagnetic induction.",
+      "points": 100,
+      "questions": [
+        {
+          "id": "q-p-1",
+          "text": "What is Newton second law of motion?",
+          "options": [
+            "F = ma",
+            "E = mc^2",
+            "PV = nRT",
+            "V = IR"
+          ],
+          "correctAnswer": 0
+        },
+        {
+          "id": "q-p-2",
+          "text": "What SI unit is used to measure magnetic flux density?",
+          "options": [
+            "Weber",
+            "Tesla",
+            "Henry",
+            "Joule"
+          ],
+          "correctAnswer": 1
+        }
+      ],
+      "createdAt": "2026-07-20T00:00:00.000Z"
+    },
+    "assign-bio-mcq-1": {
+      "id": "assign-bio-mcq-1",
+      "courseId": "course-bio-101",
+      "subjectId": "bio",
+      "category": "Biology",
+      "categories": [
+        "Biology"
+      ],
+      "tags": [
+        "Biology",
+        "Biotechnology",
+        "Genetics",
+        "Cell Biology",
+        "Biology & Biotechnology",
+        "bio"
+      ],
+      "title": "Cellular Biology & Genetics Assignment",
+      "description": "Verify your knowledge of cellular respiration, DNA replication, and Mendelian inheritance.",
+      "points": 100,
+      "questions": [
+        {
+          "id": "q-b-1",
+          "text": "Which organelle is considered the powerhouse of the cell?",
+          "options": [
+            "Ribosome",
+            "Mitochondria",
+            "Golgi apparatus",
+            "Lysosome"
+          ],
+          "correctAnswer": 1
+        },
+        {
+          "id": "q-b-2",
+          "text": "Which nitrogenous base pairs with Adenine in DNA?",
+          "options": [
+            "Uracil",
+            "Guanine",
+            "Thymine",
+            "Cytosine"
+          ],
+          "correctAnswer": 2
+        }
+      ],
+      "createdAt": "2026-07-20T00:00:00.000Z"
+    },
+    "assign-chem-mcq-1": {
+      "id": "assign-chem-mcq-1",
+      "courseId": "course-chem-101",
+      "subjectId": "chem",
+      "category": "Chemistry",
+      "categories": [
+        "Chemistry"
+      ],
+      "tags": [
+        "Chemistry",
+        "Molecular Science",
+        "Organic Synthesis",
+        "Chemical Reactions",
+        "Chemistry & Molecules",
+        "chem"
+      ],
+      "title": "Molecular Chemistry & Reaction Kinetics Assignment",
+      "description": "Explore chemical equilibrium, organic reaction mechanisms, and thermodynamic spontaneity.",
+      "points": 100,
+      "questions": [
+        {
+          "id": "q-c-1",
+          "text": "What is the pH of a neutral aqueous solution at 25 degrees Celsius?",
+          "options": [
+            "0",
+            "7",
+            "14",
+            "1"
+          ],
+          "correctAnswer": 1
+        },
+        {
+          "id": "q-c-2",
+          "text": "Which gas law relates pressure and volume at constant temperature?",
+          "options": [
+            "Charles Law",
+            "Boyles Law",
+            "Avogadros Law",
+            "Daltons Law"
+          ],
+          "correctAnswer": 1
+        }
+      ],
+      "createdAt": "2026-07-20T00:00:00.000Z"
+    }
+  },
+  "roadmaps": {
+    "roadmap-ds": {
+      "subjectId": "ds",
+      "title": "Artificial Intelligence & Deep Learning Pathway",
+      "nodes": [
+        {
+          "id": "ds-node-1",
+          "title": "1. Python for AI & Data Wrangling",
+          "status": "completed",
+          "desc": "NumPy arrays, Pandas & Matrix operations",
+          "icon": "file-text",
+          "resourceId": "res-ai-road-1"
+        },
+        {
+          "id": "ds-node-2",
+          "title": "2. Artificial Intelligence Core",
+          "status": "in-progress",
+          "desc": "Perceptrons, Gradient Descent & Backpropagation",
+          "icon": "cpu",
+          "resourceId": "res-ai-road-2"
+        },
+        {
+          "id": "ds-node-3",
+          "title": "3. Deep Learning & CNNs",
+          "status": "locked",
+          "desc": "Convolutional neural nets & Computer Vision",
+          "icon": "eye",
+          "resourceId": "res-ai-road-3"
+        },
+        {
+          "id": "ds-node-4",
+          "title": "4. Transformers & LLM Architectures",
+          "status": "locked",
+          "desc": "Attention mechanism, BERT, GPT & NLP Models",
+          "icon": "sparkles",
+          "resourceId": "res-ai-road-4"
+        }
+      ],
+      "id": "roadmap-ds",
+      "category": "AI Machine Learning",
+      "categories": [
+        "AI Machine Learning",
+        "Computer science"
+      ],
+      "tags": [
+        "AI Machine Learning",
+        "Computer science",
+        "Artificial Intelligence",
+        "Data Science",
+        "Machine Learning",
+        "Artificial Intelligence & Data Science",
+        "ds"
+      ]
+    },
+    "roadmap-cs": {
+      "subjectId": "cs",
+      "title": "Computer Science & Software Engineering Pathway",
+      "nodes": [
+        {
+          "id": "cs-node-1",
+          "title": "1. Programming Fundamentals & Control Flow",
+          "status": "completed",
+          "desc": "Variables, loops, arrays & functions in Python/JS",
+          "icon": "code",
+          "resourceId": "res-cs-road-1"
+        },
+        {
+          "id": "cs-node-2",
+          "title": "2. Data Structures & Algorithm Complexity",
+          "status": "in-progress",
+          "desc": "Trees, Graphs, Sorting & Big-O Analysis",
+          "icon": "git-branch",
+          "resourceId": "res-cs-road-2"
+        },
+        {
+          "id": "cs-node-3",
+          "title": "3. Full Stack Web Architecture & APIs",
+          "status": "locked",
+          "desc": "HTTP, RESTful APIs, Databases & Client State",
+          "icon": "globe",
+          "resourceId": "res-cs-road-3"
+        },
+        {
+          "id": "cs-node-4",
+          "title": "4. System Design & Microservices",
+          "status": "locked",
+          "desc": "Distributed systems, load balancers & DevOps",
+          "icon": "layers",
+          "resourceId": "res-cs-road-4"
+        }
+      ],
+      "id": "roadmap-cs",
+      "category": "Computer science",
+      "categories": [
+        "Computer science"
+      ],
+      "tags": [
+        "Computer science",
+        "Software Engineering",
+        "Algorithms",
+        "Web Development",
+        "Computer Science & Software",
+        "cs"
+      ]
+    },
+    "roadmap-math": {
+      "subjectId": "math",
+      "title": "Mathematics & Applied Analytics Pathway",
+      "nodes": [
+        {
+          "id": "math-node-1",
+          "title": "1. Discrete Mathematics & Logic Gates",
+          "status": "completed",
+          "desc": "Set theory, boolean logic & mathematical proofs",
+          "icon": "calculator",
+          "resourceId": "res-math-road-1"
+        },
+        {
+          "id": "math-node-2",
+          "title": "2. Differential & Integral Calculus",
+          "status": "in-progress",
+          "desc": "Limits, derivatives & definite integrals",
+          "icon": "activity",
+          "resourceId": "res-math-road-2"
+        },
+        {
+          "id": "math-node-3",
+          "title": "3. Linear Algebra & Matrix Vector Operations",
+          "status": "locked",
+          "desc": "Vector spaces, matrix multiplication & eigenvalues",
+          "icon": "grid",
+          "resourceId": "res-math-road-3"
+        },
+        {
+          "id": "math-node-4",
+          "title": "4. Probability & Bayesian Statistics",
+          "status": "locked",
+          "desc": "Gaussian distributions & Bayes Theorem inference",
+          "icon": "pie-chart",
+          "resourceId": "res-math-road-4"
+        }
+      ],
+      "id": "roadmap-math",
+      "category": "Mathematics",
+      "categories": [
+        "Mathematics"
+      ],
+      "tags": [
+        "Mathematics",
+        "Analytics",
+        "Calculus",
+        "Algebra",
+        "Statistics",
+        "Mathematics & Analytics",
+        "math"
+      ]
+    },
+    "roadmap-physics": {
+      "subjectId": "physics",
+      "title": "Physics & Quantum Systems Pathway",
+      "nodes": [
+        {
+          "id": "phys-node-1",
+          "title": "1. Classical Mechanics & Kinematics",
+          "status": "completed",
+          "desc": "Newtonian motion laws, velocity & acceleration",
+          "icon": "zap",
+          "resourceId": "res-phys-road-1"
+        },
+        {
+          "id": "phys-node-2",
+          "title": "2. Electromagnetism & Circuit Theory",
+          "status": "in-progress",
+          "desc": "Electric fields, circuits & Maxwell equations",
+          "icon": "activity",
+          "resourceId": "res-phys-road-2"
+        },
+        {
+          "id": "phys-node-3",
+          "title": "3. Quantum Mechanics & Wave Duality",
+          "status": "locked",
+          "desc": "Wave-particle duality & Schrödinger wave equation",
+          "icon": "cpu",
+          "resourceId": "res-phys-road-3"
+        }
+      ],
+      "id": "roadmap-physics",
+      "category": "Physics",
+      "categories": [
+        "Physics"
+      ],
+      "tags": [
+        "Physics",
+        "Quantum Systems",
+        "Mechanics",
+        "Electromagnetism",
+        "Physics & Quantum Systems",
+        "physics"
+      ]
+    },
+    "roadmap-bio": {
+      "subjectId": "bio",
+      "title": "Biology & Biotechnology Pathway",
+      "nodes": [
+        {
+          "id": "bio-node-1",
+          "title": "1. Cellular Biology & Organelles",
+          "status": "completed",
+          "desc": "Eukaryotic cells, mitochondria & ATP synthesis",
+          "icon": "dna",
+          "resourceId": "res-bio-road-1"
+        },
+        {
+          "id": "bio-node-2",
+          "title": "2. DNA Replication & Gene Expression",
+          "status": "in-progress",
+          "desc": "Transcription, translation & central dogma",
+          "icon": "activity",
+          "resourceId": "res-bio-road-2"
+        },
+        {
+          "id": "bio-node-3",
+          "title": "3. CRISPR Gene Editing & Biotechnology",
+          "status": "locked",
+          "desc": "Cas9 targeted cuts & genomic engineering",
+          "icon": "cpu",
+          "resourceId": "res-bio-road-3"
+        }
+      ],
+      "id": "roadmap-bio",
+      "category": "Biology",
+      "categories": [
+        "Biology"
+      ],
+      "tags": [
+        "Biology",
+        "Biotechnology",
+        "Genetics",
+        "Cell Biology",
+        "Biology & Biotechnology",
+        "bio"
+      ]
+    },
+    "roadmap-chem": {
+      "subjectId": "chem",
+      "title": "Chemistry & Molecular Science Pathway",
+      "nodes": [
+        {
+          "id": "chem-node-1",
+          "title": "1. Atomic Models & Periodic Trends",
+          "status": "completed",
+          "desc": "Electron orbital shells, electronegativity & bonding",
+          "icon": "flask-conical",
+          "resourceId": "res-chem-road-1"
+        },
+        {
+          "id": "chem-node-2",
+          "title": "2. Organic Functional Groups & Reactions",
+          "status": "in-progress",
+          "desc": "Alcohols, carbonyls, SN1/SN2 reaction pathways",
+          "icon": "grid",
+          "resourceId": "res-chem-road-2"
+        },
+        {
+          "id": "chem-node-3",
+          "title": "3. Chemical Thermodynamics & Reaction Kinetics",
+          "status": "locked",
+          "desc": "Rate laws, Arrhenius equation & Gibbs Free Energy",
+          "icon": "trending-up",
+          "resourceId": "res-chem-road-3"
+        }
+      ],
+      "id": "roadmap-chem",
+      "category": "Chemistry",
+      "categories": [
+        "Chemistry"
+      ],
+      "tags": [
+        "Chemistry",
+        "Molecular Science",
+        "Organic Synthesis",
+        "Chemical Reactions",
+        "Chemistry & Molecules",
+        "chem"
       ]
     }
   }

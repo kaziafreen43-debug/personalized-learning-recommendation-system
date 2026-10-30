@@ -231,7 +231,7 @@
               </button>
 
               ${user && user.role === 'admin' ? `
-                <button class="role-switcher-btn" onclick="AppState.setUser('u-1')">
+                <button class="role-switcher-btn" onclick="const s = (AppState.data && AppState.data.students && AppState.data.students[0]) ? AppState.data.students[0].id : null; if(s) AppState.setUser(s); else AppState.setView('dashboard');">
                   ${renderIcon('user-check')} Switch to Student
                 </button>
               ` : ''}
@@ -365,11 +365,11 @@
           </p>
 
           <div style="display:flex; justify-content:center; gap:16px;">
-            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:1.1rem; padding:14px 36px; box-shadow:var(--shadow-colorful);" onclick="AppState.openModal('questionnaire', { name: 'Afreen Kazi', isNewRegistration: true })">
+            <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; font-size:1.1rem; padding:14px 36px; box-shadow:var(--shadow-colorful);" onclick="AppState.openModal('register')">
               ${renderIcon('sparkles')} Start Learning
             </button>
-            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:1.05rem; padding:14px 28px; border:1px solid var(--border-color);" onclick="AppState.loginUser('alex@student.ai')">
-              ${renderIcon('user-check')} Quick Demo Student Login
+            <button class="btn-hero-secondary" style="color:var(--text-main); font-size:1.05rem; padding:14px 28px; border:1px solid var(--border-color);" onclick="AppState.openModal('login')">
+              ${renderIcon('log-in')} Student / Admin Login
             </button>
           </div>
         </section>
@@ -2060,7 +2060,7 @@
     } else if (state.activeModal === 'resource-viewer') {
       content = renderResourceViewerModalContent(state.modalData);
     } else if (state.activeModal === 'certificate') {
-      content = renderCertificateModalContent();
+      content = (window.ModalsView && typeof window.ModalsView.renderCertificateModalContent === 'function') ? window.ModalsView.renderCertificateModalContent() : renderCertificateModalContent();
     } else if (state.activeModal === 'add-resource') {
       content = renderAddResourceModalContent();
     } else if (state.activeModal === 'submit-assignment') {
@@ -2143,7 +2143,7 @@
   };
 
   window.handleRegisterSubmit = function(form) {
-    const regName = form.regName ? form.regName.value.trim() : 'Afreen Kazi';
+    const regName = form.regName ? form.regName.value.trim() : '';
     const regEmail = form.regEmail ? form.regEmail.value.trim() : '';
     const regPassword = form.regPassword ? form.regPassword.value : '';
     window.AppState.openModal('questionnaire', { name: regName, email: regEmail, password: regPassword, isNewRegistration: true });
@@ -2201,7 +2201,7 @@
     const data = state.data || window.INITIAL_DATA || {};
 
     // Check if name is passed via modalData, or if we have currentUser
-    let defaultName = 'Afreen Kazi';
+    let defaultName = '';
     if (state.modalData && state.modalData.name) {
       defaultName = state.modalData.name;
     } else if (state.currentUser && state.currentUser.name) {
@@ -2371,6 +2371,7 @@
       gradeClass: document.getElementById('gradeClassSelect').value,
       skillLevel: document.getElementById('skillLevelSelect').value,
       preferredStyle: form.preferredStyle.value,
+      learningStyle: form.preferredStyle.value,
       careerGoal: form.careerGoal.value,
       interests: selectedInterests
     };
@@ -2559,6 +2560,9 @@
   }
 
   function renderCertificateModalContent() {
+
+    if (window.ModalsView && typeof window.ModalsView.renderCertificateModalContent === 'function') return window.ModalsView.renderCertificateModalContent();
+
     const user = window.AppState.currentUser || { name: 'Student' };
     const courses = (window.AppState.data && window.AppState.data.courses) ? window.AppState.data.courses : [];
     

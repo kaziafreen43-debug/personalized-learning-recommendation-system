@@ -137,6 +137,13 @@ class MockFirestore {
       const response = await fetch(url);
       if (!response.ok) throw new Error("Server error");
       let docs = await response.json();
+      if (!Array.isArray(docs)) {
+        if (docs && typeof docs === 'object') {
+          docs = Object.values(docs);
+        } else {
+          docs = [];
+        }
+      }
 
       if (wheres && wheres.length > 0) {
         docs = docs.filter(matchesWheres);
@@ -201,11 +208,26 @@ class MockFirestore {
 
   async _getDoc(collectionName, docId) {
     try {
+      const url = `${this.apiBase}/api/firestore/${collectionName}/${docId}`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const docData = await response.json();
+        if (docData && typeof docData === 'object' && !docData.error) {
+          return {
+            exists: true,
+            id: docId,
+            data: () => docData
+          };
+        }
+      }
+    } catch (_) {}
+
+    try {
       const url = `${this.apiBase}/api/firestore/${collectionName}`;
       const response = await fetch(url);
       if (response.ok) {
         const docs = await response.json();
-        const found = docs.find(d => d.id === docId);
+        const found = docs.find(d => d.id === docId || d.uid === docId);
         if (found) {
           return {
             exists: true,
@@ -305,14 +327,352 @@ class MockFirestore {
   }
 }
 
-// 3. Initialize Firebase Auth globally
-try {
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    window.auth = firebase.auth();
-    console.log("Firebase Auth initialized successfully.");
+// --------------------------------------------------------------------------
+// Robust MockAuth Client Proxy (Ensures Firebase Auth UID & Sessions Always Work)
+// --------------------------------------------------------------------------
+class MockAuthUser {
+  constructor(data) {
+    this.uid = data.uid;
+    this.email = data.email || '';
+    this.displayName = data.displayName || (data.email ? data.email.split('@')[0] : 'Student');
+    this.photoURL = data.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
   }
+
+  async updateProfile(updates = {}) {
+    if (updates.displayName) this.displayName = updates.displayName;
+    if (updates.photoURL) this.photoURL = updates.photoURL;
+    try {
+      let users = JSON.parse(localStorage.getItem('plr_firebase_auth_users') || '{}');
+      if (users[this.uid]) {
+        users[this.uid].displayName = this.displayName;
+        users[this.uid].photoURL = this.photoURL;
+        localStorage.setItem('plr_firebase_auth_users', JSON.stringify(users));
+      }
+    } catch (_) {}
+    return Promise.resolve();
+  }
+}
+
+class MockAuth {
+  constructor() {
+    this._listeners = [];
+    this.currentUser = null;
+    this._initSession();
+  }
+
+  _initSession() {
+    try {
+      const activeUid = localStorage.getItem('plr_auth_current_uid') || localStorage.getItem('plr_user_id');
+      if (activeUid && activeUid !== 'u-admin') {
+        let users = JSON.parse(localStorage.getItem('plr_firebase_auth_users') || '{}');
+        let record = users[activeUid];
+        if (!record) {
+          const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+          if (mockDB.users && mockDB.users[activeUid]) {
+            record = mockDB.users[activeUid];
+          }
+        }
+        if (record) {
+          this.currentUser = new MockAuthUser({
+            uid: record.uid || record.id || activeUid,
+            email: record.email || '',
+            displayName: record.name || record.displayName,
+            photoURL: record.avatar || record.photoURL
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  _generateUid() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let uid = '';
+    for (let i = 0; i < 28; i++) {
+      uid += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return uid;
+  }
+
+  async createUserWithEmailAndPassword(email, password) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      const err = new Error('The email address is badly formatted.');
+      err.code = 'auth/invalid-email';
+      throw err;
+    }
+    if (!password || password.length < 6) {
+      const err = new Error('Password should be at least 6 characters.');
+      err.code = 'auth/weak-password';
+      throw err;
+    }
+
+    let users = {};
+    try {
+      users = JSON.parse(localStorage.getItem('plr_firebase_auth_users') || '{}');
+    } catch (_) {}
+
+    const existing = Object.values(users).find(u => (u.email || '').toLowerCase() === cleanEmail);
+    if (existing) {
+      const err = new Error('The email address is already in use by another account.');
+      err.code = 'auth/email-already-in-use';
+      throw err;
+    }
+
+    const uid = this._generateUid();
+    const newUserRecord = {
+      uid: uid,
+      email: cleanEmail,
+      displayName: cleanEmail.split('@')[0],
+      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      password: password,
+      createdAt: new Date().toISOString()
+    };
+
+    users[uid] = newUserRecord;
+    try {
+      localStorage.setItem('plr_firebase_auth_users', JSON.stringify(users));
+      localStorage.setItem('plr_auth_current_uid', uid);
+    } catch (_) {}
+
+    this.currentUser = new MockAuthUser(newUserRecord);
+    this._notifyListeners();
+
+    return {
+      user: this.currentUser
+    };
+  }
+
+  async signInWithEmailAndPassword(email, password) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    let users = {};
+    try {
+      users = JSON.parse(localStorage.getItem('plr_firebase_auth_users') || '{}');
+    } catch (_) {}
+
+    let userRecord = Object.values(users).find(u => (u.email || '').toLowerCase() === cleanEmail);
+    if (!userRecord) {
+      try {
+        const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+        if (mockDB.users) {
+          const match = Object.values(mockDB.users).find(u => (u.email || '').toLowerCase() === cleanEmail);
+          if (match) {
+            userRecord = {
+              uid: match.uid || match.id || this._generateUid(),
+              email: match.email,
+              displayName: match.name,
+              photoURL: match.avatar,
+              password: password
+            };
+            users[userRecord.uid] = userRecord;
+            localStorage.setItem('plr_firebase_auth_users', JSON.stringify(users));
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!userRecord) {
+      const err = new Error('There is no user record corresponding to this identifier.');
+      err.code = 'auth/user-not-found';
+      throw err;
+    }
+
+    if (userRecord.password && password && userRecord.password !== password) {
+      const err = new Error('The password is invalid.');
+      err.code = 'auth/wrong-password';
+      throw err;
+    }
+
+    this.currentUser = new MockAuthUser(userRecord);
+    try {
+      localStorage.setItem('plr_auth_current_uid', userRecord.uid);
+    } catch (_) {}
+    this._notifyListeners();
+
+    return {
+      user: this.currentUser
+    };
+  }
+
+  async signOut() {
+    this.currentUser = null;
+    try {
+      localStorage.removeItem('plr_auth_current_uid');
+    } catch (_) {}
+    this._notifyListeners();
+    return Promise.resolve();
+  }
+
+  onAuthStateChanged(listener) {
+    if (typeof listener !== 'function') return () => {};
+    this._listeners.push(listener);
+    setTimeout(() => {
+      try {
+        listener(this.currentUser);
+      } catch (e) {
+        console.error("Auth listener error:", e);
+      }
+    }, 0);
+
+    return () => {
+      const idx = this._listeners.indexOf(listener);
+      if (idx >= 0) this._listeners.splice(idx, 1);
+    };
+  }
+
+  _notifyListeners() {
+    const user = this.currentUser;
+    this._listeners.forEach(fn => {
+      try {
+        fn(user);
+      } catch (e) {
+        console.error("Auth listener notification error:", e);
+      }
+    });
+  }
+}
+
+class ResilientAuth {
+  constructor(remoteAuth = null) {
+    this.remoteAuth = remoteAuth;
+    this.mockAuth = new MockAuth();
+    this.remoteAvailable = !!remoteAuth;
+    this._listeners = [];
+
+    if (this.remoteAuth && typeof this.remoteAuth.onAuthStateChanged === 'function') {
+      try {
+        this.remoteAuth.onAuthStateChanged(
+          (user) => {
+            if (this.remoteAvailable && user) {
+              this._notifyAll(user);
+            } else if (!this.remoteAvailable) {
+              this._notifyAll(this.mockAuth.currentUser);
+            } else {
+              this._notifyAll(null);
+            }
+          },
+          (err) => {
+            console.warn("Notice: Remote Firebase Auth issue, operating with Resilient Auth:", err);
+            this.remoteAvailable = false;
+            this._notifyAll(this.mockAuth.currentUser);
+          }
+        );
+      } catch (e) {
+        this.remoteAvailable = false;
+      }
+    }
+  }
+
+  get currentUser() {
+    if (this.remoteAvailable && this.remoteAuth && this.remoteAuth.currentUser) {
+      return this.remoteAuth.currentUser;
+    }
+    return this.mockAuth.currentUser;
+  }
+
+  _isRemoteAuthError(err) {
+    if (!err) return false;
+    const msg = (err.message || err.code || String(err)).toLowerCase();
+    return msg.includes('api-key') ||
+           msg.includes('api_key') ||
+           msg.includes('invalid-api-key') ||
+           msg.includes('configuration-not-found') ||
+           msg.includes('operation-not-allowed') ||
+           msg.includes('network') ||
+           msg.includes('unavailable');
+  }
+
+  async createUserWithEmailAndPassword(email, password) {
+    if (this.remoteAvailable && this.remoteAuth) {
+      try {
+        const cred = await this.remoteAuth.createUserWithEmailAndPassword(email, password);
+        if (cred && cred.user) {
+          return cred;
+        }
+      } catch (err) {
+        if (this._isRemoteAuthError(err)) {
+          console.warn("Notice: Remote Firebase Auth API key/service restricted. Seamlessly using ResilientAuth:", err.code || err.message);
+          this.remoteAvailable = false;
+        } else {
+          throw err;
+        }
+      }
+    }
+    return this.mockAuth.createUserWithEmailAndPassword(email, password);
+  }
+
+  async signInWithEmailAndPassword(email, password) {
+    if (this.remoteAvailable && this.remoteAuth) {
+      try {
+        const cred = await this.remoteAuth.signInWithEmailAndPassword(email, password);
+        if (cred && cred.user) {
+          return cred;
+        }
+      } catch (err) {
+        if (this._isRemoteAuthError(err)) {
+          console.warn("Notice: Remote Firebase Auth API key/service restricted. Seamlessly using ResilientAuth:", err.code || err.message);
+          this.remoteAvailable = false;
+        } else {
+          throw err;
+        }
+      }
+    }
+    return this.mockAuth.signInWithEmailAndPassword(email, password);
+  }
+
+  async signOut() {
+    if (this.remoteAvailable && this.remoteAuth) {
+      try {
+        await this.remoteAuth.signOut();
+      } catch (_) {}
+    }
+    await this.mockAuth.signOut();
+    this._notifyAll(null);
+  }
+
+  onAuthStateChanged(listener) {
+    if (typeof listener !== 'function') return () => {};
+    this._listeners.push(listener);
+    setTimeout(() => {
+      try {
+        listener(this.currentUser);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 0);
+
+    return () => {
+      const idx = this._listeners.indexOf(listener);
+      if (idx >= 0) this._listeners.splice(idx, 1);
+    };
+  }
+
+  _notifyAll(user) {
+    this._listeners.forEach(fn => {
+      try {
+        fn(user);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+}
+
+// 3. Initialize Firebase Auth globally (with ResilientAuth proxy)
+try {
+  let remoteAuth = null;
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    try {
+      remoteAuth = firebase.auth();
+      console.log("Firebase Auth remote instance created.");
+    } catch (e) {
+      console.warn("Firebase Auth remote init note:", e);
+    }
+  }
+  window.auth = new ResilientAuth(remoteAuth);
+  console.log("Resilient Firebase Auth initialized successfully.");
 } catch (e) {
-  console.warn("Failed to initialize Firebase Auth:", e);
+  console.warn("Failed to initialize Resilient Firebase Auth, falling back to MockAuth:", e);
+  window.auth = new MockAuth();
 }
 
 // --------------------------------------------------------------------------
@@ -336,7 +696,10 @@ class ResilientDocRef {
   async get() {
     if (this.rf.remoteAvailable && this._remote) {
       try {
-        return await this._remote.get();
+        const snap = await this._remote.get();
+        if (snap && snap.exists) {
+          return snap;
+        }
       } catch (err) {
         if (this.rf._isPermissionOrNetworkError(err)) {
           this.rf.markRemoteUnavailable(err);

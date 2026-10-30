@@ -448,9 +448,9 @@
       const currentSkill = (currentUser && !isNewReg) ? (currentUser.skillLevel || '') : '';
       const currentStyle = (currentUser && !isNewReg) ? (currentUser.learningStyle || currentUser.preferredStyle || 'visual') : 'visual';
       const currentGoal = (currentUser && !isNewReg) ? (currentUser.careerGoal || '') : '';
-      const currentInterests = (currentUser && !isNewReg && Array.isArray(currentUser.interests) && currentUser.interests.length > 0)
+      const currentInterests = (currentUser && !isNewReg && Array.isArray(currentUser.interests))
         ? currentUser.interests
-        : ['ds', 'cs'];
+        : [];
 
       const welcomeHtml = isNewReg ? `
         <div class="welcome-banner" style="background:rgba(190,24,93,0.08); border:1px solid rgba(190,24,93,0.25); padding:16px; border-radius:var(--radius-md); text-align:center; margin-bottom:20px; font-weight:700; color:var(--color-indigo); line-height:1.5; font-size:0.95rem;">
@@ -827,19 +827,19 @@
     },
 
     renderCertificateModalContent: function() {
-      const user = window.AppState.currentUser || { name: 'Student' };
-      const courses = (window.AppState.data && window.AppState.data.courses) ? window.AppState.data.courses : [];
+      const state = window.AppState || {};
+      const user = state.currentUser || { name: 'Student' };
+      const courses = (state.data && state.data.courses) ? state.data.courses : [];
       
-      let courseName = 'Artificial Intelligence & Neural Networks Masterclass';
-      if (window.AppState.modalData && window.AppState.modalData.courseId) {
-        const c = courses.find(item => item.id === window.AppState.modalData.courseId);
-        if (c) courseName = c.title;
-      } else if (user.enrolledCourseIds && user.enrolledCourseIds.length > 0) {
-        const c = courses.find(item => item.id === user.enrolledCourseIds[0]);
-        if (c) courseName = c.title;
-      }
+      const targetCourseId = (state.modalData && state.modalData.courseId) 
+        || (user.enrolledCourseIds && user.enrolledCourseIds[0]) 
+        || 'course-ai-101';
 
-      const certId = `LAI-2026-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const cert = state.getOrIssueCertificate ? state.getOrIssueCertificate(targetCourseId) : null;
+      const c = courses.find(item => item.id === targetCourseId);
+      const courseName = (cert && cert.courseTitle) || (c ? c.title : 'Artificial Intelligence & Neural Networks Masterclass');
+      const certId = cert ? cert.id : `LAI-2026-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const issueDateFormatted = (cert && cert.issueDate) ? new Date(cert.issueDate).toLocaleDateString() : new Date().toLocaleDateString();
 
       return `
         <div style="width:100%; max-width:100%; overflow-x:hidden;">
@@ -878,7 +878,7 @@
             <div class="cert-footer-row">
               <div style="text-align:left; flex:1; min-width:120px;">
                 <span style="font-size:0.72rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Date of Issue</span> <br>
-                <span style="font-size:0.88rem; font-weight:700; color:#1e293b;">${new Date().toLocaleDateString()}</span>
+                <span style="font-size:0.88rem; font-weight:700; color:#1e293b;">${issueDateFormatted}</span>
               </div>
 
               <div style="text-align:center; flex-shrink:0;">
@@ -1423,6 +1423,7 @@
   let activeVideoTrackerInterval = null;
   let activeDebouncedSaveTimeout = null;
   let activeVideoState = {
+    userId: null,
     courseId: null,
     resourceId: null,
     durationSec: 900,
@@ -1437,6 +1438,11 @@
 
   window.forceSaveVideoProgress = function() {
     if (!activeVideoState.courseId && !activeVideoState.resourceId) return;
+    const currentUser = window.AppState ? window.AppState.currentUser : null;
+    if (!currentUser || !currentUser.id) return;
+    // Guard: Only save if the tracker belongs to the currently authenticated user
+    if (activeVideoState.userId && activeVideoState.userId !== currentUser.id) return;
+
     if (activeDebouncedSaveTimeout) {
       clearTimeout(activeDebouncedSaveTimeout);
       activeDebouncedSaveTimeout = null;
@@ -1446,6 +1452,7 @@
     const pct = Math.min(100, Math.max(0, Math.round((cur / dur) * 100)));
     activeVideoState.percentage = pct;
     activeVideoState.lastRemoteSyncTime = cur;
+    activeVideoState.userId = currentUser.id;
 
     if (window.AppState && window.AppState.saveVideoProgress) {
       window.AppState.saveVideoProgress(
@@ -1465,10 +1472,16 @@
     activeDebouncedSaveTimeout = setTimeout(function() {
       activeDebouncedSaveTimeout = null;
       if (!activeVideoState.courseId && !activeVideoState.resourceId) return;
+      const currentUser = window.AppState ? window.AppState.currentUser : null;
+      if (!currentUser || !currentUser.id) return;
+      // Guard: Only save if the tracker belongs to the currently authenticated user
+      if (activeVideoState.userId && activeVideoState.userId !== currentUser.id) return;
+
       const cur = Math.max(0, Math.floor(activeVideoState.currentTime || 0));
       const dur = Math.max(1, Math.floor(activeVideoState.durationSec || 900));
       const pct = Math.min(100, Math.max(0, Math.round((cur / dur) * 100)));
       activeVideoState.percentage = pct;
+      activeVideoState.userId = currentUser.id;
 
       const shouldSyncRemote = Math.abs(cur - activeVideoState.lastRemoteSyncTime) >= 15;
       if (shouldSyncRemote) activeVideoState.lastRemoteSyncTime = cur;
@@ -1488,9 +1501,13 @@
   };
 
   window.cleanupVideoModalTracker = function() {
-    // Save current progress before cleaning up
+    // Only flush progress if modal is resource-viewer and userId matches
     try {
-      window.forceSaveVideoProgress();
+      if (window.AppState && window.AppState.activeModal === 'resource-viewer' && window.AppState.currentUser) {
+        if (activeVideoState.userId === window.AppState.currentUser.id) {
+          window.forceSaveVideoProgress();
+        }
+      }
     } catch (_) {}
 
     if (activeVideoTrackerInterval) {
@@ -1509,7 +1526,15 @@
       } catch(_) {}
       window._activeYTPlayer = null;
     }
+    activeVideoState.userId = null;
+    activeVideoState.courseId = null;
+    activeVideoState.resourceId = null;
+    activeVideoState.currentTime = 0;
+    activeVideoState.durationSec = 900;
+    activeVideoState.percentage = 0;
+    activeVideoState.videoTitle = '';
     activeVideoState.isPlaying = false;
+    activeVideoState.lastRemoteSyncTime = 0;
   };
 
   window.updateVideoModalUI = function() {
@@ -1599,6 +1624,8 @@
   window.initVideoModalTracker = function(courseId, resourceId, durationSec, initialStartTime, videoTitle) {
     window.cleanupVideoModalTracker();
 
+    const currentUser = window.AppState ? window.AppState.currentUser : null;
+    activeVideoState.userId = currentUser ? currentUser.id : null;
     activeVideoState.courseId = courseId;
     activeVideoState.resourceId = resourceId;
     activeVideoState.durationSec = Math.max(1, durationSec || 900);

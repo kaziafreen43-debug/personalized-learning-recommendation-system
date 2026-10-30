@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. User Profiles & Personalized State:
+    // Enforce strict data isolation: Each student can ONLY read and write their own document matching their Firebase Auth UID.
+    // Admin (admin@gmail.com) is permitted read access to view the registered student roster.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+    }
+
+    // 2. Educational Courses Catalog:
+    // Open read for learners; modifications restricted to administrative instructor.
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+    }
+
+    // 3. Learning Resources & Multimedia Material:
+    match /resources/{resourceId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+    }
+
+    // 4. Interactive Learning Roadmaps:
+    match /roadmaps/{roadmapId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+    }
+
+    // 5. Subject Assessments & Quizzes:
+    match /quizzes/{quizId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+    }
+
+    // 6. Practical Assignments:
+    match /assignments/{assignmentId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+    }
+
+    // 7. Student Submissions:
+    // A student can submit and read their own assignment submissions; Admin can review and grade.
+    match /submissions/{subId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        request.auth.token.email == 'admin@gmail.com' || 
+        request.auth.uid == 'u-admin'
+      );
+    }
+  }
+}

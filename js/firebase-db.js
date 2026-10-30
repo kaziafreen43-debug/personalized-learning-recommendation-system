@@ -17,15 +17,122 @@ window.FirebaseDB = {
   getUser: async function(userId) {
     if (!this.isInitialized) this.init();
     if (!this.db || !userId) return null;
+    console.log(`[Firestore Read: users/${userId}] Fetching student document...`);
     try {
       const docSnap = await this.db.collection('users').doc(userId).get();
       if (docSnap && docSnap.exists) {
-        return typeof docSnap.data === 'function' ? docSnap.data() : docSnap;
+        const data = typeof docSnap.data === 'function' ? docSnap.data() : docSnap;
+        if (data) {
+          data.id = data.id || userId;
+          data.uid = data.uid || userId;
+          console.log(`[Firestore Read Success: users/${userId}] Successfully retrieved user document for ${data.name || data.email || userId}.`);
+          return data;
+        }
       }
     } catch (e) {
-      console.warn("Notice: Error fetching user from Firestore:", e);
+      console.error(`[Firestore Read Error: users/${userId}] Failed to fetch document:`, e);
+    }
+
+    // Secondary query by uid if doc ID differs
+    try {
+      const snap = await this.db.collection('users').where('uid', '==', userId).limit(1).get();
+      let found = null;
+      if (snap && typeof snap.forEach === 'function') {
+        snap.forEach(doc => {
+          const data = typeof doc.data === 'function' ? doc.data() : doc;
+          if (data && !found) {
+            found = { ...data, id: (data.id || doc.id || userId), uid: (data.uid || doc.id || userId) };
+          }
+        });
+      }
+      if (found) {
+        console.log(`[Firestore Read Success: users/${userId}] Found document via query by uid.`);
+        return found;
+      }
+    } catch (err) {
+      console.error(`[Firestore Read Query Error: users/${userId}]`, err);
+    }
+
+    console.log(`[Firestore Read Note: users/${userId}] Document not found in Firestore.`);
+    return null;
+  },
+
+  getUserByEmail: async function(email) {
+    if (!this.isInitialized) this.init();
+    if (!this.db || !email) return null;
+    const cleanEmail = email.trim().toLowerCase();
+    console.log(`[Firestore Query: users] Looking up user by email '${cleanEmail}'...`);
+    try {
+      const snap = await this.db.collection('users').where('email', '==', cleanEmail).limit(1).get();
+      let found = null;
+      if (snap && typeof snap.forEach === 'function') {
+        snap.forEach(doc => {
+          const data = typeof doc.data === 'function' ? doc.data() : doc;
+          if (data && !found) {
+            found = { ...data, id: (data.id || doc.id), uid: (data.uid || doc.id) };
+          }
+        });
+      }
+      if (found) {
+        console.log(`[Firestore Query Success: users] Found user document for '${cleanEmail}' with ID: ${found.id}`);
+        return found;
+      }
+    } catch (e) {
+      console.error(`[Firestore Query Error: users] Error querying user by email '${cleanEmail}':`, e);
     }
     return null;
+  },
+
+  ensureUserDocument: async function(userId, profileDefaults = {}) {
+    if (!this.isInitialized) this.init();
+    if (!userId) return null;
+
+    let existing = await this.getUser(userId);
+    if (existing) {
+      return existing;
+    }
+
+    console.log(`[Firestore Auto-Create: users/${userId}] User document does not exist. Initializing with required default fields...`);
+    const email = (profileDefaults.email || '').trim().toLowerCase();
+    const name = profileDefaults.name || (email ? email.split('@')[0] : 'Student');
+    const isActuallyAdmin = email === 'admin@gmail.com' || userId === 'u-admin' || profileDefaults.role === 'admin';
+    const role = isActuallyAdmin ? 'admin' : 'student';
+    const defaultInterests = Array.isArray(profileDefaults.interests) && profileDefaults.interests.length > 0
+      ? profileDefaults.interests
+      : ['cs', 'ds'];
+
+    const newDoc = {
+      id: userId,
+      uid: userId,
+      name: name,
+      email: email,
+      role: role,
+      avatar: profileDefaults.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      gradeClass: isActuallyAdmin ? 'Administrator' : (profileDefaults.gradeClass || 'Grade 11'),
+      skillLevel: profileDefaults.skillLevel || 'Intermediate',
+      learningStyle: profileDefaults.learningStyle || profileDefaults.preferredStyle || 'visual',
+      preferredStyle: profileDefaults.preferredStyle || profileDefaults.learningStyle || 'visual',
+      careerGoal: profileDefaults.careerGoal || 'AI & Machine Learning Engineer',
+      interests: defaultInterests,
+      enrolledCourseIds: Array.isArray(profileDefaults.enrolledCourseIds) ? profileDefaults.enrolledCourseIds : [],
+      completedResourceIds: Array.isArray(profileDefaults.completedResourceIds) ? profileDefaults.completedResourceIds : [],
+      bookmarkedResourceIds: Array.isArray(profileDefaults.bookmarkedResourceIds) ? profileDefaults.bookmarkedResourceIds : [],
+      videoProgress: (profileDefaults.videoProgress && typeof profileDefaults.videoProgress === 'object') ? profileDefaults.videoProgress : {},
+      certificates: Array.isArray(profileDefaults.certificates) ? profileDefaults.certificates : [],
+      quizScores: Array.isArray(profileDefaults.quizScores) ? profileDefaults.quizScores : [],
+      dailyGoalMinutes: profileDefaults.dailyGoalMinutes || 30,
+      todayStudiedMinutes: profileDefaults.todayStudiedMinutes || 0,
+      streakDays: profileDefaults.streakDays || 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      recentActivity: [
+        { title: 'Student Profile Initialized', time: 'Just now', icon: 'check-circle' }
+      ]
+    };
+
+    await this.saveUser(newDoc);
+    console.log(`[Firestore Auto-Create Success: users/${userId}] User document successfully created and persisted.`);
+    return newDoc;
   },
 
   // Seed Firestore with core collections if empty and ensure all items are categorized
@@ -352,25 +459,47 @@ window.FirebaseDB = {
             appState.data.defaultUsers.push(u);
           }
         });
-        if (appState.currentUser) {
-          const matchedUser = dbUsers.find(u => u.id === appState.currentUser.id);
-          if (matchedUser) {
-            Object.assign(appState.currentUser, matchedUser);
-          }
+        // Check current authenticated student session and load authoritatively from Firestore
+        const currentUserId = (appState.currentUser && appState.currentUser.id) || (localStorage.getItem('plr_is_auth') === 'true' ? localStorage.getItem('plr_user_id') : null);
+        if (currentUserId) {
+          if (currentUserId === 'u-admin' || (appState.currentUser && appState.currentUser.role === 'admin')) {
+            // Admin user
+          } else {
+            let freshUser = await this.getUser(currentUserId);
+            if (!freshUser) {
+              console.log("Creating missing Firestore document in syncAppState for UID:", currentUserId);
+              freshUser = await this.ensureUserDocument(currentUserId, appState.currentUser || {});
+            }
+            if (freshUser) {
+              appState.currentUser = freshUser;
+              appState.isAuthenticated = true;
+              try {
+                localStorage.setItem('plr_is_auth', 'true');
+                localStorage.setItem('plr_user_id', freshUser.id);
+              } catch (_) {}
 
-          // Auto-enroll the current user in any newly loaded courses matching their interests
-          if (appState.currentUser.interests && appState.data.courses) {
-            const currentEnrolled = appState.currentUser.enrolledCourseIds || [];
-            let updated = false;
-            appState.data.courses.forEach(c => {
-              if (window.itemMatchesInterests && window.itemMatchesInterests(c, appState.currentUser.interests) && !currentEnrolled.includes(c.id)) {
-                currentEnrolled.push(c.id);
-                updated = true;
+              // Align current user enrolled courses strictly with their interests
+              if (appState.currentUser.interests && appState.data.courses && appState.currentUser.role !== 'admin') {
+                const userInterests = appState.currentUser.interests;
+                const validCourseIds = appState.data.courses
+                  .filter(c => window.itemMatchesInterests && window.itemMatchesInterests(c, userInterests))
+                  .map(c => c.id);
+                
+                // Only keep courses matching user interests
+                const currentEnrolled = (appState.currentUser.enrolledCourseIds || []).filter(id => validCourseIds.includes(id));
+                let updated = (currentEnrolled.length !== (appState.currentUser.enrolledCourseIds || []).length);
+                
+                validCourseIds.forEach(id => {
+                  if (!currentEnrolled.includes(id)) {
+                    currentEnrolled.push(id);
+                    updated = true;
+                  }
+                });
+                if (updated) {
+                  appState.currentUser.enrolledCourseIds = currentEnrolled;
+                  appState.saveData();
+                }
               }
-            });
-            if (updated) {
-              appState.currentUser.enrolledCourseIds = currentEnrolled;
-              appState.saveData();
             }
           }
         }
@@ -779,36 +908,46 @@ window.FirebaseDB = {
     if (!this.isInitialized) {
       this.init();
     }
-    if (user && user.id) {
-      user.updatedAt = new Date().toISOString();
-      if (!user.learningStyle && user.preferredStyle) user.learningStyle = user.preferredStyle;
-      if (!user.preferredStyle && user.learningStyle) user.preferredStyle = user.learningStyle;
-      // Always persist to local mock storage as a dependable safety net
-      try {
-        let mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
-        if (!mockDB.users) mockDB.users = {};
-        mockDB.users[user.id] = user;
-        localStorage.setItem('plr_firestore_mock', JSON.stringify(mockDB));
-      } catch (_) {}
+    if (!user) return null;
+    const docId = user.id || user.uid;
+    if (!docId) return null;
+    user.id = docId;
+    user.uid = docId;
+    user.updatedAt = new Date().toISOString();
+    if (!user.learningStyle && user.preferredStyle) user.learningStyle = user.preferredStyle;
+    if (!user.preferredStyle && user.learningStyle) user.preferredStyle = user.learningStyle;
+    if (!Array.isArray(user.certificates)) user.certificates = [];
+    if (!user.videoProgress) user.videoProgress = {};
 
-      // If backend Flask server is running, also backup to local firestore API
-      try {
-        const apiBase = (window.location && window.location.port === '5000') ? '' : 'http://127.0.0.1:5000';
-        fetch(`${apiBase}/api/firestore/users/${user.id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user)
-        }).catch(() => {});
-      } catch (_) {}
-    }
+    console.log(`[Firestore Write: users/${docId}] Saving user document to collection 'users'...`);
 
-    if (!this.isInitialized || !this.db) return;
+    // Always persist to local mock storage as a dependable safety net
     try {
-      await this.db.collection('users').doc(user.id).set(user);
-      console.log(`User profile ${user.id} saved to Firestore.`);
-    } catch (e) {
-      console.warn("Could not sync user to remote Firestore (using local fallback):", e);
+      let mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
+      if (!mockDB.users) mockDB.users = {};
+      mockDB.users[docId] = user;
+      localStorage.setItem('plr_firestore_mock', JSON.stringify(mockDB));
+    } catch (_) {}
+
+    // If backend Flask server is running, also backup to local firestore API
+    try {
+      const apiBase = (window.location && window.location.port === '5000') ? '' : 'http://127.0.0.1:5000';
+      fetch(`${apiBase}/api/firestore/users/${docId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      }).catch(() => {});
+    } catch (_) {}
+
+    if (this.isInitialized && this.db) {
+      try {
+        await this.db.collection('users').doc(docId).set(user);
+        console.log(`[Firestore Write Success: users/${docId}] User document successfully committed to Firestore.`);
+      } catch (e) {
+        console.error(`[Firestore Write Error: users/${docId}] Failed to write to Firestore:`, e);
+      }
     }
+    return user;
   },
 
   // Real-time listener for enrolled/registered students (onSnapshot with resilient local fallback)
@@ -854,7 +993,9 @@ window.FirebaseDB = {
         }
       }
     };
-    window.addEventListener('storage', handleStorageChange);
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('storage', handleStorageChange);
+    }
 
     let unsubFirestore = null;
     if (this.isInitialized && this.db) {
@@ -900,7 +1041,9 @@ window.FirebaseDB = {
     }
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
       if (typeof unsubFirestore === 'function') {
         try { unsubFirestore(); } catch (_) {}
       }

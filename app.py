@@ -115,12 +115,27 @@ def get_firestore_collection(collection):
     items = list(db.get(collection, {}).values())
     return jsonify(items)
 
+@app.route('/api/firestore/<collection>/<doc_id>', methods=['GET'])
+def get_firestore_document(collection, doc_id):
+    db = load_firestore_db()
+    col = db.get(collection, {})
+    doc = col.get(doc_id)
+    if doc is not None:
+        return jsonify(doc)
+    for item in col.values():
+        if isinstance(item, dict) and (item.get('id') == doc_id or item.get('uid') == doc_id):
+            return jsonify(item)
+    return jsonify({"error": "Document not found"}), 404
+
 @app.route('/api/firestore/<collection>/<doc_id>', methods=['POST'])
 def set_firestore_document(collection, doc_id):
     db = load_firestore_db()
     if collection not in db:
         db[collection] = {}
     data = request.get_json() or {}
+    if isinstance(data, dict):
+        if 'id' not in data:
+            data['id'] = doc_id
     db[collection][doc_id] = data
     save_firestore_db(db)
     return jsonify({"success": True})

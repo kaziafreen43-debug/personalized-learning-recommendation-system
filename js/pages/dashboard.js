@@ -115,7 +115,7 @@
           </div>
           <div class="banner-pills-row">
             <span class="banner-badge-pill">Primary Style: ${(user.learningStyle || user.preferredStyle || 'Visual').toUpperCase()}</span>
-            <span class="banner-badge-pill">Interests: ${(userInterests.length > 0 ? userInterests : ['ds', 'math']).map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ')}</span>
+            <span class="banner-badge-pill">Interests: ${(userInterests.length > 0 ? userInterests.map(i => (window.getSubjectCategoryName ? window.getSubjectCategoryName(i) : i.toUpperCase())).join(', ') : 'None selected')}</span>
           </div>
           <button class="btn-edit-questionnaire" onclick="AppState.openModal('questionnaire')">
             ${window.renderIcon('edit-3')} Edit Questionnaire
@@ -310,7 +310,7 @@
                   </button>
                 </div>
               </div>
-            ` : (recommendedCourses.length > 0 ? recommendedCourses.slice(0, 2) : courses.slice(0, 2)).map(c => {
+            ` : courses.map(c => {
               if (courseCardRenderer) {
                 return courseCardRenderer(c, (user.enrolledCourseIds || []).includes(c.id));
               }

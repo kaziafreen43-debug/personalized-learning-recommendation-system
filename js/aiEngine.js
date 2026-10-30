@@ -150,9 +150,11 @@ window.AIEngine = {
   _localGetRecommendations: function(resources, user, filterSubject = 'all', limit = 10) {
     if (!resources || !Array.isArray(resources)) return [];
 
-    // Filter to keep only subjects of interest to the user
-    if (user && user.interests && user.interests.length > 0) {
-      resources = resources.filter(res => window.itemMatchesInterests ? window.itemMatchesInterests(res, user.interests) : (user.interests.includes(res.subjectId) || user.interests.includes(res.category)));
+    // Authenticated students: strictly restrict recommendations to items matching selected questionnaire interests
+    if (user && user.role !== 'admin') {
+      const interests = user.interests || [];
+      if (!interests || interests.length === 0) return [];
+      resources = resources.filter(res => window.itemMatchesInterests ? window.itemMatchesInterests(res, interests) : (interests.includes(res.subjectId) || interests.includes(res.category)));
     }
 
     let list = resources.map(res => {

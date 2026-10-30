@@ -12,7 +12,7 @@ CATEGORY_TAXONOMY = {
 
 def item_matches_interests(item, interests):
     if not interests:
-        return True
+        return False
     if not item or not isinstance(item, dict):
         return False
     
@@ -124,7 +124,16 @@ def get_recommendations(resources, user, filter_subject='all', limit=10):
         return []
 
     filtered_resources = resources
-    # If a specific subject filter is requested, filter across all resources by that subject/alias
+    is_admin = bool(user and user.get('role') == 'admin')
+
+    # Authenticated students: strictly restrict recommendations to items matching selected questionnaire interests
+    if user and not is_admin:
+        interests = user.get('interests', [])
+        if not interests:
+            return []
+        filtered_resources = [res for res in filtered_resources if item_matches_interests(res, interests)]
+
+    # If a specific subject filter is requested, filter within allowed resources by that subject/alias
     if filter_subject and filter_subject != 'all':
         norm_sub = filter_subject.strip().lower()
         sub_keys = {norm_sub}
@@ -133,12 +142,7 @@ def get_recommendations(resources, user, filter_subject='all', limit=10):
                 sub_keys.add(sk)
                 for a in aliases:
                     sub_keys.add(a)
-        filtered_resources = [res for res in resources if (res.get('subjectId', '').lower() in sub_keys or res.get('category', '').lower() in sub_keys)]
-    elif user and user.get('interests') and len(user.get('interests', [])) > 0:
-        interests = user.get('interests', [])
-        matched = [res for res in filtered_resources if item_matches_interests(res, interests)]
-        if matched:
-            filtered_resources = matched
+        filtered_resources = [res for res in filtered_resources if (res.get('subjectId', '').lower() in sub_keys or res.get('category', '').lower() in sub_keys)]
 
     result_list = []
     for res in filtered_resources:
@@ -200,6 +204,17 @@ def recalibrate_skill(user, quiz, score_percentage):
 
     if score_percentage >= 90:
         delta = 12
+        if updated_user.get('skillLevel') == 'Beginner':
+            updated_user['skillLevel'] = 'Intermediate'
+        elif updated_user.get('skillLevel') == 'Intermediate' and current_mastery > 85:
+            updated_user['skillLevel'] = 'Advanced'
+    elif score_percentage >= 70:
+        delta = 6
+    else:
+        delta = -3
+
+    if subject_id:
+        updated_user['masteryLevels'][subject_id] = min(100, max(10, current_mastery + delta))
     return updated_user
 
 def chat_with_ai(message, history=None, user=None, current_course_id=None, app_data=None):
