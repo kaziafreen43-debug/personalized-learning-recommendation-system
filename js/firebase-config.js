@@ -1,19 +1,19 @@
 // 1. Firebase configuration from your console
 const firebaseConfig = {
-  apiKey: "AIzaSyAvbsSLW0vQ8ubX7R-jidS2_mTu18vE_IY",
-  authDomain: "my-mini-project-43074.firebaseapp.com",
-  projectId: "my-mini-project-43074",
-  storageBucket: "my-mini-project-43074.firebasestorage.app",
-  messagingSenderId: "536242207483",
-  appId: "1:536242207483:web:1eb65a7787f4726586ce5e",
-  measurementId: "G-TF0BMZS1X3"
+  apiKey: "AIzaSyCUPXcUZmsm2ZiZUDKqdqZb-TJ3owQeBjU",
+  authDomain: "new-personalized-learning.firebaseapp.com",
+  projectId: "new-personalized-learning",
+  storageBucket: "new-personalized-learning.firebasestorage.app",
+  messagingSenderId: "205286842033",
+  appId: "1:205286842033:web:a5d73b508c88d610198c90",
+  measurementId: "G-T0HXSZCHZC"
 };
 
 // 2. Initialize Firebase globally
 try {
   if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
     firebase.initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully.");
+    console.log("Firebase initialized successfully with project: new-personalized-learning");
   }
 } catch (e) {
   console.warn("Firebase initializeApp note:", e);
@@ -43,6 +43,27 @@ class MockDocRef {
 
   async delete() {
     return this.mockFirestore._deleteDoc(this.collectionName, this.docId);
+  }
+
+  onSnapshot(callback, errorCallback) {
+    const listener = async () => {
+      try {
+        const snap = await this.get();
+        callback(snap);
+      } catch (e) {
+        if (errorCallback) errorCallback(e);
+      }
+    };
+    if (!this.mockFirestore._listeners[this.collectionName]) {
+      this.mockFirestore._listeners[this.collectionName] = [];
+    }
+    this.mockFirestore._listeners[this.collectionName].push(listener);
+    listener();
+    return () => {
+      const list = this.mockFirestore._listeners[this.collectionName] || [];
+      const idx = list.indexOf(listener);
+      if (idx >= 0) list.splice(idx, 1);
+    };
   }
 }
 
@@ -586,15 +607,14 @@ class ResilientAuth {
       try {
         const cred = await this.remoteAuth.createUserWithEmailAndPassword(email, password);
         if (cred && cred.user) {
+          try {
+            await this.mockAuth.createUserWithEmailAndPassword(email, password);
+          } catch (_) {}
           return cred;
         }
       } catch (err) {
-        if (this._isRemoteAuthError(err)) {
-          console.warn("Notice: Remote Firebase Auth API key/service restricted. Seamlessly using ResilientAuth:", err.code || err.message);
-          this.remoteAvailable = false;
-        } else {
-          throw err;
-        }
+        console.warn("[ResilientAuth.createUserWithEmailAndPassword] Firebase Auth note:", err.code || err.message);
+        throw err;
       }
     }
     return this.mockAuth.createUserWithEmailAndPassword(email, password);
@@ -605,15 +625,14 @@ class ResilientAuth {
       try {
         const cred = await this.remoteAuth.signInWithEmailAndPassword(email, password);
         if (cred && cred.user) {
+          try {
+            await this.mockAuth.signInWithEmailAndPassword(email, password);
+          } catch (_) {}
           return cred;
         }
       } catch (err) {
-        if (this._isRemoteAuthError(err)) {
-          console.warn("Notice: Remote Firebase Auth API key/service restricted. Seamlessly using ResilientAuth:", err.code || err.message);
-          this.remoteAvailable = false;
-        } else {
-          throw err;
-        }
+        console.warn("[ResilientAuth.signInWithEmailAndPassword] Firebase Auth note:", err.code || err.message);
+        throw err;
       }
     }
     return this.mockAuth.signInWithEmailAndPassword(email, password);
@@ -701,11 +720,7 @@ class ResilientDocRef {
           return snap;
         }
       } catch (err) {
-        if (this.rf._isPermissionOrNetworkError(err)) {
-          this.rf.markRemoteUnavailable(err);
-        } else {
-          throw err;
-        }
+        console.warn(`[ResilientDocRef.get: ${this.collectionName}/${this.docId}] Remote get note:`, err.message || err);
       }
     }
     return this._mock.get();
@@ -715,31 +730,21 @@ class ResilientDocRef {
     if (this.rf.remoteAvailable && this._remote) {
       try {
         await this._remote.set(data);
-        try { this._mock.set(data); } catch (_) {}
-        return;
+        console.log(`[ResilientDocRef.set: ${this.collectionName}/${this.docId}] Committed successfully to Firebase Firestore.`);
       } catch (err) {
-        if (this.rf._isPermissionOrNetworkError(err)) {
-          this.rf.markRemoteUnavailable(err);
-        } else {
-          throw err;
-        }
+        console.warn(`[ResilientDocRef.set: ${this.collectionName}/${this.docId}] Remote set note:`, err.message || err);
       }
     }
-    return this._mock.set(data);
+    try { await this._mock.set(data); } catch (_) {}
+    return;
   }
 
   async update(data) {
     if (this.rf.remoteAvailable && this._remote) {
       try {
         await this._remote.update(data);
-        try { this._mock.update(data); } catch (_) {}
-        return;
       } catch (err) {
-        if (this.rf._isPermissionOrNetworkError(err)) {
-          this.rf.markRemoteUnavailable(err);
-        } else {
-          throw err;
-        }
+        console.warn(`[ResilientDocRef.update: ${this.collectionName}/${this.docId}] Remote update note:`, err.message || err);
       }
     }
     return this._mock.update(data);
@@ -749,17 +754,28 @@ class ResilientDocRef {
     if (this.rf.remoteAvailable && this._remote) {
       try {
         await this._remote.delete();
-        try { this._mock.delete(); } catch (_) {}
-        return;
       } catch (err) {
-        if (this.rf._isPermissionOrNetworkError(err)) {
-          this.rf.markRemoteUnavailable(err);
-        } else {
-          throw err;
-        }
+        console.warn(`[ResilientDocRef.delete: ${this.collectionName}/${this.docId}] Remote delete note:`, err.message || err);
       }
     }
     return this._mock.delete();
+  }
+
+  onSnapshot(onNext, onError) {
+    if (this.rf.remoteAvailable && this._remote && typeof this._remote.onSnapshot === 'function') {
+      try {
+        return this._remote.onSnapshot(onNext, (err) => {
+          console.warn(`[ResilientDocRef.onSnapshot: ${this.collectionName}/${this.docId}] Remote listener note:`, err.message || err);
+          if (onError) onError(err);
+        });
+      } catch (err) {
+        console.warn(`[ResilientDocRef.onSnapshot: ${this.collectionName}/${this.docId}] Error attaching remote listener:`, err);
+      }
+    }
+    if (this._mock && typeof this._mock.onSnapshot === 'function') {
+      return this._mock.onSnapshot(onNext, onError);
+    }
+    return () => {};
   }
 }
 
@@ -794,20 +810,19 @@ class ResilientQuery {
   async get() {
     if (this.rf.remoteAvailable && this.remoteQuery) {
       try {
-        return await this.remoteQuery.get();
-      } catch (err) {
-        if (this.rf._isPermissionOrNetworkError(err)) {
-          this.rf.markRemoteUnavailable(err);
-        } else {
-          throw err;
+        const snap = await this.remoteQuery.get();
+        if (snap && (!snap.empty || this.collectionName === 'users')) {
+          return snap;
         }
+      } catch (err) {
+        console.warn(`[ResilientQuery.get: ${this.collectionName}] Remote query note:`, err.message || err);
       }
     }
     return this.mockQuery.get();
   }
 
   onSnapshot(onNext, onError) {
-    if (this.rf.remoteAvailable && this.remoteQuery) {
+    if (this.rf.remoteAvailable && this.remoteQuery && typeof this.remoteQuery.onSnapshot === 'function') {
       try {
         let isFallbackActive = false;
         const unsubRemote = this.remoteQuery.onSnapshot(
@@ -815,15 +830,12 @@ class ResilientQuery {
             if (!isFallbackActive) onNext(snapshot);
           },
           err => {
-            if (this.rf._isPermissionOrNetworkError(err)) {
-              this.rf.markRemoteUnavailable(err);
-              if (!isFallbackActive) {
-                isFallbackActive = true;
-                this.mockQuery.onSnapshot(onNext, onError);
-              }
-            } else if (onError) {
-              onError(err);
+            console.warn(`[ResilientQuery.onSnapshot: ${this.collectionName}] Remote snapshot note:`, err.message || err);
+            if (!isFallbackActive) {
+              isFallbackActive = true;
+              this.mockQuery.onSnapshot(onNext, onError);
             }
+            if (onError) onError(err);
           }
         );
         return () => {
@@ -832,9 +844,7 @@ class ResilientQuery {
           }
         };
       } catch (err) {
-        if (this.rf._isPermissionOrNetworkError(err)) {
-          this.rf.markRemoteUnavailable(err);
-        }
+        console.warn(`[ResilientQuery.onSnapshot: ${this.collectionName}] Remote listener error:`, err);
       }
     }
     return this.mockQuery.onSnapshot(onNext, onError);
@@ -849,24 +859,12 @@ class ResilientFirestore {
     this.hasWarnedFallback = false;
   }
 
-  _isPermissionOrNetworkError(err) {
-    if (!err) return false;
-    const msg = (err.message || err.code || String(err)).toLowerCase();
-    return msg.includes('permission') || 
-           msg.includes('insufficient') || 
-           msg.includes('permission-denied') ||
-           msg.includes('unauthenticated') ||
-           msg.includes('network') ||
-           msg.includes('unavailable') ||
-           msg.includes('deadline');
-  }
-
   markRemoteUnavailable(err) {
-    if (this.remoteAvailable) {
+    if (this.remoteAvailable && (!this.remoteFirestore || (err && String(err).includes('app-deleted')))) {
       this.remoteAvailable = false;
       if (!this.hasWarnedFallback) {
         this.hasWarnedFallback = true;
-        console.warn("Notice: Remote Firestore access restricted by security rules. Seamlessly switched to local MockFirestore backend sync.");
+        console.warn("Notice: Remote Firestore unavailable. Switched to local MockFirestore backend sync.");
       }
     }
   }

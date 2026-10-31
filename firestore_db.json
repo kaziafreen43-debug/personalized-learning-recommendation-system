@@ -1,89 +1,212 @@
 {
   "users": {
-    "GOpg2ky06YmDfTJzcxpvyhAzFWHb": {
-      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-      "bookmarkedResourceIds": [],
-      "careerGoal": "AI & Machine Learning Engineer",
-      "certificates": [],
-      "completedResourceIds": [],
-      "createdAt": "2026-10-30T13:55:43.832Z",
-      "dailyGoalMinutes": 30,
-      "email": "uzma@gmail.com",
-      "enrolledCourseIds": [
-        "course-math-101",
-        "course-chem-101"
-      ],
-      "gradeClass": "Undergraduate (Year 3-4)",
-      "id": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
+    "u-admin": {
+      "id": "u-admin",
+      "name": "Admin Instructor",
+      "email": "admin@gmail.com",
+      "role": "admin",
+      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80",
+      "gradeClass": "Administrator",
+      "preferredStyle": "reading",
       "interests": [
-        "chem",
+        "ds",
+        "cs",
         "math"
       ],
-      "learningStyle": "visual",
-      "name": "Uzma Kazi",
-      "preferredStyle": "visual",
-      "quizScores": [],
+      "enrolledCourseIds": [],
+      "completedResourceIds": [],
+      "bookmarkedResourceIds": [],
+      "dailyGoalMinutes": 60,
+      "todayStudiedMinutes": 0,
+      "streakDays": 1,
+      "recentActivity": []
+    },
+    "sJdsF4BgHlmsJtVYhUElICaO3rdE": {
       "recentActivity": [
         {
-          "icon": "edit-3",
-          "time": "Just now",
-          "title": "Updated Questionnaire & Learning Preferences"
-        },
-        {
-          "icon": "edit-3",
-          "time": "Just now",
-          "title": "Updated Questionnaire & Learning Preferences"
-        },
-        {
-          "icon": "edit-3",
-          "time": "Just now",
-          "title": "Updated Questionnaire & Learning Preferences"
-        },
-        {
-          "icon": "edit-3",
-          "time": "Just now",
-          "title": "Updated Questionnaire & Learning Preferences"
-        },
-        {
           "icon": "check-circle",
-          "time": "Just now",
-          "title": "Registered & Completed Onboarding Questionnaire"
+          "title": "Registered & Completed Onboarding Questionnaire",
+          "time": "Just now"
         }
       ],
-      "role": "student",
+      "certificates": [],
+      "preferredStyle": "visual",
       "skillLevel": "Beginner",
+      "interests": [
+        "ds"
+      ],
       "streakDays": 1,
+      "createdAt": "2026-10-31T09:01:01.904Z",
+      "updatedAt": "2026-10-31T09:20:43.797Z",
+      "videoProgress": {},
+      "email": "testshahid22@gmail.com",
+      "quizScores": [],
+      "role": "student",
+      "bookmarkedResourceIds": [],
+      "careerGoal": "AI & Machine Learning Engineer",
+      "gradeClass": "Grade 9",
+      "enrolledCourseIds": [
+        "course-ai-101",
+        "course-cs-101"
+      ],
       "todayStudiedMinutes": 0,
-      "uid": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
-      "updatedAt": "2026-10-30T14:30:17.431Z",
-      "videoProgress": {
-        "course-math-101": {
-          "completed": false,
-          "courseId": "course-math-101",
-          "courseTitle": "Mathematics & Applied Analytics Mastery",
-          "currentTime": 670,
-          "duration": 998,
-          "formattedTime": "11:10 / 16:38",
-          "lastWatched": "2026-10-30T14:27:07.553Z",
-          "percentage": 67,
-          "resourceId": "res-math-road-1",
-          "userId": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
-          "videoTitle": "Discrete Mathematics, Logic Gates & Set Theory Video"
-        },
-        "res-math-road-1": {
-          "completed": false,
-          "courseId": "course-math-101",
-          "courseTitle": "Mathematics & Applied Analytics Mastery",
-          "currentTime": 670,
-          "duration": 998,
-          "formattedTime": "11:10 / 16:38",
-          "lastWatched": "2026-10-30T14:27:07.553Z",
-          "percentage": 67,
-          "resourceId": "res-math-road-1",
-          "userId": "GOpg2ky06YmDfTJzcxpvyhAzFWHb",
-          "videoTitle": "Discrete Mathematics, Logic Gates & Set Theory Video"
+      "name": "testshshid23@gmail.com",
+      "dailyGoalMinutes": 30,
+      "completedResourceIds": [],
+      "uid": "sJdsF4BgHlmsJtVYhUElICaO3rdE",
+      "learningStyle": "visual",
+      "id": "sJdsF4BgHlmsJtVYhUElICaO3rdE",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+    },
+    "YTjdJGoFi5anTLuCkKfeDcbIn1E3": {
+      "id": "YTjdJGoFi5anTLuCkKfeDcbIn1E3",
+      "uid": "YTjdJGoFi5anTLuCkKfeDcbIn1E3",
+      "name": "shshid nadaf",
+      "email": "shahidnadaf@gmail.com",
+      "role": "student",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "gradeClass": "Grade 9",
+      "skillLevel": "Beginner",
+      "learningStyle": "visual",
+      "preferredStyle": "visual",
+      "careerGoal": "AI & Machine Learning Engineer",
+      "interests": [
+        "cs"
+      ],
+      "enrolledCourseIds": [
+        "course-ai-101",
+        "course-cs-101"
+      ],
+      "completedResourceIds": [],
+      "bookmarkedResourceIds": [],
+      "videoProgress": {},
+      "certificates": [],
+      "quizScores": [],
+      "dailyGoalMinutes": 30,
+      "todayStudiedMinutes": 0,
+      "streakDays": 1,
+      "createdAt": "2026-10-31T10:08:00.206Z",
+      "updatedAt": "2026-10-31T10:08:12.060Z",
+      "recentActivity": [
+        {
+          "title": "Registered & Completed Onboarding Questionnaire",
+          "time": "Just now",
+          "icon": "check-circle"
         }
-      }
+      ]
+    },
+    "4vMRFrfhNiO3j7nGblGAzBxggDKv": {
+      "id": "4vMRFrfhNiO3j7nGblGAzBxggDKv",
+      "uid": "4vMRFrfhNiO3j7nGblGAzBxggDKv",
+      "name": "shahidnadaf",
+      "email": "shahidnadaf@gmail.com",
+      "role": "student",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "gradeClass": "Grade 11",
+      "skillLevel": "Intermediate",
+      "learningStyle": "visual",
+      "preferredStyle": "visual",
+      "careerGoal": "AI & Machine Learning Engineer",
+      "interests": [
+        "cs",
+        "ds"
+      ],
+      "enrolledCourseIds": [
+        "course-ai-101",
+        "course-cs-101"
+      ],
+      "completedResourceIds": [],
+      "bookmarkedResourceIds": [],
+      "videoProgress": {},
+      "certificates": [],
+      "quizScores": [],
+      "dailyGoalMinutes": 30,
+      "todayStudiedMinutes": 0,
+      "streakDays": 1,
+      "createdAt": "2026-10-31T10:08:57.263Z",
+      "updatedAt": "2026-10-31T10:09:18.878Z",
+      "recentActivity": [
+        {
+          "title": "Student Profile Initialized",
+          "icon": "check-circle",
+          "time": "Just now"
+        }
+      ]
+    },
+    "gMeuZDARw6YLTrCkp73BQwXP6ru1": {
+      "id": "gMeuZDARw6YLTrCkp73BQwXP6ru1",
+      "uid": "gMeuZDARw6YLTrCkp73BQwXP6ru1",
+      "name": "nadim nadaf",
+      "email": "nadimnadaf@gmail.com",
+      "role": "student",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "gradeClass": "Grade 10",
+      "skillLevel": "Beginner",
+      "learningStyle": "visual",
+      "preferredStyle": "visual",
+      "careerGoal": "AI & Machine Learning Engineer",
+      "interests": [
+        "cs"
+      ],
+      "enrolledCourseIds": [
+        "course-ai-101",
+        "course-cs-101"
+      ],
+      "completedResourceIds": [],
+      "bookmarkedResourceIds": [],
+      "videoProgress": {},
+      "certificates": [],
+      "quizScores": [],
+      "dailyGoalMinutes": 30,
+      "todayStudiedMinutes": 0,
+      "streakDays": 1,
+      "createdAt": "2026-10-31T10:22:05.390Z",
+      "updatedAt": "2026-10-31T10:22:18.619Z",
+      "recentActivity": [
+        {
+          "title": "Registered & Completed Onboarding Questionnaire",
+          "time": "Just now",
+          "icon": "check-circle"
+        }
+      ]
+    },
+    "9P1SNpLPnbnrF1m7BhyDDrazmXyB": {
+      "id": "9P1SNpLPnbnrF1m7BhyDDrazmXyB",
+      "uid": "9P1SNpLPnbnrF1m7BhyDDrazmXyB",
+      "name": "nadimnadaf",
+      "email": "nadimnadaf@gmail.com",
+      "role": "student",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "gradeClass": "Grade 11",
+      "skillLevel": "Intermediate",
+      "learningStyle": "visual",
+      "preferredStyle": "visual",
+      "careerGoal": "AI & Machine Learning Engineer",
+      "interests": [
+        "cs",
+        "ds"
+      ],
+      "enrolledCourseIds": [
+        "course-ai-101",
+        "course-cs-101"
+      ],
+      "completedResourceIds": [],
+      "bookmarkedResourceIds": [],
+      "videoProgress": {},
+      "certificates": [],
+      "quizScores": [],
+      "dailyGoalMinutes": 30,
+      "todayStudiedMinutes": 0,
+      "streakDays": 1,
+      "createdAt": "2026-10-31T10:22:36.544Z",
+      "updatedAt": "2026-10-31T10:22:58.650Z",
+      "recentActivity": [
+        {
+          "title": "Student Profile Initialized",
+          "time": "Just now",
+          "icon": "check-circle"
+        }
+      ]
     }
   },
   "courses": {

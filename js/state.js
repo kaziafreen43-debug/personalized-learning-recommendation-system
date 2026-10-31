@@ -425,6 +425,14 @@ window.AppState = {
     if (!Array.isArray(this.data.submissions)) this.data.submissions = [];
     if (!Array.isArray(this.data.subjects)) this.data.subjects = (window.INITIAL_DATA && window.INITIAL_DATA.subjects) || [];
     if (!this.data.roadmaps) this.data.roadmaps = (window.INITIAL_DATA && window.INITIAL_DATA.roadmaps) || {};
+    if (!Array.isArray(this.data.classesList) || this.data.classesList.length === 0) {
+      this.data.classesList = (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.classesList) && window.INITIAL_DATA.classesList.length > 0)
+        ? [...window.INITIAL_DATA.classesList]
+        : ['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'Undergraduate (Year 1-2)', 'Undergraduate (Year 3-4)', 'Postgraduate / Professional'];
+    }
+    if (window.INITIAL_DATA) {
+      window.INITIAL_DATA.classesList = [...this.data.classesList];
+    }
 
     // Guarantee full content from INITIAL_DATA: merge all core courses and resources
     const KNOWN_BROKEN_VIDEOS = ['P3RXtoYCF4U', '8hly31xKLI0', '5vcj8kSwBCY', 'Qe453-yYjbg', 'SqsC34ghxCM', 'ndSpJq7q4G8'];
@@ -895,6 +903,14 @@ window.AppState = {
         alert('Invalid admin credentials. Please use Pass@123.');
         return false;
       }
+      if (window.auth && password) {
+        try {
+          await window.auth.signInWithEmailAndPassword('admin@gmail.com', 'Pass@123');
+          console.log("[Firebase Auth] Admin authenticated with Firebase Auth successfully.");
+        } catch (e) {
+          console.warn("Notice: Admin Firebase Auth note:", e.message || e);
+        }
+      }
       let user = (this.data.defaultUsers || []).find(u => (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.id === 'u-admin');
       if (!user) {
         user = {
@@ -1242,7 +1258,15 @@ window.AppState = {
               }
             } catch (signInErr) {
               console.warn("[Firebase Auth SignIn Fallback Error]:", signInErr);
+              alert("An account with this email already exists. Please log in with your account password.");
+              return false;
             }
+          } else if (authErr.code === 'auth/weak-password') {
+            alert("Password should be at least 6 characters.");
+            return false;
+          } else if (authErr.code === 'auth/invalid-email') {
+            alert("Please enter a valid email address.");
+            return false;
           }
         }
       }
@@ -1954,6 +1978,45 @@ window.AppState = {
     }
   },
 
+  addClass: function(className) {
+    if (!className || typeof className !== 'string') return;
+    const trimmed = className.trim();
+    if (!trimmed) return;
+    if (!Array.isArray(this.data.classesList)) {
+      this.data.classesList = (window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.classesList))
+        ? [...window.INITIAL_DATA.classesList]
+        : ['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'Undergraduate (Year 1-2)', 'Undergraduate (Year 3-4)', 'Postgraduate / Professional'];
+    }
+    if (!this.data.classesList.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      this.data.classesList.push(trimmed);
+      if (window.INITIAL_DATA) {
+        window.INITIAL_DATA.classesList = [...this.data.classesList];
+      }
+      this.saveData();
+      if (window.FirebaseDB && window.FirebaseDB.isInitialized) {
+        window.FirebaseDB.db.collection('system_config').doc('classes').set({
+          classesList: this.data.classesList,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(err => console.error("Firestore class save error:", err));
+      }
+    }
+  },
+
+  deleteClass: function(className) {
+    if (!className || !Array.isArray(this.data.classesList)) return;
+    this.data.classesList = this.data.classesList.filter(c => c.toLowerCase() !== className.toLowerCase());
+    if (window.INITIAL_DATA) {
+      window.INITIAL_DATA.classesList = [...this.data.classesList];
+    }
+    this.saveData();
+    if (window.FirebaseDB && window.FirebaseDB.isInitialized) {
+      window.FirebaseDB.db.collection('system_config').doc('classes').set({
+        classesList: this.data.classesList,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(err => console.error("Firestore class delete error:", err));
+    }
+  },
+
   addCourse: function(courseObj) {
     courseObj.id = courseObj.id || ('course-' + Date.now());
     courseObj.rating = 5.0;
@@ -2005,7 +2068,7 @@ window.AppState = {
     }
   },
 
-  addVideoToCourse: function(courseId, tier, title, description, contentUrl, duration, extraCategories = [], extraTags = []) {
+  addVideoToCourse: function(courseId, tier, title, description, contentUrl, duration, extraCategories = [], extraTags = [], customSuitableClass = null) {
     const course = (this.data.courses || []).find(c => c.id === courseId);
     if (!course) return;
     const resId = 'res-vid-' + Date.now();
@@ -2029,7 +2092,7 @@ window.AppState = {
       vark: ['visual', 'auditory'],
       rating: 5.0,
       reviewsCount: 1,
-      suitableClass: course.suitableClass || 'Grade 11-12'
+      suitableClass: customSuitableClass || course.suitableClass || 'All Grades'
     };
 
     if (window.autoCategorizeItem) {
@@ -2072,7 +2135,7 @@ window.AppState = {
     }
   },
 
-  addAssignment: function(courseId, title, description, points, questions, extraCategories = [], extraTags = []) {
+  addAssignment: function(courseId, title, description, points, questions, extraCategories = [], extraTags = [], customSuitableClass = null, customLevel = null) {
     const course = (this.data.courses || []).find(c => c.id === courseId) || {};
     const courseCats = window.getItemCategories ? window.getItemCategories(course) : (course.category ? [course.category] : []);
     const combinedCats = Array.from(new Set([...courseCats, ...(Array.isArray(extraCategories) ? extraCategories : [extraCategories])]));
@@ -2088,6 +2151,8 @@ window.AppState = {
       title: title,
       description: description,
       points: Number(points) || 100,
+      suitableClass: customSuitableClass || course.suitableClass || 'All Grades',
+      level: customLevel || course.level || 'Intermediate',
       questions: Array.isArray(questions) ? questions : [],
       createdAt: new Date().toISOString()
     };

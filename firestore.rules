@@ -7,7 +7,7 @@ service cloud.firestore {
     // Admin (admin@gmail.com) is permitted read access to view the registered student roster.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
+      allow read, write: if request.auth != null && (request.auth.token.email == 'admin@gmail.com' || request.auth.uid == 'u-admin');
     }
 
     // 2. Educational Courses Catalog:

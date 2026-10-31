@@ -11,6 +11,39 @@
   // --------------------------------------------------------------------------
   window.activeAdminTab = 'courses';
 
+  window.handleCreateClassSubmit = function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const className = form.className.value.trim();
+    if (!className) {
+      alert("Please enter a Class / Grade name.");
+      return;
+    }
+
+    const state = window.AppState || {};
+    const classes = (state.data && Array.isArray(state.data.classesList) && state.data.classesList.length > 0)
+      ? state.data.classesList
+      : ((window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.classesList)) ? window.INITIAL_DATA.classesList : []);
+
+    if (classes.some(c => c.toLowerCase() === className.toLowerCase())) {
+      alert(`Class / Grade "${className}" already exists!`);
+      return;
+    }
+
+    window.AppState.addClass(className);
+    alert(`Class / Grade "${className}" successfully created and saved!`);
+    form.reset();
+    AppState.notify();
+  };
+
+  window.handleDeleteClass = function(className) {
+    if (!className) return;
+    if (confirm(`Are you sure you want to delete "${className}"? Existing students and courses will remain unaffected.`)) {
+      window.AppState.deleteClass(className);
+      AppState.notify();
+    }
+  };
+
   window.handleCreateSubjectSubmit = function(e) {
     e.preventDefault();
     const form = e.target;
@@ -54,9 +87,19 @@
     const defaultCat = window.getSubjectCategoryName ? window.getSubjectCategoryName(subId) : 'General';
     const cats = selectedCategories.length > 0 ? selectedCategories : (subId ? [defaultCat] : ['General']);
 
+    const suitableClass = form.suitableClass ? form.suitableClass.value : 'All Grades';
+    const level = form.level ? form.level.value : 'Intermediate';
+    const preferredStyle = form.preferredStyle ? form.preferredStyle.value : 'all';
+    const careerGoal = form.careerGoal ? form.careerGoal.value : '';
+
     const courseObj = {
       title: form.title.value.trim(),
       subjectId: subId,
+      suitableClass: suitableClass,
+      level: level,
+      preferredStyle: preferredStyle,
+      vark: preferredStyle === 'all' ? ['visual', 'auditory', 'reading', 'kinesthetic'] : [preferredStyle],
+      careerGoal: careerGoal,
       instructor: form.instructor.value.trim() || 'AI Faculty',
       prerequisites: form.prerequisites.value.trim() || 'None',
       duration: form.duration.value ? `${form.duration.value} Weeks` : '8 Weeks',
@@ -101,12 +144,13 @@
     const duration = form.duration.value.trim() || '15 mins';
     const description = form.description.value.trim();
     const selectedCategories = Array.from(form.querySelectorAll('input[name="videoCategories"]:checked')).map(cb => cb.value);
+    const suitableClass = form.suitableClass ? form.suitableClass.value : 'All Grades';
 
     if (!courseId || !title || !contentUrl) {
       alert("Please fill in Course, Title, and Video URL.");
       return;
     }
-    window.AppState.addVideoToCourse(courseId, tier, title, description, contentUrl, duration, selectedCategories, selectedCategories);
+    window.AppState.addVideoToCourse(courseId, tier, title, description, contentUrl, duration, selectedCategories, selectedCategories, suitableClass);
     alert("Video material successfully added to course and synced with Firebase!");
     form.reset();
   };
@@ -135,6 +179,7 @@
     window.quizBuilder = {
       title: '',
       subjectId: (window.AppState && window.AppState.data && window.AppState.data.subjects && window.AppState.data.subjects[0]) ? window.AppState.data.subjects[0].id : 'ds',
+      suitableClass: 'All Grades',
       level: 'Beginner',
       timeLimitMinutes: 10,
       questions: [
@@ -175,6 +220,7 @@
     const form = e.target;
     const title = form.quizTitle.value.trim();
     const subjectId = form.quizSubjectId.value;
+    const suitableClass = form.quizSuitableClass ? form.quizSuitableClass.value : 'All Grades';
     const level = form.quizLevel.value;
     const timeLimit = parseInt(form.quizTimeLimit.value) || 10;
 
@@ -221,6 +267,7 @@
       id: 'quiz-' + Date.now(),
       title: title,
       subjectId: subjectId,
+      suitableClass: suitableClass,
       category: quizCats[0],
       categories: quizCats,
       tags: quizCats,
@@ -582,13 +629,15 @@
         title: b.title,
         description: b.description,
         points: b.points,
+        suitableClass: b.suitableClass || 'All Grades',
+        level: b.level || 'Intermediate',
         questions: b.questions,
         categories: selectedCategories.length > 0 ? selectedCategories : undefined,
         tags: selectedCategories.length > 0 ? selectedCategories : undefined
       });
       alert(`Assignment "${b.title}" updated successfully!`);
     } else {
-      window.AppState.addAssignment(b.courseId, b.title, b.description, b.points, b.questions, selectedCategories, selectedCategories);
+      window.AppState.addAssignment(b.courseId, b.title, b.description, b.points, b.questions, selectedCategories, selectedCategories, b.suitableClass || 'All Grades', b.level || 'Intermediate');
       alert(`Assignment "${b.title}" successfully created with ${b.questions.length} MCQ questions!`);
     }
 
@@ -606,6 +655,8 @@
       courseId: a.courseId,
       title: a.title,
       points: a.points || 100,
+      suitableClass: a.suitableClass || 'All Grades',
+      level: a.level || 'Intermediate',
       description: a.description || '',
       questions: (a.questions && a.questions.length > 0) ? JSON.parse(JSON.stringify(a.questions)) : [
         {
@@ -636,6 +687,8 @@
       courseId: courses[0] ? courses[0].id : '',
       title: '',
       points: 100,
+      suitableClass: 'All Grades',
+      level: 'Intermediate',
       description: '',
       questions: [
         {
@@ -715,6 +768,14 @@
       const courses = (state.data && state.data.courses) ? state.data.courses : [];
       const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
       const assignments = (state.data && state.data.assignments) ? state.data.assignments : [];
+      const initData = window.INITIAL_DATA || (state.data || {});
+      const classesList = (state.data && Array.isArray(state.data.classesList) && state.data.classesList.length > 0)
+        ? state.data.classesList
+        : ((initData.classesList && initData.classesList.length > 0)
+          ? initData.classesList
+          : ['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'Undergraduate (Year 1-2)', 'Undergraduate (Year 3-4)', 'Postgraduate / Professional']);
+      const skillLevels = ['Beginner', 'Intermediate', 'Advanced'];
+      const careerGoals = (initData.careerGoals && initData.careerGoals.length > 0) ? initData.careerGoals : [];
       
       // Students list fetched dynamically from Firebase Firestore / state
       let rawStudents = (state.data && state.data.students && state.data.students.length > 0)
@@ -754,7 +815,7 @@
                   ${window.renderIcon('plus-circle')} Create New Course
                 </h2>
                 <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px; margin-bottom:0;">
-                  Publish dynamic courses to the platform catalog and student curriculum.
+                  Publish dynamic courses tailored to specific classes, grades, learning styles, and skill levels.
                 </p>
               </div>
               <button type="button" class="btn-table-action" style="padding:7px 14px; font-weight:700; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main); display:inline-flex; align-items:center; gap:6px;" onclick="window.activeAdminTab='course-directory'; AppState.notify();">
@@ -776,6 +837,46 @@
                     <option value="ADD_NEW_SUBJECT" style="color:var(--color-purple); font-weight:700;">+ Add New Subject...</option>
                   </select>
                 </div>
+
+                <div class="admin-form-grid-2">
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Class / Grade Level</label>
+                    <select name="suitableClass" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      <option value="All Grades">All Grades & Classes</option>
+                      ${classesList.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Skill Level</label>
+                    <select name="level" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate" selected>Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="All Levels">All Levels</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="admin-form-grid-2">
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Preferred Learning Style (VARK)</label>
+                    <select name="preferredStyle" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      <option value="all">All Styles (Adaptive)</option>
+                      <option value="visual">Visual (Diagrams & Videos)</option>
+                      <option value="auditory">Auditory (Lectures & Audio)</option>
+                      <option value="reading">Reading / Writing (Articles & Notes)</option>
+                      <option value="kinesthetic">Kinesthetic (Hands-on Practice Labs)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Career Goal (Optional)</label>
+                    <select name="careerGoal" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      <option value="">All Career Paths (General)</option>
+                      ${careerGoals.map(cg => `<option value="${cg}">${cg}</option>`).join('')}
+                    </select>
+                  </div>
+                </div>
+
                 <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:6px;">Categories / Tags (Select multiple)</label>
                   <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md);">
@@ -819,11 +920,19 @@
       } else if (window.activeAdminTab === 'course-directory') {
         window.courseDirectorySearch = window.courseDirectorySearch || '';
         window.courseDirectorySubject = window.courseDirectorySubject || 'all';
+        window.courseDirectoryGrade = window.courseDirectoryGrade || 'all';
         window.courseDirectoryViewMode = window.courseDirectoryViewMode || 'cards';
 
         let filteredCourses = courses.slice();
         if (window.courseDirectorySubject && window.courseDirectorySubject !== 'all') {
           filteredCourses = filteredCourses.filter(c => (c.subjectId || '').toLowerCase() === window.courseDirectorySubject.toLowerCase());
+        }
+        if (window.courseDirectoryGrade && window.courseDirectoryGrade !== 'all') {
+          const g = window.courseDirectoryGrade.toLowerCase();
+          filteredCourses = filteredCourses.filter(c => {
+            const sc = (c.suitableClass || 'all grades').toLowerCase();
+            return sc === 'all grades' || sc.includes(g) || g.includes(sc);
+          });
         }
         if (window.courseDirectorySearch && window.courseDirectorySearch.trim()) {
           const q = window.courseDirectorySearch.toLowerCase().trim();
@@ -831,6 +940,7 @@
             (c.title && c.title.toLowerCase().includes(q)) ||
             (c.instructor && c.instructor.toLowerCase().includes(q)) ||
             (c.description && c.description.toLowerCase().includes(q)) ||
+            (c.suitableClass && c.suitableClass.toLowerCase().includes(q)) ||
             (c.subjectId && c.subjectId.toLowerCase().includes(q))
           );
         }
@@ -849,7 +959,7 @@
                   </span>
                 </div>
                 <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px; margin-bottom:0;">
-                  All published courses. On mobile, browse easily with clean cards with zero horizontal scrolling required.
+                  All published courses cataloged by class/grade level, skill tier, and subject.
                 </p>
               </div>
 
@@ -876,7 +986,7 @@
               <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                 <div class="nav-search" style="flex:1; min-width:0; width:100%; max-width:400px; padding:8px 14px;">
                   ${window.renderIcon('search')}
-                  <input type="text" placeholder="Search courses by title, instructor..." value="${window.escapeHtmlAttr(window.courseDirectorySearch || '')}" oninput="window.courseDirectorySearch=this.value; AppState.notify();">
+                  <input type="text" placeholder="Search courses by title, grade, instructor..." value="${window.escapeHtmlAttr(window.courseDirectorySearch || '')}" oninput="window.courseDirectorySearch=this.value; AppState.notify();">
                   ${window.courseDirectorySearch ? `
                     <button type="button" onclick="window.courseDirectorySearch=''; AppState.notify();" style="color:var(--text-muted); font-size:0.85rem;" title="Clear search">
                       ${window.renderIcon('x', 'small-icon')}
@@ -884,8 +994,8 @@
                   ` : ''}
                 </div>
 
-                ${(window.courseDirectorySearch || window.courseDirectorySubject !== 'all') ? `
-                  <button type="button" onclick="window.courseDirectorySearch=''; window.courseDirectorySubject='all'; AppState.notify();" style="font-size:0.8rem; color:var(--color-rose); font-weight:700; text-decoration:underline;">
+                ${(window.courseDirectorySearch || window.courseDirectorySubject !== 'all' || window.courseDirectoryGrade !== 'all') ? `
+                  <button type="button" onclick="window.courseDirectorySearch=''; window.courseDirectorySubject='all'; window.courseDirectoryGrade='all'; AppState.notify();" style="font-size:0.8rem; color:var(--color-rose); font-weight:700; text-decoration:underline;">
                     Reset Filters
                   </button>
                 ` : ''}
@@ -905,6 +1015,21 @@
                   `;
                 }).join('')}
               </div>
+
+              <!-- Grade / Class Level Filter Pills -->
+              <div class="filter-pills-bar" style="margin-bottom:0; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <span style="font-size:0.78rem; font-weight:800; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px;">
+                  ${window.renderIcon('graduation-cap', 'small-icon')} Grade / Class:
+                </span>
+                <button class="pill-filter-btn ${window.courseDirectoryGrade === 'all' ? 'active' : ''}" onclick="window.courseDirectoryGrade='all'; AppState.notify();">
+                  All Grades
+                </button>
+                ${classesList.map(grade => `
+                  <button class="pill-filter-btn ${window.courseDirectoryGrade === grade ? 'active' : ''}" onclick="window.courseDirectoryGrade='${grade}'; AppState.notify();">
+                    ${grade}
+                  </button>
+                `).join('')}
+              </div>
             </div>
 
             <!-- Courses Display: Cards View vs Table View -->
@@ -913,7 +1038,7 @@
                 <div style="font-size:2.4rem; margin-bottom:12px;">📚</div>
                 <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-main); margin-bottom:6px;">No courses found</h3>
                 <p style="font-size:0.85rem; max-width:400px; margin:0 auto 16px auto;">
-                  ${window.courseDirectorySearch || window.courseDirectorySubject !== 'all' ? 'Try adjusting your search query or subject filters.' : 'No courses have been created yet. Click below to add the first course.'}
+                  ${window.courseDirectorySearch || window.courseDirectorySubject !== 'all' || window.courseDirectoryGrade !== 'all' ? 'Try adjusting your search query, grade, or subject filters.' : 'No courses have been created yet. Click below to add the first course.'}
                 </p>
                 <button type="button" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:8px 18px; font-size:0.84rem; border-radius:var(--radius-sm);" onclick="window.activeAdminTab='courses'; AppState.notify();">
                   ${window.renderIcon('plus-circle')} Create First Course
@@ -938,6 +1063,14 @@
 
                         <div class="admin-course-card-meta">
                           <div class="admin-course-meta-chip">
+                            ${window.renderIcon('graduation-cap', 'small-icon')}
+                            <span><strong>Grade:</strong> <span class="tag-pill" style="font-size:0.75rem; padding:2px 8px; background:rgba(99,102,241,0.08); color:var(--color-indigo); font-weight:700;">${c.suitableClass || 'All Grades'}</span></span>
+                          </div>
+                          <div class="admin-course-meta-chip">
+                            ${window.renderIcon('bar-chart-2', 'small-icon')}
+                            <span><strong>Skill:</strong> ${c.level || 'Intermediate'}</span>
+                          </div>
+                          <div class="admin-course-meta-chip">
                             ${window.renderIcon('user', 'small-icon')}
                             <span><strong>Instructor:</strong> ${c.instructor || 'AI Faculty'}</span>
                           </div>
@@ -945,6 +1078,12 @@
                             ${window.renderIcon('clock', 'small-icon')}
                             <span><strong>Duration:</strong> ${c.duration || '8 Weeks'}</span>
                           </div>
+                          ${c.careerGoal ? `
+                            <div class="admin-course-meta-chip">
+                              ${window.renderIcon('target', 'small-icon')}
+                              <span><strong>Goal:</strong> ${c.careerGoal}</span>
+                            </div>
+                          ` : ''}
                           ${c.prerequisites ? `
                             <div class="admin-course-meta-chip">
                               ${window.renderIcon('check-circle', 'small-icon')}
@@ -979,6 +1118,8 @@
                       <tr>
                         <th>Course Title & Overview</th>
                         <th>Subject</th>
+                        <th>Target Grade / Class</th>
+                        <th>Skill Level</th>
                         <th>Duration</th>
                         <th>Instructor</th>
                         <th style="text-align:right;">Actions</th>
@@ -991,7 +1132,7 @@
                         const subName = sub ? sub.name : (c.subjectId || 'GENERAL').toUpperCase();
                         return `
                           <tr>
-                            <td style="max-width:320px;">
+                            <td style="max-width:300px;">
                               <strong style="font-size:0.95rem; display:block; margin-bottom:3px; color:var(--text-main);">${c.title}</strong>
                               <p style="font-size:0.8rem; color:var(--text-muted); margin:0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
                                 ${c.description || 'No description provided.'}
@@ -1000,6 +1141,16 @@
                             <td>
                               <span class="tag-pill" style="background:${subColor}18; color:${subColor}; font-weight:800; font-size:0.75rem; border:1px solid ${subColor}30;">
                                 ${subName}
+                              </span>
+                            </td>
+                            <td>
+                              <span class="tag-pill" style="font-size:0.78rem; font-weight:700; background:rgba(99,102,241,0.08); color:var(--color-indigo);">
+                                ${c.suitableClass || 'All Grades'}
+                              </span>
+                            </td>
+                            <td>
+                              <span class="tag-pill" style="font-size:0.78rem; font-weight:700;">
+                                ${c.level || 'Intermediate'}
                               </span>
                             </td>
                             <td>
@@ -1025,7 +1176,6 @@
                         `;
                       }).join('')}
                     </tbody>
-                  </table>
                 </div>
               </div>
             `}
@@ -1042,11 +1192,20 @@
             </p>
             <form onsubmit="window.handleRegisterVideoSubmit(event)">
               <div style="display:flex; flex-direction:column; gap:14px;">
-                <div>
-                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Select Course Target</label>
-                  <select name="courseId" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                    ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
-                  </select>
+                <div class="admin-form-grid-2">
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Select Course Target</label>
+                    <select name="courseId" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Class / Grade Level</label>
+                    <select name="suitableClass" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                      <option value="All Grades">All Grades & Classes</option>
+                      ${classesList.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Difficulty Category Tier</label>
@@ -1128,6 +1287,24 @@
                   <div class="mcq-form-group">
                     <label class="mcq-field-label">Assignment Title</label>
                     <input type="text" name="title" id="assignmentBuilderTitleInput" required placeholder="e.g. AI & Neural Networks Problem Set" value="${window.escapeHtmlAttr(b.title || '')}" oninput="window.updateBuilderField('title', this.value)" class="mcq-input-control">
+                  </div>
+                  <div class="admin-form-grid-2">
+                    <div class="mcq-form-group">
+                      <label class="mcq-field-label">Target Class / Grade Level</label>
+                      <select name="suitableClass" class="mcq-input-control" onchange="window.updateBuilderField('suitableClass', this.value)">
+                        <option value="All Grades" ${(!b.suitableClass || b.suitableClass === 'All Grades') ? 'selected' : ''}>All Grades & Classes</option>
+                        ${classesList.map(c => `<option value="${c}" ${b.suitableClass === c ? 'selected' : ''}>${c}</option>`).join('')}
+                      </select>
+                    </div>
+                    <div class="mcq-form-group">
+                      <label class="mcq-field-label">Target Skill Level</label>
+                      <select name="level" class="mcq-input-control" onchange="window.updateBuilderField('level', this.value)">
+                        <option value="Beginner" ${b.level === 'Beginner' ? 'selected' : ''}>Beginner</option>
+                        <option value="Intermediate" ${b.level === 'Intermediate' || !b.level ? 'selected' : ''}>Intermediate</option>
+                        <option value="Advanced" ${b.level === 'Advanced' ? 'selected' : ''}>Advanced</option>
+                        <option value="All Levels" ${b.level === 'All Levels' ? 'selected' : ''}>All Levels</option>
+                      </select>
+                    </div>
                   </div>
                   <div class="mcq-form-group">
                     <label class="mcq-field-label">Max Grade Points</label>
@@ -1302,6 +1479,14 @@
                         ` : ''}
 
                         <div class="assignment-card-meta">
+                          <span class="assignment-meta-pill" style="background:rgba(99,102,241,0.1); color:var(--color-indigo); font-weight:700;">
+                            ${window.renderIcon('graduation-cap', 'small-icon')}
+                            <span>${a.suitableClass || 'All Grades'}</span>
+                          </span>
+                          <span class="assignment-meta-pill" style="background:rgba(14,165,233,0.1); color:#0284c7; font-weight:700;">
+                            ${window.renderIcon('bar-chart-2', 'small-icon')}
+                            <span>${a.level || 'Intermediate'}</span>
+                          </span>
                           <span class="assignment-meta-pill blue">
                             ${window.renderIcon('help-circle', 'small-icon')}
                             <span><strong>${qCount}</strong> ${qCount === 1 ? 'MCQ Question' : 'MCQ Questions'}</span>
@@ -1330,6 +1515,30 @@
         const enrolledStudents = students.filter(s => s.enrolledCourseIds && Array.isArray(s.enrolledCourseIds) && s.enrolledCourseIds.length > 0);
         const displayStudents = (students && students.length > 0) ? students : enrolledStudents;
 
+        window.studentGradeFilter = window.studentGradeFilter || 'all';
+        window.studentSearchQuery = window.studentSearchQuery || '';
+
+        let visibleStudents = displayStudents.slice();
+        if (window.studentGradeFilter && window.studentGradeFilter !== 'all') {
+          const gf = window.studentGradeFilter.toLowerCase();
+          visibleStudents = visibleStudents.filter(s => {
+            const sg = (s.gradeClass || s.grade || '').toLowerCase();
+            return sg.includes(gf) || gf.includes(sg);
+          });
+        }
+        if (window.studentSearchQuery && window.studentSearchQuery.trim()) {
+          const sq = window.studentSearchQuery.toLowerCase().trim();
+          visibleStudents = visibleStudents.filter(s => {
+            const sName = (s.name || s.displayName || '').toLowerCase();
+            const sEmail = (s.email || '').toLowerCase();
+            const sGrade = (s.gradeClass || s.grade || '').toLowerCase();
+            const sGoal = (s.careerGoal || s.goalCareer || '').toLowerCase();
+            const sStyle = (s.preferredStyle || s.learningStyle || '').toLowerCase();
+            const sSkill = (s.skillLevel || '').toLowerCase();
+            return sName.includes(sq) || sEmail.includes(sq) || sGrade.includes(sq) || sGoal.includes(sq) || sStyle.includes(sq) || sSkill.includes(sq);
+          });
+        }
+
         activeTabContent = `
           <div style="display:flex; flex-direction:column; gap:28px;">
             <!-- Registered Students Directory -->
@@ -1339,11 +1548,11 @@
                   <h2 style="font-size:1.2rem; font-weight:800; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;">
                     ${window.renderIcon('users')} Registered Students Profile & Onboarding
                     <span class="tag-pill" style="background:rgba(139,92,246,0.12); color:var(--color-purple); font-size:0.75rem; font-weight:800;">
-                      ${displayStudents.length} Students
+                      ${visibleStudents.length} of ${displayStudents.length} Students
                     </span>
                   </h2>
                   <p style="font-size:0.85rem; color:var(--text-muted); margin:0;">
-                    Dynamic student onboarding profiles, learning styles, goals, and streak metrics.
+                    Complete student onboarding profiles matching questionnaire fields: Class/Grade, Skill Level, VARK Style, Career Goals, and Subject Interests.
                   </p>
                 </div>
                 <div class="view-mode-toggle" style="display:flex; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:2px;">
@@ -1353,6 +1562,45 @@
                   <button type="button" class="btn-view-toggle ${window.studentDirectoryViewMode === 'table' ? 'active' : ''}" onclick="window.studentDirectoryViewMode='table'; AppState.notify();" title="Table View">
                     ${window.renderIcon('list', 'small-icon')} Table
                   </button>
+                </div>
+              </div>
+
+              <!-- Search and Grade / Class Level Filter Bar -->
+              <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border-color);">
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                  <div class="nav-search" style="flex:1; min-width:0; width:100%; max-width:400px; padding:8px 14px;">
+                    ${window.renderIcon('search')}
+                    <input type="text" placeholder="Search students by name, email, grade, career..." value="${window.escapeHtmlAttr(window.studentSearchQuery || '')}" oninput="window.studentSearchQuery=this.value; AppState.notify();">
+                    ${window.studentSearchQuery ? `
+                      <button type="button" onclick="window.studentSearchQuery=''; AppState.notify();" style="color:var(--text-muted); font-size:0.85rem;" title="Clear search">
+                        ${window.renderIcon('x', 'small-icon')}
+                      </button>
+                    ` : ''}
+                  </div>
+
+                  ${(window.studentSearchQuery || window.studentGradeFilter !== 'all') ? `
+                    <button type="button" onclick="window.studentSearchQuery=''; window.studentGradeFilter='all'; AppState.notify();" style="font-size:0.8rem; color:var(--color-rose); font-weight:700; text-decoration:underline;">
+                      Reset Filters
+                    </button>
+                  ` : ''}
+                </div>
+
+                <!-- Grade / Class Level Filter Pills -->
+                <div class="filter-pills-bar" style="margin-bottom:0; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                  <span style="font-size:0.78rem; font-weight:800; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px;">
+                    ${window.renderIcon('graduation-cap', 'small-icon')} Class / Grade:
+                  </span>
+                  <button class="pill-filter-btn ${window.studentGradeFilter === 'all' ? 'active' : ''}" onclick="window.studentGradeFilter='all'; AppState.notify();">
+                    All Grades (${displayStudents.length})
+                  </button>
+                  ${classesList.map(grade => {
+                    const count = displayStudents.filter(s => ((s.gradeClass || s.grade || '').toLowerCase().includes(grade.toLowerCase()))).length;
+                    return `
+                      <button class="pill-filter-btn ${window.studentGradeFilter === grade ? 'active' : ''}" onclick="window.studentGradeFilter='${grade}'; AppState.notify();">
+                        ${grade} (${count})
+                      </button>
+                    `;
+                  }).join('')}
                 </div>
               </div>
 
@@ -1367,9 +1615,9 @@
                 <div style="text-align:center; padding:28px; color:var(--color-rose); font-weight:600; font-size:0.95rem;">
                   Unable to load student data. Please try again.
                 </div>
-              ` : (displayStudents.length === 0 ? `
-                <div style="text-align:center; color:var(--text-muted); padding:32px; font-size:0.95rem;">
-                  No students registered yet.
+              ` : (visibleStudents.length === 0 ? `
+                <div style="text-align:center; color:var(--text-muted); padding:36px; font-size:0.95rem;">
+                  No students found matching current filters.
                 </div>
               ` : (window.studentDirectoryViewMode === 'table' ? `
                 <!-- Compact Table Mode -->
@@ -1379,14 +1627,16 @@
                       <tr>
                         <th>Student Name</th>
                         <th>Email</th>
-                        <th>Grade / Class</th>
-                        <th>Preferred Style</th>
-                        <th>Goal Career</th>
+                        <th>Class / Grade Level</th>
+                        <th>Skill Level</th>
+                        <th>Preferred Style (VARK)</th>
+                        <th>Target Career Goal</th>
+                        <th>Subjects of Interest</th>
                         <th>Streak / Progress</th>
                       </tr>
                     </thead>
                     <tbody>
-                      ${displayStudents.map(s => {
+                      ${visibleStudents.map(s => {
                         const studentEnrolledCourses = courses.filter(c => (s.enrolledCourseIds || []).includes(c.id));
                         let totalLessons = 0;
                         studentEnrolledCourses.forEach(c => {
@@ -1407,8 +1657,10 @@
                         const studentName = s.name || s.displayName || 'Student';
                         const studentEmail = s.email || 'N/A';
                         const studentGrade = s.gradeClass || s.grade || 'N/A';
-                        const preferredStyle = (s.preferredStyle || 'visual').toUpperCase();
-                        const careerGoal = s.careerGoal || s.goalCareer || 'N/A';
+                        const studentSkill = s.skillLevel || 'Beginner';
+                        const preferredStyle = (s.preferredStyle || s.learningStyle || 'visual').toUpperCase();
+                        const careerGoal = s.careerGoal || s.goalCareer || 'General Exploration';
+                        const studentInterests = (s.interests && Array.isArray(s.interests) && s.interests.length > 0) ? s.interests : [];
                         const avatarUrl = s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
 
                         return `
@@ -1420,12 +1672,23 @@
                               </div>
                             </td>
                             <td>${studentEmail}</td>
-                            <td><span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color);">${studentGrade}</span></td>
+                            <td><span class="tag-pill" style="background:var(--bg-surface); border:1px solid var(--border-color); font-weight:700;">${studentGrade}</span></td>
+                            <td><span class="tag-pill" style="background:rgba(14,165,233,0.1); color:#0284c7; font-weight:700;">${studentSkill}</span></td>
                             <td><span class="tag-pill" style="background:rgba(99, 102, 241, 0.1); color:var(--color-indigo);">${preferredStyle}</span></td>
-                            <td>${careerGoal}</td>
+                            <td style="max-width:180px; font-size:0.83rem;">${careerGoal}</td>
+                            <td style="max-width:200px;">
+                              ${studentInterests.length > 0 ? `
+                                <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                                  ${studentInterests.map(int => {
+                                    const sub = subjects.find(sub => sub.id === int) || { name: int };
+                                    return `<span style="font-size:0.7rem; padding:1px 6px; border-radius:4px; background:var(--bg-surface); border:1px solid var(--border-color); color:var(--text-muted);">${sub.name || int}</span>`;
+                                  }).join('')}
+                                </div>
+                              ` : '<span style="color:var(--text-muted); font-size:0.8rem;">All</span>'}
+                            </td>
                             <td>
                               <span style="font-weight:700; color:var(--color-purple);">${streakDays} 🔥</span> • 
-                              <span style="font-size:0.8rem; color:var(--text-muted);">${completedCount} lesson${completedCount === 1 ? '' : 's'} done (${progressPct}%)</span>
+                              <span style="font-size:0.8rem; color:var(--text-muted);">${completedCount} done (${progressPct}%)</span>
                             </td>
                           </tr>
                         `;
@@ -1436,7 +1699,7 @@
               ` : `
                 <!-- Premium Scroll-Free Responsive Cards Mode (Default) -->
                 <div class="student-cards-list">
-                  ${displayStudents.map(s => {
+                  ${visibleStudents.map(s => {
                     const studentEnrolledCourses = courses.filter(c => (s.enrolledCourseIds || []).includes(c.id));
                     let totalLessons = 0;
                     studentEnrolledCourses.forEach(c => {
@@ -1457,8 +1720,10 @@
                     const studentName = s.name || s.displayName || 'Student';
                     const studentEmail = s.email || 'N/A';
                     const studentGrade = s.gradeClass || s.grade || 'Grade N/A';
-                    const preferredStyle = (s.preferredStyle || 'visual').toUpperCase();
+                    const studentSkill = s.skillLevel || 'Beginner';
+                    const preferredStyle = (s.preferredStyle || s.learningStyle || 'visual').toUpperCase();
                     const careerGoal = s.careerGoal || s.goalCareer || 'General Exploration';
+                    const studentInterests = (s.interests && Array.isArray(s.interests) && s.interests.length > 0) ? s.interests : [];
                     const avatarUrl = s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
 
                     return `
@@ -1476,10 +1741,18 @@
                           </div>
                         </div>
 
-                        <!-- 4-Metric Bento Box (Zero Horizontal Scrolling) -->
+                        <!-- Complete Metric Bento Box Matching Registration Questionnaire -->
                         <div class="student-card-metrics">
                           <div class="student-metric-box">
-                            <span class="student-metric-lbl">Preferred Style</span>
+                            <span class="student-metric-lbl">Class / Grade</span>
+                            <span class="student-metric-val" style="color:var(--color-indigo); font-weight:800;">${studentGrade}</span>
+                          </div>
+                          <div class="student-metric-box">
+                            <span class="student-metric-lbl">Skill Level</span>
+                            <span class="student-metric-val skill-tag">${studentSkill}</span>
+                          </div>
+                          <div class="student-metric-box">
+                            <span class="student-metric-lbl">VARK Style</span>
                             <span class="student-metric-val style-tag">${preferredStyle}</span>
                           </div>
                           <div class="student-metric-box">
@@ -1487,7 +1760,7 @@
                             <span class="student-metric-val career-tag" title="${window.escapeHtmlAttr(careerGoal)}">${careerGoal}</span>
                           </div>
                           <div class="student-metric-box">
-                            <span class="student-metric-lbl">Learning Streak</span>
+                            <span class="student-metric-lbl">Streak</span>
                             <span class="student-metric-val streak-tag">${streakDays} 🔥 Days</span>
                           </div>
                           <div class="student-metric-box">
@@ -1501,6 +1774,16 @@
                             <div class="student-card-progress-fill" style="width:${progressPct}%"></div>
                           </div>
                         </div>
+
+                        ${studentInterests.length > 0 ? `
+                          <div class="student-interests-wrap">
+                            <span style="font-size:0.72rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Interests:</span>
+                            ${studentInterests.map(int => {
+                              const sub = subjects.find(sub => sub.id === int) || { name: int };
+                              return `<span class="student-interest-pill">${sub.name || int}</span>`;
+                            }).join('')}
+                          </div>
+                        ` : ''}
                       </div>
                     `;
                   }).join('')}
@@ -2272,6 +2555,120 @@
             </div>
           </div>
         `;
+      } else if (window.activeAdminTab === 'classes') {
+        activeTabContent = `
+          <div class="admin-two-col-grid">
+            <!-- Create Class / Grade Form -->
+            <div class="widget-card">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                <div style="background:rgba(99,102,241,0.12); color:var(--color-indigo); padding:8px; border-radius:var(--radius-sm); display:flex; align-items:center;">
+                  ${window.renderIcon('plus-circle')}
+                </div>
+                <div>
+                  <h2 style="font-size:1.2rem; font-weight:800; margin:0;">Add New Class / Grade Level</h2>
+                  <p style="font-size:0.82rem; color:var(--text-muted); margin:2px 0 0 0;">Create a dynamic grade tier for student registration and course targeting.</p>
+                </div>
+              </div>
+
+              <form onsubmit="window.handleCreateClassSubmit(event)">
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                  <div>
+                    <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">Class / Grade Title</label>
+                    <input type="text" name="className" id="newClassInput" required placeholder="e.g. Grade 8, Class 10-A, MCA Semester 1, B.Tech CSE" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-size:0.9rem;">
+                    <span style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">Enter a descriptive name for the class or educational tier.</span>
+                  </div>
+
+                  <div>
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:6px;">Quick Presets (Click to autofill):</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                      ${['Grade 6', 'Grade 7', 'Grade 8', 'Diploma (Year 1)', 'Diploma (Year 2)', 'Master / Postgraduate', 'PhD Scholar'].map(preset => `
+                        <button type="button" class="btn-table-action" style="padding:4px 10px; font-size:0.78rem; border-radius:var(--radius-full); border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-main);" onclick="document.getElementById('newClassInput').value='${preset}'; document.getElementById('newClassInput').focus();">
+                          + ${preset}
+                        </button>
+                      `).join('')}
+                    </div>
+                  </div>
+
+                  <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
+                    <div style="display:flex; align-items:center; gap:6px; font-weight:700; color:var(--color-indigo); margin-bottom:4px;">
+                      ${window.renderIcon('info', 'small-icon')} Real-time Dynamic Sync
+                    </div>
+                    Newly created classes instantly become available in the <strong>Student Questionnaire</strong>, <strong>Course Builder</strong>, <strong>Video Lessons</strong>, and <strong>Directory Filters</strong> without reloading.
+                  </div>
+
+                  <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; width:100%; padding:12px; justify-content:center; font-weight:700; border-radius:var(--radius-md);">
+                    ${window.renderIcon('plus-circle')} Create Class / Grade Level
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Existing Classes List -->
+            <div class="widget-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <div>
+                  <h2 style="font-size:1.2rem; font-weight:800; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;">
+                    ${window.renderIcon('graduation-cap')} Configured Classes & Grades
+                    <span class="tag-pill" style="background:rgba(99,102,241,0.12); color:var(--color-indigo); font-size:0.75rem; font-weight:800;">
+                      ${classesList.length} ${classesList.length === 1 ? 'Class' : 'Classes'}
+                    </span>
+                  </h2>
+                  <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">
+                    Manage active grade levels, view enrolled student metrics, and filter catalog content.
+                  </p>
+                </div>
+              </div>
+
+              ${classesList.length === 0 ? `
+                <div style="text-align:center; padding:36px 16px; color:var(--text-muted);">
+                  <div style="font-size:2.2rem; margin-bottom:8px;">🎓</div>
+                  <h3 style="font-size:1.05rem; font-weight:800; color:var(--text-main); margin-bottom:4px;">No classes configured</h3>
+                  <p style="font-size:0.82rem; margin:0 auto; max-width:340px;">Use the form on the left to add your first academic class or grade level.</p>
+                </div>
+              ` : `
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  ${classesList.map(grade => {
+                    const studentCount = students.filter(s => (s.gradeClass || '').toLowerCase() === grade.toLowerCase()).length;
+                    const courseCount = courses.filter(c => (c.suitableClass || '').toLowerCase() === grade.toLowerCase() || (c.suitableClass === 'All Grades')).length;
+
+                    return `
+                      <div class="subject-card-item" style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px 16px; background:var(--bg-surface); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                          <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(99,102,241,0.1); color:var(--color-indigo); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            ${window.renderIcon('graduation-cap')}
+                          </div>
+                          <div>
+                            <div style="font-weight:800; font-size:0.95rem; color:var(--text-main);">${window.escapeHtmlAttr(grade)}</div>
+                            <div style="display:flex; gap:12px; margin-top:4px; font-size:0.78rem; color:var(--text-muted);">
+                              <span style="display:inline-flex; align-items:center; gap:4px;">
+                                ${window.renderIcon('users', 'small-icon')} <strong>${studentCount}</strong> ${studentCount === 1 ? 'Student' : 'Students'}
+                              </span>
+                              <span style="display:inline-flex; align-items:center; gap:4px;">
+                                ${window.renderIcon('book-open', 'small-icon')} <strong>${courseCount}</strong> Courses
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <button type="button" class="btn-table-action" style="padding:6px 10px; font-size:0.75rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); display:inline-flex; align-items:center; gap:4px;" onclick="window.studentSearchQuery='${window.escapeHtmlAttr(grade)}'; window.activeAdminTab='submissions'; AppState.notify();" title="View Students in ${window.escapeHtmlAttr(grade)}">
+                            ${window.renderIcon('users', 'small-icon')} Students
+                          </button>
+                          <button type="button" class="btn-table-action" style="padding:6px 10px; font-size:0.75rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); display:inline-flex; align-items:center; gap:4px;" onclick="window.courseDirectorySearchQuery='${window.escapeHtmlAttr(grade)}'; window.activeAdminTab='course-directory'; AppState.notify();" title="View Courses for ${window.escapeHtmlAttr(grade)}">
+                            ${window.renderIcon('graduation-cap', 'small-icon')} Courses
+                          </button>
+                          <button type="button" class="btn-table-action btn-danger-action" style="padding:6px 10px; font-size:0.75rem; border-radius:var(--radius-sm); border:1px solid rgba(244,63,94,0.3); background:rgba(244,63,94,0.06); color:var(--color-rose); display:inline-flex; align-items:center; gap:4px;" onclick="window.handleDeleteClass('${window.escapeHtmlAttr(grade)}')" title="Delete this Class">
+                            ${window.renderIcon('trash-2', 'small-icon')}
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+        `;
       } else if (window.activeAdminTab === 'quizzes') {
         const quizzes = (state.data && state.data.quizzes && state.data.quizzes.length > 0) ? state.data.quizzes : (window.ALL_SUBJECT_QUIZZES || []);
         window.quizSubView = window.quizSubView || 'list';
@@ -2301,7 +2698,7 @@
                     <input type="text" name="quizTitle" required placeholder="e.g. Artificial Intelligence Fundamentals Quiz" value="${window.escapeHtmlAttr(window.quizBuilder.title || '')}" oninput="window.quizBuilder.title=this.value" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
                   </div>
 
-                  <div class="admin-form-grid-3" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                  <div class="admin-form-grid-2">
                     <div>
                       <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Subject</label>
                       <select name="quizSubjectId" required style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="window.quizBuilder.subjectId=this.value">
@@ -2309,6 +2706,16 @@
                         ${subjects.map(s => `<option value="${s.id}" ${window.quizBuilder.subjectId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
                       </select>
                     </div>
+                    <div>
+                      <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Target Class / Grade Level</label>
+                      <select name="quizSuitableClass" style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="window.quizBuilder.suitableClass=this.value">
+                        <option value="All Grades" ${(!window.quizBuilder.suitableClass || window.quizBuilder.suitableClass === 'All Grades') ? 'selected' : ''}>All Grades & Classes</option>
+                        ${classesList.map(c => `<option value="${c}" ${window.quizBuilder.suitableClass === c ? 'selected' : ''}>${c}</option>`).join('')}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="admin-form-grid-2">
                     <div>
                       <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Tier / Category</label>
                       <select name="quizLevel" required style="width:100%; padding:11px 12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="window.quizBuilder.level=this.value">
@@ -2443,6 +2850,7 @@
                       <tr>
                         <th>Quiz Title</th>
                         <th>Subject</th>
+                        <th>Target Grade / Class</th>
                         <th>Tier / Category</th>
                         <th style="text-align:center;">Questions</th>
                         <th style="text-align:center;">Time Limit</th>
@@ -2461,6 +2869,11 @@
                             </td>
                             <td>
                               <span style="font-size:0.82rem; font-weight:600; color:var(--text-main);">${sub.name}</span>
+                            </td>
+                            <td>
+                              <span class="tag-pill" style="font-size:0.78rem; font-weight:700; background:rgba(99,102,241,0.08); color:var(--color-indigo);">
+                                ${q.suitableClass || 'All Grades'}
+                              </span>
                             </td>
                             <td>
                               <span class="quiz-tier-badge ${(q.level || 'beginner').toLowerCase()}" style="font-size:0.78rem;">
@@ -2562,6 +2975,9 @@
           </button>
           <button class="tab-btn ${window.activeAdminTab === 'subjects' ? 'active' : ''}" onclick="window.activeAdminTab='subjects'; AppState.notify();">
             ${window.renderIcon('book')} Manage Subjects
+          </button>
+          <button class="tab-btn ${window.activeAdminTab === 'classes' ? 'active' : ''}" onclick="window.activeAdminTab='classes'; AppState.notify();">
+            ${window.renderIcon('graduation-cap')} Classes & Grades <span class="tab-count-badge">${classesList.length}</span>
           </button>
           <button class="tab-btn ${window.activeAdminTab === 'roadmaps' ? 'active' : ''}" onclick="window.activeAdminTab='roadmaps'; AppState.notify();">
             ${window.renderIcon('git-branch')} Roadmaps & Tags

@@ -5346,10 +5346,10 @@ body.sidebar-drawer-open {
   padding: 4px 10px !important;
 }
 
-/* 4-Metric Bento Grid */
+/* Responsive Bento Grid for Student Metrics */
 .student-card-metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
   width: 100%;
   min-width: 0;
@@ -5394,6 +5394,16 @@ body.sidebar-drawer-open {
   width: fit-content;
 }
 
+.student-metric-val.skill-tag {
+  color: #0284c7;
+  background: rgba(14, 165, 233, 0.1);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  font-size: 0.78rem;
+  width: fit-content;
+}
+
 .student-metric-val.streak-tag {
   color: #7c3aed;
   display: inline-flex;
@@ -5409,6 +5419,25 @@ body.sidebar-drawer-open {
 .student-metric-val.progress-tag {
   color: #059669;
   font-weight: 700;
+}
+
+.student-interests-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.student-interest-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
 }
 
 /* Progress bar inside student card */

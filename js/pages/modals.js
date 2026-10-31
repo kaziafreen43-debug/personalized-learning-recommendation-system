@@ -177,14 +177,20 @@
       return;
     }
 
+    const suitableClass = form.suitableClass ? form.suitableClass.value : 'All Grades';
+    const level = form.level ? form.level.value : 'Intermediate';
+    const varkStyle = form.vark ? form.vark.value : 'visual';
+
     const data = {
-      title: form.title.value,
+      title: form.title.value.trim(),
       subjectId: subjectId,
       format: form.format.value,
-      level: 'Intermediate',
-      duration: '30 mins',
-      vark: ['visual', 'kinesthetic'],
-      description: form.description.value
+      suitableClass: suitableClass,
+      level: level,
+      duration: form.duration ? form.duration.value.trim() || '30 mins' : '30 mins',
+      vark: varkStyle === 'all' ? ['visual', 'auditory', 'reading', 'kinesthetic'] : [varkStyle],
+      description: form.description.value.trim(),
+      summary: form.description.value.trim()
     };
     window.AppState.addResource(data);
     window.AppState.closeModal();
@@ -452,6 +458,12 @@
         ? currentUser.interests
         : [];
 
+      const classesList = (state.data && Array.isArray(state.data.classesList) && state.data.classesList.length > 0)
+        ? state.data.classesList
+        : ((window.INITIAL_DATA && Array.isArray(window.INITIAL_DATA.classesList) && window.INITIAL_DATA.classesList.length > 0)
+          ? window.INITIAL_DATA.classesList
+          : ['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'Undergraduate (Year 1-2)', 'Undergraduate (Year 3-4)', 'Postgraduate / Professional']);
+
       const welcomeHtml = isNewReg ? `
         <div class="welcome-banner" style="background:rgba(190,24,93,0.08); border:1px solid rgba(190,24,93,0.25); padding:16px; border-radius:var(--radius-md); text-align:center; margin-bottom:20px; font-weight:700; color:var(--color-indigo); line-height:1.5; font-size:0.95rem;">
           Welcome${defaultName ? `, ${defaultName}` : ''}! Please complete your assessment to receive personalized AI learning recommendations.
@@ -485,7 +497,7 @@
                   <label style="font-size:0.82rem; font-weight:700; display:block; margin-bottom:4px;">Class / Grade Level</label>
                   <select name="gradeClass" id="gradeClassSelect" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); transition: border-color 0.2s;">
                     <option value="" disabled ${!currentGrade ? 'selected' : ''}>Select Grade</option>
-                    ${(data.classesList || []).map(c => `<option value="${c}" ${currentGrade === c ? 'selected' : ''}>${c}</option>`).join('')}
+                    ${classesList.map(c => `<option value="${c}" ${currentGrade === c ? 'selected' : ''}>${c}</option>`).join('')}
                   </select>
                   <div id="gradeClassError" style="color:var(--color-rose); font-size:0.78rem; font-weight:600; margin-top:4px; display:none;">Please select your grade.</div>
                 </div>
@@ -921,25 +933,83 @@
     renderAddResourceModalContent: function() {
       const state = window.AppState || {};
       const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
+      const initData = window.INITIAL_DATA || {};
+      const classesList = (state.data && Array.isArray(state.data.classesList) && state.data.classesList.length > 0)
+        ? state.data.classesList
+        : ((initData.classesList && initData.classesList.length > 0)
+          ? initData.classesList
+          : ['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'Undergraduate (Year 1-2)', 'Undergraduate (Year 3-4)', 'Postgraduate / Professional']);
 
       return `
         <div>
           <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:16px;">Add New Learning Resource</h2>
           <form onsubmit="event.preventDefault(); window.submitNewResource(this);">
             <div style="display:flex; flex-direction:column; gap:12px;">
-              <input type="text" name="title" placeholder="Course Title" required style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-              <select name="subjectId" required style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="if(this.value === 'ADD_NEW_SUBJECT') { AppState.closeModal(); window.activeAdminTab = 'subjects'; AppState.notify(); }">
-                <option value="" disabled selected>Select Subject</option>
-                ${subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                <option value="ADD_NEW_SUBJECT" style="color:var(--color-purple); font-weight:700;">+ Add New Subject...</option>
-              </select>
-              <select name="format" style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
-                <option value="video">Video</option>
-                <option value="article">Article</option>
-                <option value="exercise">Interactive Lab</option>
-              </select>
-              <textarea name="description" placeholder="Short Description" required style="padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);"></textarea>
-              <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; justify-content:center;">
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Resource Title</label>
+                <input type="text" name="title" placeholder="e.g. Neural Networks & Deep Learning Guide" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+              </div>
+
+              <div class="responsive-form-grid-2">
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Subject</label>
+                  <select name="subjectId" required style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);" onchange="if(this.value === 'ADD_NEW_SUBJECT') { AppState.closeModal(); window.activeAdminTab = 'subjects'; AppState.notify(); }">
+                    <option value="" disabled selected>Select Subject</option>
+                    ${subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                    <option value="ADD_NEW_SUBJECT" style="color:var(--color-purple); font-weight:700;">+ Add New Subject...</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Format Type</label>
+                  <select name="format" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                    <option value="video">Video Lecture</option>
+                    <option value="article">Article / Notes</option>
+                    <option value="exercise">Interactive Lab / Practice</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="responsive-form-grid-2">
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Class / Grade Level</label>
+                  <select name="suitableClass" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                    <option value="All Grades">All Grades & Classes</option>
+                    ${classesList.map(c => `<option value="${c}">${c}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Target Skill Level</label>
+                  <select name="level" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate" selected>Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="responsive-form-grid-2">
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Primary Learning Style (VARK)</label>
+                  <select name="vark" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                    <option value="all">All Styles (Adaptive)</option>
+                    <option value="visual" selected>Visual (Diagrams & Videos)</option>
+                    <option value="auditory">Auditory (Lectures & Audio)</option>
+                    <option value="reading">Reading / Writing (Articles & Notes)</option>
+                    <option value="kinesthetic">Kinesthetic (Hands-on Practice Labs)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Duration</label>
+                  <input type="text" name="duration" placeholder="e.g. 30 mins" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main);">
+                </div>
+              </div>
+
+              <div>
+                <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Description / Content Summary</label>
+                <textarea name="description" placeholder="Short description and learning objectives..." required style="width:100%; height:80px; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-main); font-family:inherit;"></textarea>
+              </div>
+
+              <button type="submit" class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; justify-content:center; padding:12px; font-weight:800; border-radius:var(--radius-md);">
                 Publish Resource
               </button>
             </div>

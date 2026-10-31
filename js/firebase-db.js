@@ -921,11 +921,14 @@ window.FirebaseDB = {
 
     console.log(`[Firestore Write: users/${docId}] Saving user document to collection 'users'...`);
 
+    // Clean JSON to strip any undefined values that could crash Firestore SDK
+    const cleanUser = JSON.parse(JSON.stringify(user));
+
     // Always persist to local mock storage as a dependable safety net
     try {
       let mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
       if (!mockDB.users) mockDB.users = {};
-      mockDB.users[docId] = user;
+      mockDB.users[docId] = cleanUser;
       localStorage.setItem('plr_firestore_mock', JSON.stringify(mockDB));
     } catch (_) {}
 
@@ -935,13 +938,13 @@ window.FirebaseDB = {
       fetch(`${apiBase}/api/firestore/users/${docId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
+        body: JSON.stringify(cleanUser)
       }).catch(() => {});
     } catch (_) {}
 
     if (this.isInitialized && this.db) {
       try {
-        await this.db.collection('users').doc(docId).set(user);
+        await this.db.collection('users').doc(docId).set(cleanUser);
         console.log(`[Firestore Write Success: users/${docId}] User document successfully committed to Firestore.`);
       } catch (e) {
         console.error(`[Firestore Write Error: users/${docId}] Failed to write to Firestore:`, e);
