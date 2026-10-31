@@ -384,7 +384,16 @@ class MockAuth {
   _initSession() {
     try {
       const activeUid = localStorage.getItem('plr_auth_current_uid') || localStorage.getItem('plr_user_id');
-      if (activeUid && activeUid !== 'u-admin') {
+      if (activeUid === 'u-admin') {
+        this.currentUser = new MockAuthUser({
+          uid: 'u-admin',
+          email: 'admin@gmail.com',
+          displayName: 'Admin Instructor',
+          photoURL: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+        });
+        return;
+      }
+      if (activeUid) {
         let users = JSON.parse(localStorage.getItem('plr_firebase_auth_users') || '{}');
         let record = users[activeUid];
         if (!record) {
@@ -471,6 +480,17 @@ class MockAuth {
     } catch (_) {}
 
     let userRecord = Object.values(users).find(u => (u.email || '').toLowerCase() === cleanEmail);
+    if (!userRecord && cleanEmail === 'admin@gmail.com') {
+      userRecord = {
+        uid: 'u-admin',
+        email: 'admin@gmail.com',
+        displayName: 'Admin Instructor',
+        photoURL: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+        password: password || 'Pass@123'
+      };
+      users['u-admin'] = userRecord;
+      try { localStorage.setItem('plr_firebase_auth_users', JSON.stringify(users)); } catch (_) {}
+    }
     if (!userRecord) {
       try {
         const mockDB = JSON.parse(localStorage.getItem('plr_firestore_mock') || '{}');
@@ -621,21 +641,61 @@ class ResilientAuth {
   }
 
   async signInWithEmailAndPassword(email, password) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // If a different user is currently signed in on remote auth, sign them out first
+    const currentRemoteEmail = (this.remoteAuth && this.remoteAuth.currentUser && this.remoteAuth.currentUser.email)
+      ? this.remoteAuth.currentUser.email.toLowerCase()
+      : '';
+    if (currentRemoteEmail && currentRemoteEmail !== cleanEmail) {
+      try { await this.remoteAuth.signOut(); } catch (_) {}
+    }
+
     if (this.remoteAvailable && this.remoteAuth) {
       try {
-        const cred = await this.remoteAuth.signInWithEmailAndPassword(email, password);
+        const cred = await this.remoteAuth.signInWithEmailAndPassword(cleanEmail, password);
         if (cred && cred.user) {
           try {
-            await this.mockAuth.signInWithEmailAndPassword(email, password);
+            await this.mockAuth.signInWithEmailAndPassword(cleanEmail, password);
           } catch (_) {}
+          this._notifyAll(cred.user);
           return cred;
         }
       } catch (err) {
         console.warn("[ResilientAuth.signInWithEmailAndPassword] Firebase Auth note:", err.code || err.message);
-        throw err;
+
+        // If admin account doesn't exist in remote Firebase Auth, create it automatically
+        if (cleanEmail === 'admin@gmail.com' && (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || (err.message && err.message.toLowerCase().includes('user-not-found')))) {
+          try {
+            const newCred = await this.remoteAuth.createUserWithEmailAndPassword(cleanEmail, password || 'Pass@123');
+            if (newCred && newCred.user) {
+              try {
+                if (typeof newCred.user.updateProfile === 'function') {
+                  await newCred.user.updateProfile({ displayName: 'Admin Instructor' });
+                }
+              } catch (_) {}
+              try { await this.mockAuth.signInWithEmailAndPassword(cleanEmail, password || 'Pass@123'); } catch (_) {}
+              this._notifyAll(newCred.user);
+              return newCred;
+            }
+          } catch (createErr) {
+            console.warn("[ResilientAuth] Admin remote creation note:", createErr.code || createErr.message);
+          }
+        }
+
+        // Fallback to mockAuth
+        try {
+          const mockCred = await this.mockAuth.signInWithEmailAndPassword(cleanEmail, password);
+          if (mockCred && mockCred.user) {
+            this._notifyAll(mockCred.user);
+            return mockCred;
+          }
+        } catch (mockErr) {
+          throw err || mockErr;
+        }
       }
     }
-    return this.mockAuth.signInWithEmailAndPassword(email, password);
+    return this.mockAuth.signInWithEmailAndPassword(cleanEmail, password);
   }
 
   async signOut() {

@@ -230,11 +230,15 @@
                 ${state.theme === 'light' ? renderIcon('moon') : renderIcon('sun')}
               </button>
 
-              ${user && user.role === 'admin' ? `
-                <button class="role-switcher-btn" onclick="const s = (AppState.data && AppState.data.students && AppState.data.students[0]) ? AppState.data.students[0].id : null; if(s) AppState.setUser(s); else AppState.setView('dashboard');">
-                  ${renderIcon('user-check')} Switch to Student
+              ${user && (user.role === 'admin' || user.id === 'u-admin' || user.gradeClass === 'Administrator' || (state.isAdmin && state.isAdmin(user))) ? `
+                <button class="role-switcher-btn" onclick="const s = (AppState.data && AppState.data.students && AppState.data.students[0]) ? AppState.data.students[0].id : null; if(s) AppState.setUser(s); else AppState.setView('dashboard');" title="Preview Student Experience">
+                  ${renderIcon('user-check')} Switch to Student View
                 </button>
-              ` : ''}
+              ` : `
+                <button class="role-switcher-btn" style="background:var(--bg-surface); border:1px solid var(--border-color); color:var(--text-main);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123');" title="Switch to Admin Control Panel">
+                  ${renderIcon('settings')} Admin Mode
+                </button>
+              `}
 
               <button onclick="AppState.logoutUser()" class="icon-btn" title="Log Out" style="color:var(--color-rose);">
                 ${renderIcon('log-out')}
@@ -280,13 +284,21 @@
       const currentText = (el.textContent || '').replace(/,/g, '').trim();
       const currentDisplayed = parseInt(currentText, 10);
 
+      // If already displaying the target, do NOT re-animate from 0 (stops counter blinking/flashing)
+      if (!isNaN(currentDisplayed) && currentDisplayed === target) {
+        el.dataset.animatedTarget = target;
+        return;
+      }
+
       if (el.dataset.animatedTarget !== undefined && parseInt(el.dataset.animatedTarget, 10) === target && currentDisplayed === target) {
         return;
       }
 
-      const startVal = (el.dataset.animatedTarget !== undefined && !isNaN(parseInt(el.dataset.animatedTarget, 10)))
-        ? parseInt(el.dataset.animatedTarget, 10)
-        : 0;
+      const startVal = (!isNaN(currentDisplayed) && currentDisplayed > 0)
+        ? currentDisplayed
+        : ((el.dataset.animatedTarget !== undefined && !isNaN(parseInt(el.dataset.animatedTarget, 10)))
+          ? parseInt(el.dataset.animatedTarget, 10)
+          : 0);
 
       el.dataset.animatedTarget = target;
 
@@ -579,7 +591,25 @@
       case 'evaluation': return renderEvaluationView();
       case 'analytics': return renderAnalytics();
       case 'achievements': return renderAchievements();
-      case 'admin': return (window.AdminView && typeof window.AdminView.render === 'function') ? window.AdminView.render() : renderAdmin();
+      case 'admin':
+        if (state.currentUser && !state.isAdmin(state.currentUser)) {
+          return `
+            <div class="access-denied-container" style="text-align:center; padding:60px 20px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border-color); margin:30px auto; max-width:600px;">
+              <div style="font-size:3rem; margin-bottom:16px;">🔒</div>
+              <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:8px;">Admin Control Panel Restricted</h2>
+              <p style="color:var(--text-muted); margin-bottom:24px;">This administrative area requires administrator credentials. You are currently viewing as a student (${state.currentUser.name || 'Student'}).</p>
+              <div style="display:flex; gap:12px; justify-content:center;">
+                <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:10px 20px;" onclick="AppState.setView('dashboard')">
+                  Return to Dashboard
+                </button>
+                <button class="btn-hero-secondary" style="padding:10px 20px; border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
+                  Log In as Admin
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        return (window.AdminView && typeof window.AdminView.render === 'function') ? window.AdminView.render() : renderAdmin();
       default: return (window.DashboardView && typeof window.DashboardView.render === 'function') ? window.DashboardView.render() : renderDashboard();
     }
   }

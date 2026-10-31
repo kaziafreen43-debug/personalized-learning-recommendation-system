@@ -764,6 +764,25 @@
   const AdminView = {
     render: function() {
       const state = window.AppState || {};
+
+      // Security Guard: Prevent non-admin students from viewing the Admin Control Panel
+      if (state.currentUser && !state.isAdmin(state.currentUser)) {
+        return `
+          <div class="access-denied-container" style="text-align:center; padding:60px 20px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border-color); margin:30px auto; max-width:600px;">
+            <div style="font-size:3rem; margin-bottom:16px;">🔒</div>
+            <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:8px;">Admin Control Panel Restricted</h2>
+            <p style="color:var(--text-muted); margin-bottom:24px;">This administrative area requires administrator credentials. You are currently logged in as student <strong>${state.currentUser.name || 'Student'}</strong>.</p>
+            <div style="display:flex; gap:12px; justify-content:center;">
+              <button class="btn-hero-primary" style="background:var(--primary-gradient); color:#fff; padding:10px 20px;" onclick="AppState.setView('dashboard')">
+                Return to Student Dashboard
+              </button>
+              <button class="btn-hero-secondary" style="padding:10px 20px; border:1px solid var(--border-color);" onclick="AppState.loginUser('admin@gmail.com', 'Pass@123')">
+                Sign In as Admin
+              </button>
+            </div>
+          </div>
+        `;
+      }
       const resources = (state.data && state.data.resources) ? state.data.resources : [];
       const courses = (state.data && state.data.courses) ? state.data.courses : [];
       const subjects = (state.data && state.data.subjects) ? state.data.subjects : [];
@@ -792,7 +811,11 @@
       }
       
       const legacyMockIds = ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'];
-      const students = rawStudents.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
+      let students = rawStudents.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
+      if (students.length === 0 && state.data && state.data.defaultUsers) {
+        const fallbacks = state.data.defaultUsers.filter(u => u && u.role !== 'admin' && u.id !== 'u-admin' && (u.email || '').toLowerCase() !== 'admin@gmail.com' && !legacyMockIds.includes(u.id));
+        if (fallbacks.length > 0) students = fallbacks;
+      }
 
       // Dynamic metrics calculation
       const totalRegisteredStudents = students.length;

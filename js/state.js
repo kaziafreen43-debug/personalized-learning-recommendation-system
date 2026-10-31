@@ -577,6 +577,7 @@ window.AppState = {
 
     const savedAuth = localStorage.getItem('plr_is_auth');
     const savedUserId = localStorage.getItem('plr_user_id');
+    const savedView = localStorage.getItem('plr_current_view');
 
     if (savedAuth === 'true' && savedUserId) {
       if (savedUserId === 'u-admin') {
@@ -603,6 +604,7 @@ window.AppState = {
         adminUser.gradeClass = 'Administrator';
         this.currentUser = adminUser;
         this.isAuthenticated = true;
+        this.currentView = savedView || 'admin';
       } else {
         // Authenticated student session
         this.isAuthenticated = true;
@@ -618,10 +620,13 @@ window.AppState = {
           videoProgress: {},
           certificates: []
         };
+        // A student session must never open or remain on the admin view
+        this.currentView = (savedView && savedView !== 'admin') ? savedView : 'dashboard';
       }
     } else {
       this.currentUser = null;
       this.isAuthenticated = false;
+      this.currentView = 'dashboard';
     }
 
     if (this.currentUser && this.currentUser.role !== 'admin') {
@@ -668,7 +673,7 @@ window.AppState = {
       window.auth.onAuthStateChanged(async (firebaseUser) => {
         // If registration is actively running in submitQuestionnaire, do NOT interfere with premature document creation
         if (this._isRegistering) {
-          console.log("[Auth State Observer] Student registration in progress; deferring observer sync.");
+          console.log('[Auth State Observer] Student registration in progress; deferring observer sync.');
           return;
         }
 
@@ -676,10 +681,60 @@ window.AppState = {
           const authUid = firebaseUser.uid;
           const authEmail = (firebaseUser.email || '').toLowerCase();
           const isActuallyAdmin = authEmail === 'admin@gmail.com' || authUid === 'u-admin';
-          if (isActuallyAdmin) return;
 
-          // If current user is already this user, avoid redundant refresh
-          if (this.currentUser && this.currentUser.id === authUid && this.isAuthenticated) {
+          if (isActuallyAdmin) {
+            console.log(`[Auth State Observer] Admin authenticated with Firebase Auth: ${authEmail || authUid}`);
+            let admin = (this.data && this.data.defaultUsers)
+              ? this.data.defaultUsers.find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin')
+              : null;
+            if (!admin) {
+              admin = {
+                id: 'u-admin',
+                uid: authUid,
+                name: 'Admin Instructor',
+                email: 'admin@gmail.com',
+                role: 'admin',
+                gradeClass: 'Administrator',
+                avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+                preferredStyle: 'reading',
+                interests: ['ds', 'cs', 'math'],
+                enrolledCourseIds: [],
+                completedResourceIds: [],
+                bookmarkedResourceIds: [],
+                videoProgress: {},
+                certificates: [],
+                dailyGoalMinutes: 60,
+                todayStudiedMinutes: 0,
+                streakDays: 1,
+                recentActivity: []
+              };
+              if (!this.data) this.data = {};
+              if (!this.data.defaultUsers) this.data.defaultUsers = [];
+              this.data.defaultUsers.unshift(admin);
+            }
+            admin.role = 'admin';
+            admin.gradeClass = 'Administrator';
+            this.currentUser = admin;
+            this.isAuthenticated = true;
+            try {
+              localStorage.setItem('plr_is_auth', 'true');
+              localStorage.setItem('plr_user_id', 'u-admin');
+              localStorage.setItem('plr_auth_current_uid', 'u-admin');
+            } catch (_) {}
+            this.notify();
+            return;
+          }
+
+          // Authenticated Student Session
+          // Security Guard: A student account MUST NOT view or remain on the admin panel
+          if (this.currentView === 'admin') {
+            console.warn('[Auth State Observer] Student authenticated while on admin view. Redirecting to dashboard.');
+            this.currentView = 'dashboard';
+            try { localStorage.setItem('plr_current_view', 'dashboard'); } catch (_) {}
+          }
+
+          // If current user is already this student user, avoid redundant refresh
+          if (this.currentUser && this.currentUser.id === authUid && this.currentUser.role !== 'admin' && this.isAuthenticated) {
             return;
           }
 
@@ -698,11 +753,13 @@ window.AppState = {
           }
 
           if (userDoc) {
+            userDoc.role = 'student';
             this.currentUser = userDoc;
             this.isAuthenticated = true;
             try {
               localStorage.setItem('plr_is_auth', 'true');
               localStorage.setItem('plr_user_id', userDoc.id);
+              localStorage.setItem('plr_auth_current_uid', userDoc.id);
             } catch (_) {}
             if (window.FirebaseDB && typeof window.FirebaseDB.syncPersonalizedContent === 'function') {
               await window.FirebaseDB.syncPersonalizedContent(this);
@@ -711,14 +768,23 @@ window.AppState = {
             this.notify();
           }
         } else {
-          // Firebase Auth user signed out
-          if (this.currentUser && !this.isAdmin(this.currentUser) && this.isAuthenticated) {
-            console.log("[Auth State Observer] Auth state changed to unauthenticated. Clearing session.");
+          // Firebase Auth user signed out (firebaseUser === null)
+          const savedUserId = localStorage.getItem('plr_user_id');
+          const savedAuth = localStorage.getItem('plr_is_auth');
+          if (savedAuth === 'true' && savedUserId === 'u-admin') {
+            // Keep admin session active if explicitly stored
+            return;
+          }
+          if (this.isAuthenticated && (!this.currentUser || this.currentUser.role !== 'admin')) {
+            console.log('[Auth State Observer] Auth state changed to unauthenticated. Clearing session.');
             this.currentUser = null;
             this.isAuthenticated = false;
+            this.currentView = 'dashboard';
             try {
               localStorage.setItem('plr_is_auth', 'false');
               localStorage.removeItem('plr_user_id');
+              localStorage.removeItem('plr_auth_current_uid');
+              localStorage.removeItem('plr_current_view');
             } catch (_) {}
             this.notify();
           }
@@ -731,9 +797,6 @@ window.AppState = {
     try {
       localStorage.setItem('plr_app_data', JSON.stringify(this.data));
     } catch(e) {}
-    if (window.FirebaseDB && this.currentUser) {
-      window.FirebaseDB.saveUser(this.currentUser);
-    }
     this.notify();
   },
 
@@ -741,9 +804,25 @@ window.AppState = {
     this.listeners.push(listener);
   },
 
-  notify: function() {
-    this.listeners.forEach(fn => {
-      try { fn(this); } catch(e) { console.error(e); }
+  _notifyRafId: null,
+  notify: function(immediate = false) {
+    if (immediate) {
+      if (this._notifyRafId) {
+        cancelAnimationFrame(this._notifyRafId);
+        this._notifyRafId = null;
+      }
+      this.listeners.forEach(fn => {
+        try { fn(this); } catch(e) { console.error(e); }
+      });
+      return;
+    }
+
+    if (this._notifyRafId) return;
+    this._notifyRafId = requestAnimationFrame(() => {
+      this._notifyRafId = null;
+      this.listeners.forEach(fn => {
+        try { fn(this); } catch(e) { console.error(e); }
+      });
     });
   },
 
@@ -786,6 +865,12 @@ window.AppState = {
 
           // Rebuild defaultUsers with admin + dynamic Firestore students (excluding any admin duplicates)
           const validStudents = (students || []).filter(s => s && s.role !== 'admin' && s.id !== 'u-admin' && (s.email || '').toLowerCase() !== 'admin@gmail.com');
+          const prevCount = (this.data.students || []).length;
+          const newCount = validStudents.length;
+          const prevSig = (this.data.students || []).map(s => (s.id || s.uid) + ':' + (s.updatedAt || '')).join('|');
+          const newSig = validStudents.map(s => (s.id || s.uid) + ':' + (s.updatedAt || '')).join('|');
+          const hasChanged = prevCount !== newCount || prevSig !== newSig;
+
           this.data.defaultUsers = admin ? [admin, ...validStudents] : validStudents;
           this.data.students = validStudents;
 
@@ -807,7 +892,9 @@ window.AppState = {
             localStorage.setItem('plr_app_data', JSON.stringify(this.data));
           } catch (_) {}
 
-          this.notify();
+          if (hasChanged) {
+            this.notify();
+          }
         },
         (error) => {
           console.warn("Notice: Real-time student listener fallback active:", error);
@@ -862,6 +949,7 @@ window.AppState = {
       this._userProfileUnsubscribe = null;
     }
     if (!window.db || !userId) return;
+    if (userId === 'u-admin' || (this.currentUser && this.currentUser.role === 'admin')) return;
     try {
       const userRef = window.db.collection('users').doc(userId);
       if (typeof userRef.onSnapshot === 'function') {
@@ -903,15 +991,46 @@ window.AppState = {
         alert('Invalid admin credentials. Please use Pass@123.');
         return false;
       }
-      if (window.auth && password) {
+
+      // 1. Immediately wipe any student trackers and listeners
+      if (window.cleanupVideoModalTracker) {
+        try { window.cleanupVideoModalTracker(); } catch(_) {}
+      }
+      if (this._userProfileUnsubscribe) {
+        try { this._userProfileUnsubscribe(); } catch (_) {}
+        this._userProfileUnsubscribe = null;
+      }
+
+      // 2. Sign out any existing student from Firebase Auth first
+      if (window.auth) {
         try {
-          await window.auth.signInWithEmailAndPassword('admin@gmail.com', 'Pass@123');
-          console.log("[Firebase Auth] Admin authenticated with Firebase Auth successfully.");
-        } catch (e) {
-          console.warn("Notice: Admin Firebase Auth note:", e.message || e);
+          const currentAuthEmail = (window.auth.currentUser && window.auth.currentUser.email) ? window.auth.currentUser.email.toLowerCase() : '';
+          if (currentAuthEmail && currentAuthEmail !== 'admin@gmail.com') {
+            await window.auth.signOut();
+          }
+        } catch (_) {}
+      }
+
+      // 3. Authenticate Admin with Firebase Auth
+      if (window.auth) {
+        try {
+          await window.auth.signInWithEmailAndPassword('admin@gmail.com', password || 'Pass@123');
+          console.log('[Firebase Auth] Admin authenticated with Firebase Auth successfully.');
+        } catch (authErr) {
+          console.warn('[Firebase Auth] Admin signIn note:', authErr.code || authErr.message);
+          if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential' || (authErr.message && authErr.message.toLowerCase().includes('user-not-found'))) {
+            try {
+              await window.auth.createUserWithEmailAndPassword('admin@gmail.com', password || 'Pass@123');
+              console.log('[Firebase Auth] Admin user created in Firebase Auth successfully.');
+            } catch (createErr) {
+              console.warn('[Firebase Auth] Admin user creation note:', createErr.code || createErr.message);
+            }
+          }
         }
       }
-      let user = (this.data.defaultUsers || []).find(u => (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.id === 'u-admin');
+
+      // 4. Set current user strictly to Admin Instructor
+      let user = (this.data && this.data.defaultUsers || []).find(u => (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.id === 'u-admin');
       if (!user) {
         user = {
           id: 'u-admin',
@@ -932,6 +1051,7 @@ window.AppState = {
           streakDays: 1,
           recentActivity: []
         };
+        if (!this.data) this.data = {};
         if (!this.data.defaultUsers) this.data.defaultUsers = [];
         this.data.defaultUsers.unshift(user);
       }
@@ -941,10 +1061,18 @@ window.AppState = {
       this.isAuthenticated = true;
       try {
         localStorage.setItem('plr_is_auth', 'true');
-        localStorage.setItem('plr_user_id', user.id);
+        localStorage.setItem('plr_user_id', 'u-admin');
+        localStorage.setItem('plr_auth_current_uid', 'u-admin');
+        localStorage.setItem('plr_current_view', 'admin');
       } catch(e) {}
+
+      if (window.FirebaseDB) {
+        window.FirebaseDB.ensureUserDocument('u-admin', user);
+      }
+
       this.closeModal();
       this.setView('admin');
+      this.notify();
       return true;
     }
 
@@ -1079,12 +1207,16 @@ window.AppState = {
     return true;
   },
 
-  logoutUser: function() {
+  logoutUser: async function() {
     if (window.cleanupVideoModalTracker) {
       try { window.cleanupVideoModalTracker(); } catch(_) {}
     }
+    if (this._userProfileUnsubscribe) {
+      try { this._userProfileUnsubscribe(); } catch (_) {}
+      this._userProfileUnsubscribe = null;
+    }
     if (window.auth) {
-      try { window.auth.signOut(); } catch (_) {}
+      try { await window.auth.signOut(); } catch (_) {}
     }
     this.isAuthenticated = false;
     this.currentUser = null;
@@ -1093,11 +1225,14 @@ window.AppState = {
     this.showAllCourses = false;
     this.activeSubjectFilter = 'all';
     this.searchQuery = '';
+    this.currentView = 'dashboard';
     try {
       localStorage.setItem('plr_is_auth', 'false');
       localStorage.removeItem('plr_user_id');
+      localStorage.removeItem('plr_auth_current_uid');
+      localStorage.removeItem('plr_current_view');
     } catch(e) {}
-    this.setView('dashboard');
+    this.notify();
   },
 
   isAdmin: function(user) {
@@ -1142,37 +1277,20 @@ window.AppState = {
   },
 
   setView: function(viewName, params = {}) {
-    this.currentView = viewName;
     if (viewName === 'admin') {
-      if (!this.currentUser || !this.isAdmin(this.currentUser)) {
-        let admin = (this.data.defaultUsers || []).find(u => u.id === 'u-admin' || (u.email && u.email.toLowerCase() === 'admin@gmail.com') || u.role === 'admin');
-        if (!admin) {
-          admin = {
-            id: 'u-admin',
-            name: 'Admin Instructor',
-            email: 'admin@gmail.com',
-            role: 'admin',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
-            gradeClass: 'Administrator',
-            preferredStyle: 'reading',
-            interests: ['ds', 'cs', 'math'],
-            enrolledCourseIds: [],
-            completedResourceIds: [],
-            bookmarkedResourceIds: [],
-            dailyGoalMinutes: 60,
-            todayStudiedMinutes: 0,
-            streakDays: 1,
-            recentActivity: []
-          };
-          if (!this.data.defaultUsers) this.data.defaultUsers = [];
-          this.data.defaultUsers.unshift(admin);
-        }
-        admin.role = 'admin';
-        admin.gradeClass = 'Administrator';
-        this.currentUser = admin;
-        this.isAuthenticated = true;
+      if (!this.isAuthenticated || !this.currentUser) {
+        this.openModal('login');
+        return;
+      }
+      if (!this.isAdmin(this.currentUser)) {
+        alert('Access Denied: The Admin Control Panel requires administrator credentials. Please log in as an administrator.');
+        viewName = 'dashboard';
       }
     }
+    this.currentView = viewName;
+    try {
+      localStorage.setItem('plr_current_view', viewName);
+    } catch (_) {}
     if (params.subject) this.activeSubjectFilter = params.subject;
     if (params.courseId) this.selectedCourseId = params.courseId;
     window.scrollTo({ top: 0, behavior: 'smooth' });
